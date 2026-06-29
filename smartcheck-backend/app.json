@@ -1,0 +1,12 @@
+{
+  "expo": {
+    "extra": {
+      "eas": {
+        "projectId": "3c77a39b-9f6e-424d-81e0-a51f067e30e3"
+      }
+    },
+    "android": {
+      "package": "com.estebang2026.smartcheckbackend"
+    }
+  }
+}

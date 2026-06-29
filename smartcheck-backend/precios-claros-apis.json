@@ -1,0 +1,1538 @@
+[
+  {
+    "method": "GET",
+    "url": "https://www.preciosclaros.gob.ar/",
+    "headers": {
+      "upgrade-insecure-requests": "1",
+      "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36",
+      "sec-ch-ua": "\"Google Chrome\";v=\"147\", \"Not.A/Brand\";v=\"8\", \"Chromium\";v=\"147\"",
+      "sec-ch-ua-mobile": "?0",
+      "sec-ch-ua-platform": "\"Windows\""
+    }
+  },
+  {
+    "method": "GET",
+    "url": "https://www.preciosclaros.gob.ar/css/A.bootstrap.min.6633ff4f78a9527afb399177886647ce.css+poncho.min.af860238a1968a81d8f35e24f0f78b5a.css,Mcc.Xaaxy9k3RD.css.pagespeed.cf.WkZJ67Nko8.css",
+    "headers": {
+      "sec-ch-ua-platform": "\"Windows\"",
+      "referer": "https://www.preciosclaros.gob.ar/",
+      "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36",
+      "sec-ch-ua": "\"Google Chrome\";v=\"147\", \"Not.A/Brand\";v=\"8\", \"Chromium\";v=\"147\"",
+      "sec-ch-ua-mobile": "?0"
+    }
+  },
+  {
+    "method": "GET",
+    "url": "https://www.preciosclaros.gob.ar/css/A.principal.1c313d65311f884513672ea786147456.css+roboto-fontface.ca0d591b0155a96e795c1c85df594c52.css+checkbox-styles.d335379ae5ab7b1d774405876472fdf0.css+modals.f35d053739ea3b50be9a4c81cebd4663.css+gmaps.d255276f8c0b4cabac7d5f1bade22f68.css+tabla-mobile.54b204204736f9f0a26dfeead3972c20.css+sin-resultados.098a5834bc5dca19e8a20fd921661186.css+print-comparar-precios.2df41751c0ab111b3ba8adf75805a719.css+detalle-productos-no-comparables.d867f996ce11265b23b367a308eefec6.css+detalle-productos-no-comparables-en-mercado.e1a7e372ace0a7c0f8820e8bb953fbf9.css+mayoristas.0572ae185fd15e9e9a2ad984b540a035.css+slick.156884985b47106948745f3b4cd19269.css+header.5d38f2b54464b83244d020eb6c60d042.css+body.de8dde5067c7c7da52012efb95d8f522.css+buscar-productos.99a3d5070ceb6f72adbd809bb377376c.css+comparar-precios.36d0fcfe2c04873f9aa59388f8468e76.css+detalle-producto.24a396cf5a8b75b72b257391483f71d0.css,Mcc.yCdHTkrfHN.css.pagespeed.cf.Aka7NLgDKZ.css",
+    "headers": {
+      "sec-ch-ua-platform": "\"Windows\"",
+      "referer": "https://www.preciosclaros.gob.ar/",
+      "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36",
+      "sec-ch-ua": "\"Google Chrome\";v=\"147\", \"Not.A/Brand\";v=\"8\", \"Chromium\";v=\"147\"",
+      "sec-ch-ua-mobile": "?0"
+    }
+  },
+  {
+    "method": "GET",
+    "url": "https://www.preciosclaros.gob.ar/css/A.como-usar.e8ee85386eeca78a85681956ab548586.css+productos-informados.7e7f461f2fb12fc751fe11987094748c.css+footer.545943389f7c7a8840bccfa8c77427ed.css,Mcc.1TwL2C1wPJ.css.pagespeed.cf.H4wtNjDw9Y.css",
+    "headers": {
+      "sec-ch-ua-platform": "\"Windows\"",
+      "referer": "https://www.preciosclaros.gob.ar/",
+      "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36",
+      "sec-ch-ua": "\"Google Chrome\";v=\"147\", \"Not.A/Brand\";v=\"8\", \"Chromium\";v=\"147\"",
+      "sec-ch-ua-mobile": "?0"
+    }
+  },
+  {
+    "method": "GET",
+    "url": "https://www.preciosclaros.gob.ar/img/categorias/pc-iconos_%7B%7B%20categoria.id%20%7D%7D.svg",
+    "headers": {
+      "sec-ch-ua-platform": "\"Windows\"",
+      "referer": "https://www.preciosclaros.gob.ar/",
+      "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36",
+      "sec-ch-ua": "\"Google Chrome\";v=\"147\", \"Not.A/Brand\";v=\"8\", \"Chromium\";v=\"147\"",
+      "sec-ch-ua-mobile": "?0"
+    }
+  },
+  {
+    "method": "GET",
+    "url": "https://www.preciosclaros.gob.ar/img/iconos/xver.png.pagespeed.ic.MXifrjdfto.webp",
+    "headers": {
+      "sec-ch-ua-platform": "\"Windows\"",
+      "referer": "https://www.preciosclaros.gob.ar/",
+      "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36",
+      "sec-ch-ua": "\"Google Chrome\";v=\"147\", \"Not.A/Brand\";v=\"8\", \"Chromium\";v=\"147\"",
+      "sec-ch-ua-mobile": "?0"
+    }
+  },
+  {
+    "method": "GET",
+    "url": "https://www.preciosclaros.gob.ar/img/como-usar/x06.png.pagespeed.ic.MsPsz3tIZM.webp",
+    "headers": {
+      "sec-ch-ua-platform": "\"Windows\"",
+      "referer": "https://www.preciosclaros.gob.ar/",
+      "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36",
+      "sec-ch-ua": "\"Google Chrome\";v=\"147\", \"Not.A/Brand\";v=\"8\", \"Chromium\";v=\"147\"",
+      "sec-ch-ua-mobile": "?0"
+    }
+  },
+  {
+    "method": "GET",
+    "url": "https://www.preciosclaros.gob.ar/img/como-usar/x07.png.pagespeed.ic.VQQidynX7V.webp",
+    "headers": {
+      "sec-ch-ua-platform": "\"Windows\"",
+      "referer": "https://www.preciosclaros.gob.ar/",
+      "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36",
+      "sec-ch-ua": "\"Google Chrome\";v=\"147\", \"Not.A/Brand\";v=\"8\", \"Chromium\";v=\"147\"",
+      "sec-ch-ua-mobile": "?0"
+    }
+  },
+  {
+    "method": "GET",
+    "url": "https://www.preciosclaros.gob.ar/img/como-usar/x08.png.pagespeed.ic.d9tgUEGTNM.webp",
+    "headers": {
+      "sec-ch-ua-platform": "\"Windows\"",
+      "referer": "https://www.preciosclaros.gob.ar/",
+      "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36",
+      "sec-ch-ua": "\"Google Chrome\";v=\"147\", \"Not.A/Brand\";v=\"8\", \"Chromium\";v=\"147\"",
+      "sec-ch-ua-mobile": "?0"
+    }
+  },
+  {
+    "method": "GET",
+    "url": "https://www.preciosclaros.gob.ar/img/como-usar/x09.png.pagespeed.ic.sR30Z8JZF0.webp",
+    "headers": {
+      "sec-ch-ua-platform": "\"Windows\"",
+      "referer": "https://www.preciosclaros.gob.ar/",
+      "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36",
+      "sec-ch-ua": "\"Google Chrome\";v=\"147\", \"Not.A/Brand\";v=\"8\", \"Chromium\";v=\"147\"",
+      "sec-ch-ua-mobile": "?0"
+    }
+  },
+  {
+    "method": "GET",
+    "url": "https://www.preciosclaros.gob.ar/img/como-usar/x10.png.pagespeed.ic.ueJ92jtP44.webp",
+    "headers": {
+      "sec-ch-ua-platform": "\"Windows\"",
+      "referer": "https://www.preciosclaros.gob.ar/",
+      "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36",
+      "sec-ch-ua": "\"Google Chrome\";v=\"147\", \"Not.A/Brand\";v=\"8\", \"Chromium\";v=\"147\"",
+      "sec-ch-ua-mobile": "?0"
+    }
+  },
+  {
+    "method": "GET",
+    "url": "https://www.preciosclaros.gob.ar/img/como-usar/x11.png.pagespeed.ic.AJsI_5wxbO.webp",
+    "headers": {
+      "sec-ch-ua-platform": "\"Windows\"",
+      "referer": "https://www.preciosclaros.gob.ar/",
+      "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36",
+      "sec-ch-ua": "\"Google Chrome\";v=\"147\", \"Not.A/Brand\";v=\"8\", \"Chromium\";v=\"147\"",
+      "sec-ch-ua-mobile": "?0"
+    }
+  },
+  {
+    "method": "GET",
+    "url": "https://www.preciosclaros.gob.ar/img/como-usar/x12.png.pagespeed.ic.Nlu2L-K3FN.webp",
+    "headers": {
+      "sec-ch-ua-platform": "\"Windows\"",
+      "referer": "https://www.preciosclaros.gob.ar/",
+      "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36",
+      "sec-ch-ua": "\"Google Chrome\";v=\"147\", \"Not.A/Brand\";v=\"8\", \"Chromium\";v=\"147\"",
+      "sec-ch-ua-mobile": "?0"
+    }
+  },
+  {
+    "method": "GET",
+    "url": "https://www.preciosclaros.gob.ar/img/como-usar/x18.png.pagespeed.ic.kqy2HCUuE-.webp",
+    "headers": {
+      "sec-ch-ua-platform": "\"Windows\"",
+      "referer": "https://www.preciosclaros.gob.ar/",
+      "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36",
+      "sec-ch-ua": "\"Google Chrome\";v=\"147\", \"Not.A/Brand\";v=\"8\", \"Chromium\";v=\"147\"",
+      "sec-ch-ua-mobile": "?0"
+    }
+  },
+  {
+    "method": "GET",
+    "url": "https://www.preciosclaros.gob.ar/img/como-usar/x13.png.pagespeed.ic.pGHJp-_cZ-.webp",
+    "headers": {
+      "sec-ch-ua-platform": "\"Windows\"",
+      "referer": "https://www.preciosclaros.gob.ar/",
+      "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36",
+      "sec-ch-ua": "\"Google Chrome\";v=\"147\", \"Not.A/Brand\";v=\"8\", \"Chromium\";v=\"147\"",
+      "sec-ch-ua-mobile": "?0"
+    }
+  },
+  {
+    "method": "GET",
+    "url": "https://www.preciosclaros.gob.ar/img/como-usar/x14.png.pagespeed.ic.3yI18jcWAD.webp",
+    "headers": {
+      "sec-ch-ua-platform": "\"Windows\"",
+      "referer": "https://www.preciosclaros.gob.ar/",
+      "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36",
+      "sec-ch-ua": "\"Google Chrome\";v=\"147\", \"Not.A/Brand\";v=\"8\", \"Chromium\";v=\"147\"",
+      "sec-ch-ua-mobile": "?0"
+    }
+  },
+  {
+    "method": "GET",
+    "url": "https://www.preciosclaros.gob.ar/img/como-usar/x15.png.pagespeed.ic.erIpQ-tWu_.webp",
+    "headers": {
+      "sec-ch-ua-platform": "\"Windows\"",
+      "referer": "https://www.preciosclaros.gob.ar/",
+      "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36",
+      "sec-ch-ua": "\"Google Chrome\";v=\"147\", \"Not.A/Brand\";v=\"8\", \"Chromium\";v=\"147\"",
+      "sec-ch-ua-mobile": "?0"
+    }
+  },
+  {
+    "method": "GET",
+    "url": "https://www.preciosclaros.gob.ar/img/footer-sec.svg",
+    "headers": {
+      "sec-ch-ua-platform": "\"Windows\"",
+      "referer": "https://www.preciosclaros.gob.ar/",
+      "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36",
+      "sec-ch-ua": "\"Google Chrome\";v=\"147\", \"Not.A/Brand\";v=\"8\", \"Chromium\";v=\"147\"",
+      "sec-ch-ua-mobile": "?0"
+    }
+  },
+  {
+    "method": "GET",
+    "url": "https://www.preciosclaros.gob.ar/img/footer_foot-min.svg",
+    "headers": {
+      "sec-ch-ua-platform": "\"Windows\"",
+      "referer": "https://www.preciosclaros.gob.ar/",
+      "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36",
+      "sec-ch-ua": "\"Google Chrome\";v=\"147\", \"Not.A/Brand\";v=\"8\", \"Chromium\";v=\"147\"",
+      "sec-ch-ua-mobile": "?0"
+    }
+  },
+  {
+    "method": "GET",
+    "url": "https://maps.googleapis.com/maps/api/users/js?key=AIzaSyDVvOZDbxSsvqMBZ06X9roF6GKeCurQds8&libraries=places&language=es",
+    "headers": {
+      "sec-ch-ua-platform": "\"Windows\"",
+      "referer": "https://www.preciosclaros.gob.ar/",
+      "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36",
+      "sec-ch-ua": "\"Google Chrome\";v=\"147\", \"Not.A/Brand\";v=\"8\", \"Chromium\";v=\"147\"",
+      "sec-ch-ua-mobile": "?0"
+    }
+  },
+  {
+    "method": "GET",
+    "url": "https://www.preciosclaros.gob.ar/js/app/sepa.46db452c7934cf26f1c054f3bc8cd15b.js.pagespeed.jm.p3KQbw3uFZ.js",
+    "headers": {
+      "sec-ch-ua-platform": "\"Windows\"",
+      "referer": "https://www.preciosclaros.gob.ar/",
+      "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36",
+      "sec-ch-ua": "\"Google Chrome\";v=\"147\", \"Not.A/Brand\";v=\"8\", \"Chromium\";v=\"147\"",
+      "sec-ch-ua-mobile": "?0"
+    }
+  },
+  {
+    "method": "GET",
+    "url": "https://www.preciosclaros.gob.ar/js/app/filters.0a76223522a00d8bd7fef3866b5c3513.js+directives.2ad9b1d7c7091e609d8680084f8b71f7.js+services.d82c942e54b683ca0d12ad497fcb5d2a.js.pagespeed.jc.RmZ4vSthSf.js",
+    "headers": {
+      "sec-ch-ua-platform": "\"Windows\"",
+      "referer": "https://www.preciosclaros.gob.ar/",
+      "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36",
+      "sec-ch-ua": "\"Google Chrome\";v=\"147\", \"Not.A/Brand\";v=\"8\", \"Chromium\";v=\"147\"",
+      "sec-ch-ua-mobile": "?0"
+    }
+  },
+  {
+    "method": "GET",
+    "url": "https://www.preciosclaros.gob.ar/js/vendor/jquery.min.b54884538a37c9914494697db3621365.js.pagespeed.jm.vSq_cOaZon.js",
+    "headers": {
+      "sec-ch-ua-platform": "\"Windows\"",
+      "referer": "https://www.preciosclaros.gob.ar/",
+      "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36",
+      "sec-ch-ua": "\"Google Chrome\";v=\"147\", \"Not.A/Brand\";v=\"8\", \"Chromium\";v=\"147\"",
+      "sec-ch-ua-mobile": "?0"
+    }
+  },
+  {
+    "method": "GET",
+    "url": "https://www.preciosclaros.gob.ar/js/tracking.9e5d5849b547da561916432cd57001fd.js+geo.90c3e3c339170f8b256b5cf7829f7d1b.js+vendor,_chosen_v1.8.7,_chosen.jquery.min.070109c8e669be75cc8889bef4eb3d20.js+vendor,_bootstrap.min.c102a43830f80cda15626b6099ad0fe7.js.pagespeed.jc.zWGjtZwpAO.js",
+    "headers": {
+      "sec-ch-ua-platform": "\"Windows\"",
+      "referer": "https://www.preciosclaros.gob.ar/",
+      "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36",
+      "sec-ch-ua": "\"Google Chrome\";v=\"147\", \"Not.A/Brand\";v=\"8\", \"Chromium\";v=\"147\"",
+      "sec-ch-ua-mobile": "?0"
+    }
+  },
+  {
+    "method": "GET",
+    "url": "https://www.preciosclaros.gob.ar/js/poncho.min.005f60967ef28b4c11ad4c443fba4563.js+messaging.e777405f27cdab4c83318e0dd60171d9.js+validacion.8da54a7ab8ec95e8b97d41b467cf43ff.js+application.9f432694c91d73f1177bdfd34cfe33b5.js+back.2e83954e4e1a62ea791504ff10d65470.js.pagespeed.jc.gZtAhY-Bdu.js",
+    "headers": {
+      "sec-ch-ua-platform": "\"Windows\"",
+      "referer": "https://www.preciosclaros.gob.ar/",
+      "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36",
+      "sec-ch-ua": "\"Google Chrome\";v=\"147\", \"Not.A/Brand\";v=\"8\", \"Chromium\";v=\"147\"",
+      "sec-ch-ua-mobile": "?0"
+    }
+  },
+  {
+    "method": "GET",
+    "url": "http://www.preciosclaros.gob.ar/fonts/EncodeSans-Regular.ttf",
+    "headers": {
+      "origin": "https://www.preciosclaros.gob.ar",
+      "referer": ""
+    }
+  },
+  {
+    "method": "GET",
+    "url": "http://www.preciosclaros.gob.ar/fonts/EncodeSans-Medium.ttf",
+    "headers": {
+      "origin": "https://www.preciosclaros.gob.ar",
+      "referer": ""
+    }
+  },
+  {
+    "method": "GET",
+    "url": "http://www.preciosclaros.gob.ar/fonts/EncodeSans-SemiBold.ttf",
+    "headers": {
+      "origin": "https://www.preciosclaros.gob.ar",
+      "referer": ""
+    }
+  },
+  {
+    "method": "GET",
+    "url": "http://www.preciosclaros.gob.ar/fonts/EncodeSans-Bold.ttf",
+    "headers": {
+      "origin": "https://www.preciosclaros.gob.ar",
+      "referer": ""
+    }
+  },
+  {
+    "method": "GET",
+    "url": "http://www.preciosclaros.gob.ar/fonts/Roboto-Thin-webfont.woff",
+    "headers": {
+      "origin": "https://www.preciosclaros.gob.ar",
+      "referer": ""
+    }
+  },
+  {
+    "method": "GET",
+    "url": "http://www.preciosclaros.gob.ar/fonts/Roboto-Thin-webfont.ttf",
+    "headers": {
+      "origin": "https://www.preciosclaros.gob.ar",
+      "referer": ""
+    }
+  },
+  {
+    "method": "GET",
+    "url": "http://www.preciosclaros.gob.ar/fonts/Roboto-Thin-webfont.woff",
+    "headers": {
+      "origin": "https://www.preciosclaros.gob.ar",
+      "referer": ""
+    }
+  },
+  {
+    "method": "GET",
+    "url": "http://www.preciosclaros.gob.ar/fonts/Roboto-Thin-webfont.ttf",
+    "headers": {
+      "origin": "https://www.preciosclaros.gob.ar",
+      "referer": ""
+    }
+  },
+  {
+    "method": "GET",
+    "url": "http://www.preciosclaros.gob.ar/fonts/Roboto-ThinItalic-webfont.woff",
+    "headers": {
+      "origin": "https://www.preciosclaros.gob.ar",
+      "referer": ""
+    }
+  },
+  {
+    "method": "GET",
+    "url": "http://www.preciosclaros.gob.ar/fonts/Roboto-ThinItalic-webfont.ttf",
+    "headers": {
+      "origin": "https://www.preciosclaros.gob.ar",
+      "referer": ""
+    }
+  },
+  {
+    "method": "GET",
+    "url": "http://www.preciosclaros.gob.ar/fonts/Roboto-ThinItalic-webfont.woff",
+    "headers": {
+      "origin": "https://www.preciosclaros.gob.ar",
+      "referer": ""
+    }
+  },
+  {
+    "method": "GET",
+    "url": "http://www.preciosclaros.gob.ar/fonts/Roboto-ThinItalic-webfont.ttf",
+    "headers": {
+      "origin": "https://www.preciosclaros.gob.ar",
+      "referer": ""
+    }
+  },
+  {
+    "method": "GET",
+    "url": "http://www.preciosclaros.gob.ar/fonts/Roboto-Light-webfont.woff",
+    "headers": {
+      "origin": "https://www.preciosclaros.gob.ar",
+      "referer": ""
+    }
+  },
+  {
+    "method": "GET",
+    "url": "http://www.preciosclaros.gob.ar/fonts/Roboto-Light-webfont.ttf",
+    "headers": {
+      "origin": "https://www.preciosclaros.gob.ar",
+      "referer": ""
+    }
+  },
+  {
+    "method": "GET",
+    "url": "http://www.preciosclaros.gob.ar/fonts/Roboto-Light-webfont.woff",
+    "headers": {
+      "origin": "https://www.preciosclaros.gob.ar",
+      "referer": ""
+    }
+  },
+  {
+    "method": "GET",
+    "url": "http://www.preciosclaros.gob.ar/fonts/Roboto-Light-webfont.ttf",
+    "headers": {
+      "origin": "https://www.preciosclaros.gob.ar",
+      "referer": ""
+    }
+  },
+  {
+    "method": "GET",
+    "url": "http://www.preciosclaros.gob.ar/fonts/Roboto-LightItalic-webfont.woff",
+    "headers": {
+      "origin": "https://www.preciosclaros.gob.ar",
+      "referer": ""
+    }
+  },
+  {
+    "method": "GET",
+    "url": "http://www.preciosclaros.gob.ar/fonts/Roboto-LightItalic-webfont.ttf",
+    "headers": {
+      "origin": "https://www.preciosclaros.gob.ar",
+      "referer": ""
+    }
+  },
+  {
+    "method": "GET",
+    "url": "http://www.preciosclaros.gob.ar/fonts/Roboto-LightItalic-webfont.woff",
+    "headers": {
+      "origin": "https://www.preciosclaros.gob.ar",
+      "referer": ""
+    }
+  },
+  {
+    "method": "GET",
+    "url": "http://www.preciosclaros.gob.ar/fonts/Roboto-LightItalic-webfont.ttf",
+    "headers": {
+      "origin": "https://www.preciosclaros.gob.ar",
+      "referer": ""
+    }
+  },
+  {
+    "method": "GET",
+    "url": "http://www.preciosclaros.gob.ar/fonts/Roboto-Regular-webfont.woff",
+    "headers": {
+      "origin": "https://www.preciosclaros.gob.ar",
+      "referer": ""
+    }
+  },
+  {
+    "method": "GET",
+    "url": "http://www.preciosclaros.gob.ar/fonts/Roboto-Regular-webfont.ttf",
+    "headers": {
+      "origin": "https://www.preciosclaros.gob.ar",
+      "referer": ""
+    }
+  },
+  {
+    "method": "GET",
+    "url": "http://www.preciosclaros.gob.ar/fonts/Roboto-Regular-webfont.woff",
+    "headers": {
+      "origin": "https://www.preciosclaros.gob.ar",
+      "referer": ""
+    }
+  },
+  {
+    "method": "GET",
+    "url": "http://www.preciosclaros.gob.ar/fonts/Roboto-Regular-webfont.ttf",
+    "headers": {
+      "origin": "https://www.preciosclaros.gob.ar",
+      "referer": ""
+    }
+  },
+  {
+    "method": "GET",
+    "url": "http://www.preciosclaros.gob.ar/fonts/Roboto-Italic-webfont.woff",
+    "headers": {
+      "origin": "https://www.preciosclaros.gob.ar",
+      "referer": ""
+    }
+  },
+  {
+    "method": "GET",
+    "url": "http://www.preciosclaros.gob.ar/fonts/Roboto-Italic-webfont.ttf",
+    "headers": {
+      "origin": "https://www.preciosclaros.gob.ar",
+      "referer": ""
+    }
+  },
+  {
+    "method": "GET",
+    "url": "http://www.preciosclaros.gob.ar/fonts/Roboto-Italic-webfont.woff",
+    "headers": {
+      "origin": "https://www.preciosclaros.gob.ar",
+      "referer": ""
+    }
+  },
+  {
+    "method": "GET",
+    "url": "http://www.preciosclaros.gob.ar/fonts/Roboto-Italic-webfont.ttf",
+    "headers": {
+      "origin": "https://www.preciosclaros.gob.ar",
+      "referer": ""
+    }
+  },
+  {
+    "method": "GET",
+    "url": "http://www.preciosclaros.gob.ar/fonts/Roboto-Medium-webfont.woff",
+    "headers": {
+      "origin": "https://www.preciosclaros.gob.ar",
+      "referer": ""
+    }
+  },
+  {
+    "method": "GET",
+    "url": "http://www.preciosclaros.gob.ar/fonts/Roboto-Medium-webfont.ttf",
+    "headers": {
+      "origin": "https://www.preciosclaros.gob.ar",
+      "referer": ""
+    }
+  },
+  {
+    "method": "GET",
+    "url": "http://www.preciosclaros.gob.ar/fonts/Roboto-Medium-webfont.woff",
+    "headers": {
+      "origin": "https://www.preciosclaros.gob.ar",
+      "referer": ""
+    }
+  },
+  {
+    "method": "GET",
+    "url": "http://www.preciosclaros.gob.ar/fonts/Roboto-Medium-webfont.ttf",
+    "headers": {
+      "origin": "https://www.preciosclaros.gob.ar",
+      "referer": ""
+    }
+  },
+  {
+    "method": "GET",
+    "url": "http://www.preciosclaros.gob.ar/fonts/Roboto-MediumItalic-webfont.woff",
+    "headers": {
+      "origin": "https://www.preciosclaros.gob.ar",
+      "referer": ""
+    }
+  },
+  {
+    "method": "GET",
+    "url": "http://www.preciosclaros.gob.ar/fonts/Roboto-MediumItalic-webfont.ttf",
+    "headers": {
+      "origin": "https://www.preciosclaros.gob.ar",
+      "referer": ""
+    }
+  },
+  {
+    "method": "GET",
+    "url": "http://www.preciosclaros.gob.ar/fonts/Roboto-MediumItalic-webfont.woff",
+    "headers": {
+      "origin": "https://www.preciosclaros.gob.ar",
+      "referer": ""
+    }
+  },
+  {
+    "method": "GET",
+    "url": "http://www.preciosclaros.gob.ar/fonts/Roboto-MediumItalic-webfont.ttf",
+    "headers": {
+      "origin": "https://www.preciosclaros.gob.ar",
+      "referer": ""
+    }
+  },
+  {
+    "method": "GET",
+    "url": "http://www.preciosclaros.gob.ar/fonts/Roboto-Bold-webfont.woff",
+    "headers": {
+      "origin": "https://www.preciosclaros.gob.ar",
+      "referer": ""
+    }
+  },
+  {
+    "method": "GET",
+    "url": "http://www.preciosclaros.gob.ar/fonts/Roboto-Bold-webfont.ttf",
+    "headers": {
+      "origin": "https://www.preciosclaros.gob.ar",
+      "referer": ""
+    }
+  },
+  {
+    "method": "GET",
+    "url": "http://www.preciosclaros.gob.ar/fonts/Roboto-Bold-webfont.woff",
+    "headers": {
+      "origin": "https://www.preciosclaros.gob.ar",
+      "referer": ""
+    }
+  },
+  {
+    "method": "GET",
+    "url": "http://www.preciosclaros.gob.ar/fonts/Roboto-Bold-webfont.ttf",
+    "headers": {
+      "origin": "https://www.preciosclaros.gob.ar",
+      "referer": ""
+    }
+  },
+  {
+    "method": "GET",
+    "url": "http://www.preciosclaros.gob.ar/fonts/Roboto-BoldItalic-webfont.woff",
+    "headers": {
+      "origin": "https://www.preciosclaros.gob.ar",
+      "referer": ""
+    }
+  },
+  {
+    "method": "GET",
+    "url": "http://www.preciosclaros.gob.ar/fonts/Roboto-BoldItalic-webfont.ttf",
+    "headers": {
+      "origin": "https://www.preciosclaros.gob.ar",
+      "referer": ""
+    }
+  },
+  {
+    "method": "GET",
+    "url": "http://www.preciosclaros.gob.ar/fonts/Roboto-BoldItalic-webfont.woff",
+    "headers": {
+      "origin": "https://www.preciosclaros.gob.ar",
+      "referer": ""
+    }
+  },
+  {
+    "method": "GET",
+    "url": "http://www.preciosclaros.gob.ar/fonts/Roboto-BoldItalic-webfont.ttf",
+    "headers": {
+      "origin": "https://www.preciosclaros.gob.ar",
+      "referer": ""
+    }
+  },
+  {
+    "method": "GET",
+    "url": "http://www.preciosclaros.gob.ar/fonts/Roboto-Black-webfont.woff",
+    "headers": {
+      "origin": "https://www.preciosclaros.gob.ar",
+      "referer": ""
+    }
+  },
+  {
+    "method": "GET",
+    "url": "http://www.preciosclaros.gob.ar/fonts/Roboto-Black-webfont.ttf",
+    "headers": {
+      "origin": "https://www.preciosclaros.gob.ar",
+      "referer": ""
+    }
+  },
+  {
+    "method": "GET",
+    "url": "http://www.preciosclaros.gob.ar/fonts/Roboto-Black-webfont.woff",
+    "headers": {
+      "origin": "https://www.preciosclaros.gob.ar",
+      "referer": ""
+    }
+  },
+  {
+    "method": "GET",
+    "url": "http://www.preciosclaros.gob.ar/fonts/Roboto-Black-webfont.ttf",
+    "headers": {
+      "origin": "https://www.preciosclaros.gob.ar",
+      "referer": ""
+    }
+  },
+  {
+    "method": "GET",
+    "url": "http://www.preciosclaros.gob.ar/fonts/Roboto-BlackItalic-webfont.woff",
+    "headers": {
+      "origin": "https://www.preciosclaros.gob.ar",
+      "referer": ""
+    }
+  },
+  {
+    "method": "GET",
+    "url": "http://www.preciosclaros.gob.ar/fonts/Roboto-BlackItalic-webfont.ttf",
+    "headers": {
+      "origin": "https://www.preciosclaros.gob.ar",
+      "referer": ""
+    }
+  },
+  {
+    "method": "GET",
+    "url": "http://www.preciosclaros.gob.ar/fonts/Roboto-BlackItalic-webfont.woff",
+    "headers": {
+      "origin": "https://www.preciosclaros.gob.ar",
+      "referer": ""
+    }
+  },
+  {
+    "method": "GET",
+    "url": "http://www.preciosclaros.gob.ar/fonts/Roboto-BlackItalic-webfont.ttf",
+    "headers": {
+      "origin": "https://www.preciosclaros.gob.ar",
+      "referer": ""
+    }
+  },
+  {
+    "method": "GET",
+    "url": "https://www.preciosclaros.gob.ar/img/xbackground2021.jpg.pagespeed.ic.MXIW7WrjkL.webp",
+    "headers": {
+      "sec-ch-ua-platform": "\"Windows\"",
+      "referer": "https://www.preciosclaros.gob.ar/css/A.principal.1c313d65311f884513672ea786147456.css+roboto-fontface.ca0d591b0155a96e795c1c85df594c52.css+checkbox-styles.d335379ae5ab7b1d774405876472fdf0.css+modals.f35d053739ea3b50be9a4c81cebd4663.css+gmaps.d255276f8c0b4cabac7d5f1bade22f68.css+tabla-mobile.54b204204736f9f0a26dfeead3972c20.css+sin-resultados.098a5834bc5dca19e8a20fd921661186.css+print-comparar-precios.2df41751c0ab111b3ba8adf75805a719.css+detalle-productos-no-comparables.d867f996ce11265b23b367a308eefec6.css+detalle-productos-no-comparables-en-mercado.e1a7e372ace0a7c0f8820e8bb953fbf9.css+mayoristas.0572ae185fd15e9e9a2ad984b540a035.css+slick.156884985b47106948745f3b4cd19269.css+header.5d38f2b54464b83244d020eb6c60d042.css+body.de8dde5067c7c7da52012efb95d8f522.css+buscar-productos.99a3d5070ceb6f72adbd809bb377376c.css+comparar-precios.36d0fcfe2c04873f9aa59388f8468e76.css+detalle-producto.24a396cf5a8b75b72b257391483f71d0.css,Mcc.yCdHTkrfHN.css.pagespeed.cf.Aka7NLgDKZ.css",
+      "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36",
+      "sec-ch-ua": "\"Google Chrome\";v=\"147\", \"Not.A/Brand\";v=\"8\", \"Chromium\";v=\"147\"",
+      "sec-ch-ua-mobile": "?0"
+    }
+  },
+  {
+    "method": "GET",
+    "url": "https://www.preciosclaros.gob.ar/fonts/EncodeSans-Medium.ttf",
+    "headers": {
+      "origin": "https://www.preciosclaros.gob.ar",
+      "sec-ch-ua-platform": "\"Windows\"",
+      "referer": "https://www.preciosclaros.gob.ar/css/A.principal.1c313d65311f884513672ea786147456.css+roboto-fontface.ca0d591b0155a96e795c1c85df594c52.css+checkbox-styles.d335379ae5ab7b1d774405876472fdf0.css+modals.f35d053739ea3b50be9a4c81cebd4663.css+gmaps.d255276f8c0b4cabac7d5f1bade22f68.css+tabla-mobile.54b204204736f9f0a26dfeead3972c20.css+sin-resultados.098a5834bc5dca19e8a20fd921661186.css+print-comparar-precios.2df41751c0ab111b3ba8adf75805a719.css+detalle-productos-no-comparables.d867f996ce11265b23b367a308eefec6.css+detalle-productos-no-comparables-en-mercado.e1a7e372ace0a7c0f8820e8bb953fbf9.css+mayoristas.0572ae185fd15e9e9a2ad984b540a035.css+slick.156884985b47106948745f3b4cd19269.css+header.5d38f2b54464b83244d020eb6c60d042.css+body.de8dde5067c7c7da52012efb95d8f522.css+buscar-productos.99a3d5070ceb6f72adbd809bb377376c.css+comparar-precios.36d0fcfe2c04873f9aa59388f8468e76.css+detalle-producto.24a396cf5a8b75b72b257391483f71d0.css,Mcc.yCdHTkrfHN.css.pagespeed.cf.Aka7NLgDKZ.css",
+      "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36",
+      "sec-ch-ua": "\"Google Chrome\";v=\"147\", \"Not.A/Brand\";v=\"8\", \"Chromium\";v=\"147\"",
+      "sec-ch-ua-mobile": "?0"
+    }
+  },
+  {
+    "method": "GET",
+    "url": "https://www.preciosclaros.gob.ar/fonts/EncodeSans-Bold.ttf",
+    "headers": {
+      "origin": "https://www.preciosclaros.gob.ar",
+      "sec-ch-ua-platform": "\"Windows\"",
+      "referer": "https://www.preciosclaros.gob.ar/css/A.principal.1c313d65311f884513672ea786147456.css+roboto-fontface.ca0d591b0155a96e795c1c85df594c52.css+checkbox-styles.d335379ae5ab7b1d774405876472fdf0.css+modals.f35d053739ea3b50be9a4c81cebd4663.css+gmaps.d255276f8c0b4cabac7d5f1bade22f68.css+tabla-mobile.54b204204736f9f0a26dfeead3972c20.css+sin-resultados.098a5834bc5dca19e8a20fd921661186.css+print-comparar-precios.2df41751c0ab111b3ba8adf75805a719.css+detalle-productos-no-comparables.d867f996ce11265b23b367a308eefec6.css+detalle-productos-no-comparables-en-mercado.e1a7e372ace0a7c0f8820e8bb953fbf9.css+mayoristas.0572ae185fd15e9e9a2ad984b540a035.css+slick.156884985b47106948745f3b4cd19269.css+header.5d38f2b54464b83244d020eb6c60d042.css+body.de8dde5067c7c7da52012efb95d8f522.css+buscar-productos.99a3d5070ceb6f72adbd809bb377376c.css+comparar-precios.36d0fcfe2c04873f9aa59388f8468e76.css+detalle-producto.24a396cf5a8b75b72b257391483f71d0.css,Mcc.yCdHTkrfHN.css.pagespeed.cf.Aka7NLgDKZ.css",
+      "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36",
+      "sec-ch-ua": "\"Google Chrome\";v=\"147\", \"Not.A/Brand\";v=\"8\", \"Chromium\";v=\"147\"",
+      "sec-ch-ua-mobile": "?0"
+    }
+  },
+  {
+    "method": "GET",
+    "url": "https://www.preciosclaros.gob.ar/fonts/EncodeSans-SemiBold.ttf",
+    "headers": {
+      "origin": "https://www.preciosclaros.gob.ar",
+      "sec-ch-ua-platform": "\"Windows\"",
+      "referer": "https://www.preciosclaros.gob.ar/css/A.principal.1c313d65311f884513672ea786147456.css+roboto-fontface.ca0d591b0155a96e795c1c85df594c52.css+checkbox-styles.d335379ae5ab7b1d774405876472fdf0.css+modals.f35d053739ea3b50be9a4c81cebd4663.css+gmaps.d255276f8c0b4cabac7d5f1bade22f68.css+tabla-mobile.54b204204736f9f0a26dfeead3972c20.css+sin-resultados.098a5834bc5dca19e8a20fd921661186.css+print-comparar-precios.2df41751c0ab111b3ba8adf75805a719.css+detalle-productos-no-comparables.d867f996ce11265b23b367a308eefec6.css+detalle-productos-no-comparables-en-mercado.e1a7e372ace0a7c0f8820e8bb953fbf9.css+mayoristas.0572ae185fd15e9e9a2ad984b540a035.css+slick.156884985b47106948745f3b4cd19269.css+header.5d38f2b54464b83244d020eb6c60d042.css+body.de8dde5067c7c7da52012efb95d8f522.css+buscar-productos.99a3d5070ceb6f72adbd809bb377376c.css+comparar-precios.36d0fcfe2c04873f9aa59388f8468e76.css+detalle-producto.24a396cf5a8b75b72b257391483f71d0.css,Mcc.yCdHTkrfHN.css.pagespeed.cf.Aka7NLgDKZ.css",
+      "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36",
+      "sec-ch-ua": "\"Google Chrome\";v=\"147\", \"Not.A/Brand\";v=\"8\", \"Chromium\";v=\"147\"",
+      "sec-ch-ua-mobile": "?0"
+    }
+  },
+  {
+    "method": "GET",
+    "url": "https://maps.googleapis.com/maps/api/users/mapsjs/gen_204?csp_test=true",
+    "headers": {
+      "sec-ch-ua-platform": "\"Windows\"",
+      "referer": "https://www.preciosclaros.gob.ar/",
+      "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36",
+      "sec-ch-ua": "\"Google Chrome\";v=\"147\", \"Not.A/Brand\";v=\"8\", \"Chromium\";v=\"147\"",
+      "sec-ch-ua-mobile": "?0"
+    }
+  },
+  {
+    "method": "POST",
+    "url": "https://www.google-analytics.com/j/collect?v=1&_v=j102&a=1487867159&t=pageview&_s=1&dl=https%3A%2F%2Fwww.preciosclaros.gob.ar%2F&ul=es-es&dt=Precios%20Claros&sr=1536x864&vp=785x600&_u=YEBAAAABAAAAAC~&jid=1426583376&gjid=892506574&cid=599978442.1777946173&tid=UA-71585203-3&_gid=1688669900.1777946173&_r=1&_slc=1&gtm=45He6511n71MB9K5Hv72161380za200zd72161380&gcd=13l3l3l3l1l1&dma=0&tag_exp=0~115938465~115938468~116363097&z=905623093",
+    "headers": {
+      "sec-ch-ua-platform": "\"Windows\"",
+      "referer": "https://www.preciosclaros.gob.ar/",
+      "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36",
+      "sec-ch-ua": "\"Google Chrome\";v=\"147\", \"Not.A/Brand\";v=\"8\", \"Chromium\";v=\"147\"",
+      "content-type": "text/plain",
+      "sec-ch-ua-mobile": "?0"
+    }
+  },
+  {
+    "method": "POST",
+    "url": "https://www.preciosclaros.gob.ar/mod_pagespeed_beacon?url=http%3A%2F%2Fwww.preciosclaros.gob.ar%2F",
+    "headers": {
+      "sec-ch-ua-platform": "\"Windows\"",
+      "referer": "https://www.preciosclaros.gob.ar/",
+      "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36",
+      "sec-ch-ua": "\"Google Chrome\";v=\"147\", \"Not.A/Brand\";v=\"8\", \"Chromium\";v=\"147\"",
+      "content-type": "application/x-www-form-urlencoded",
+      "sec-ch-ua-mobile": "?0"
+    },
+    "postData": "oh=s3ya2n9xkt&n=i0p7aSLknJI&ci=391664945"
+  },
+  {
+    "method": "GET",
+    "url": "https://www.preciosclaros.gob.ar/img/xfavicon.png.pagespeed.ic.bkunJe09qH.webp",
+    "headers": {
+      "sec-ch-ua-platform": "\"Windows\"",
+      "referer": "https://www.preciosclaros.gob.ar/",
+      "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36",
+      "sec-ch-ua": "\"Google Chrome\";v=\"147\", \"Not.A/Brand\";v=\"8\", \"Chromium\";v=\"147\"",
+      "sec-ch-ua-mobile": "?0"
+    }
+  },
+  {
+    "method": "GET",
+    "url": "https://www.preciosclaros.gob.ar/img/favicon.ico",
+    "headers": {
+      "sec-ch-ua-platform": "\"Windows\"",
+      "referer": "https://www.preciosclaros.gob.ar/",
+      "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36",
+      "sec-ch-ua": "\"Google Chrome\";v=\"147\", \"Not.A/Brand\";v=\"8\", \"Chromium\";v=\"147\"",
+      "sec-ch-ua-mobile": "?0"
+    }
+  },
+  {
+    "method": "GET",
+    "url": "https://maps.googleapis.com/maps-api-v3/api/users/js/64/11d/intl/es_ALL/common.js",
+    "headers": {
+      "sec-ch-ua-platform": "\"Windows\"",
+      "referer": "https://www.preciosclaros.gob.ar/",
+      "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36",
+      "sec-ch-ua": "\"Google Chrome\";v=\"147\", \"Not.A/Brand\";v=\"8\", \"Chromium\";v=\"147\"",
+      "sec-ch-ua-mobile": "?0"
+    }
+  },
+  {
+    "method": "GET",
+    "url": "https://maps.googleapis.com/maps-api-v3/api/users/js/64/11d/intl/es_ALL/util.js",
+    "headers": {
+      "sec-ch-ua-platform": "\"Windows\"",
+      "referer": "https://www.preciosclaros.gob.ar/",
+      "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36",
+      "sec-ch-ua": "\"Google Chrome\";v=\"147\", \"Not.A/Brand\";v=\"8\", \"Chromium\";v=\"147\"",
+      "sec-ch-ua-mobile": "?0"
+    }
+  },
+  {
+    "method": "GET",
+    "url": "https://imagenes.preciosclaros.gob.ar/comercios/15-1.jpg",
+    "headers": {
+      "sec-ch-ua-platform": "\"Windows\"",
+      "referer": "https://www.preciosclaros.gob.ar/",
+      "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36",
+      "sec-ch-ua": "\"Google Chrome\";v=\"147\", \"Not.A/Brand\";v=\"8\", \"Chromium\";v=\"147\"",
+      "sec-ch-ua-mobile": "?0"
+    }
+  },
+  {
+    "method": "GET",
+    "url": "https://www.preciosclaros.gob.ar/img/categorias/pc-iconos_01.svg",
+    "headers": {
+      "sec-ch-ua-platform": "\"Windows\"",
+      "referer": "https://www.preciosclaros.gob.ar/",
+      "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36",
+      "sec-ch-ua": "\"Google Chrome\";v=\"147\", \"Not.A/Brand\";v=\"8\", \"Chromium\";v=\"147\"",
+      "sec-ch-ua-mobile": "?0"
+    }
+  },
+  {
+    "method": "GET",
+    "url": "https://www.preciosclaros.gob.ar/img/categorias/pc-iconos_02.svg",
+    "headers": {
+      "sec-ch-ua-platform": "\"Windows\"",
+      "referer": "https://www.preciosclaros.gob.ar/",
+      "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36",
+      "sec-ch-ua": "\"Google Chrome\";v=\"147\", \"Not.A/Brand\";v=\"8\", \"Chromium\";v=\"147\"",
+      "sec-ch-ua-mobile": "?0"
+    }
+  },
+  {
+    "method": "GET",
+    "url": "https://www.preciosclaros.gob.ar/img/categorias/pc-iconos_04.svg",
+    "headers": {
+      "sec-ch-ua-platform": "\"Windows\"",
+      "referer": "https://www.preciosclaros.gob.ar/",
+      "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36",
+      "sec-ch-ua": "\"Google Chrome\";v=\"147\", \"Not.A/Brand\";v=\"8\", \"Chromium\";v=\"147\"",
+      "sec-ch-ua-mobile": "?0"
+    }
+  },
+  {
+    "method": "GET",
+    "url": "https://www.preciosclaros.gob.ar/img/categorias/pc-iconos_05.svg",
+    "headers": {
+      "sec-ch-ua-platform": "\"Windows\"",
+      "referer": "https://www.preciosclaros.gob.ar/",
+      "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36",
+      "sec-ch-ua": "\"Google Chrome\";v=\"147\", \"Not.A/Brand\";v=\"8\", \"Chromium\";v=\"147\"",
+      "sec-ch-ua-mobile": "?0"
+    }
+  },
+  {
+    "method": "GET",
+    "url": "https://www.preciosclaros.gob.ar/img/categorias/pc-iconos_03.svg",
+    "headers": {
+      "sec-ch-ua-platform": "\"Windows\"",
+      "referer": "https://www.preciosclaros.gob.ar/",
+      "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36",
+      "sec-ch-ua": "\"Google Chrome\";v=\"147\", \"Not.A/Brand\";v=\"8\", \"Chromium\";v=\"147\"",
+      "sec-ch-ua-mobile": "?0"
+    }
+  },
+  {
+    "method": "GET",
+    "url": "https://www.preciosclaros.gob.ar/img/categorias/pc-iconos_50.svg",
+    "headers": {
+      "sec-ch-ua-platform": "\"Windows\"",
+      "referer": "https://www.preciosclaros.gob.ar/",
+      "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36",
+      "sec-ch-ua": "\"Google Chrome\";v=\"147\", \"Not.A/Brand\";v=\"8\", \"Chromium\";v=\"147\"",
+      "sec-ch-ua-mobile": "?0"
+    }
+  },
+  {
+    "method": "GET",
+    "url": "https://www.preciosclaros.gob.ar/img/categorias/pc-iconos_06.svg",
+    "headers": {
+      "sec-ch-ua-platform": "\"Windows\"",
+      "referer": "https://www.preciosclaros.gob.ar/",
+      "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36",
+      "sec-ch-ua": "\"Google Chrome\";v=\"147\", \"Not.A/Brand\";v=\"8\", \"Chromium\";v=\"147\"",
+      "sec-ch-ua-mobile": "?0"
+    }
+  },
+  {
+    "method": "GET",
+    "url": "https://www.preciosclaros.gob.ar/img/categorias/pc-iconos_07.svg",
+    "headers": {
+      "sec-ch-ua-platform": "\"Windows\"",
+      "referer": "https://www.preciosclaros.gob.ar/",
+      "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36",
+      "sec-ch-ua": "\"Google Chrome\";v=\"147\", \"Not.A/Brand\";v=\"8\", \"Chromium\";v=\"147\"",
+      "sec-ch-ua-mobile": "?0"
+    }
+  },
+  {
+    "method": "GET",
+    "url": "https://www.preciosclaros.gob.ar/img/categorias/pc-iconos_08.svg",
+    "headers": {
+      "sec-ch-ua-platform": "\"Windows\"",
+      "referer": "https://www.preciosclaros.gob.ar/",
+      "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36",
+      "sec-ch-ua": "\"Google Chrome\";v=\"147\", \"Not.A/Brand\";v=\"8\", \"Chromium\";v=\"147\"",
+      "sec-ch-ua-mobile": "?0"
+    }
+  },
+  {
+    "method": "GET",
+    "url": "https://www.preciosclaros.gob.ar/img/categorias/pc-iconos_70.svg",
+    "headers": {
+      "sec-ch-ua-platform": "\"Windows\"",
+      "referer": "https://www.preciosclaros.gob.ar/",
+      "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36",
+      "sec-ch-ua": "\"Google Chrome\";v=\"147\", \"Not.A/Brand\";v=\"8\", \"Chromium\";v=\"147\"",
+      "sec-ch-ua-mobile": "?0"
+    }
+  },
+  {
+    "method": "GET",
+    "url": "https://www.preciosclaros.gob.ar/img/categorias/pc-iconos_09.svg",
+    "headers": {
+      "sec-ch-ua-platform": "\"Windows\"",
+      "referer": "https://www.preciosclaros.gob.ar/",
+      "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36",
+      "sec-ch-ua": "\"Google Chrome\";v=\"147\", \"Not.A/Brand\";v=\"8\", \"Chromium\";v=\"147\"",
+      "sec-ch-ua-mobile": "?0"
+    }
+  },
+  {
+    "method": "OPTIONS",
+    "url": "https://d3e6htiiul5ek9.cloudfront.net/prod/productos?string=leche&array_sucursales=15-1-433,15-1-524,15-1-1050,15-1-659,15-1-518,15-1-624,15-1-539,15-1-635,11-2-1039,15-1-621,15-1-600,15-1-432,15-1-609,15-1-534,9-1-943,24-2-100,15-1-654,2005-1-52,12-1-109,15-1-1061,15-1-626,15-1-550,15-1-589,15-1-664,15-1-556,15-1-434,15-1-625,15-1-5577,11-5-3604,15-1-584&offset=0&limit=50&sort=-cant_sucursales_disponible",
+    "headers": {
+      "accept": "*/*",
+      "access-control-request-headers": "x-api-key",
+      "access-control-request-method": "GET",
+      "origin": "https://www.preciosclaros.gob.ar",
+      "sec-fetch-mode": "cors",
+      "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36"
+    }
+  },
+  {
+    "method": "GET",
+    "url": "https://d3e6htiiul5ek9.cloudfront.net/prod/productos?string=leche&array_sucursales=15-1-433,15-1-524,15-1-1050,15-1-659,15-1-518,15-1-624,15-1-539,15-1-635,11-2-1039,15-1-621,15-1-600,15-1-432,15-1-609,15-1-534,9-1-943,24-2-100,15-1-654,2005-1-52,12-1-109,15-1-1061,15-1-626,15-1-550,15-1-589,15-1-664,15-1-556,15-1-434,15-1-625,15-1-5577,11-5-3604,15-1-584&offset=0&limit=50&sort=-cant_sucursales_disponible",
+    "headers": {
+      "sec-ch-ua-platform": "\"Windows\"",
+      "referer": "https://www.preciosclaros.gob.ar/",
+      "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36",
+      "accept": "application/json, text/plain, */*",
+      "sec-ch-ua": "\"Google Chrome\";v=\"147\", \"Not.A/Brand\";v=\"8\", \"Chromium\";v=\"147\"",
+      "x-api-key": "zIgFou7Gta7g87VFGL9dZ4BEEs19gNYS1SOQZt96",
+      "sec-ch-ua-mobile": "?0"
+    }
+  },
+  {
+    "method": "GET",
+    "url": "https://imagenes.preciosclaros.gob.ar/productos/7791337007253.jpg",
+    "headers": {
+      "sec-ch-ua-platform": "\"Windows\"",
+      "referer": "https://www.preciosclaros.gob.ar/",
+      "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36",
+      "sec-ch-ua": "\"Google Chrome\";v=\"147\", \"Not.A/Brand\";v=\"8\", \"Chromium\";v=\"147\"",
+      "sec-ch-ua-mobile": "?0"
+    }
+  },
+  {
+    "method": "GET",
+    "url": "https://imagenes.preciosclaros.gob.ar/productos/7795323775256.jpg",
+    "headers": {
+      "sec-ch-ua-platform": "\"Windows\"",
+      "referer": "https://www.preciosclaros.gob.ar/",
+      "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36",
+      "sec-ch-ua": "\"Google Chrome\";v=\"147\", \"Not.A/Brand\";v=\"8\", \"Chromium\";v=\"147\"",
+      "sec-ch-ua-mobile": "?0"
+    }
+  },
+  {
+    "method": "GET",
+    "url": "https://imagenes.preciosclaros.gob.ar/productos/7791337007260.jpg",
+    "headers": {
+      "sec-ch-ua-platform": "\"Windows\"",
+      "referer": "https://www.preciosclaros.gob.ar/",
+      "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36",
+      "sec-ch-ua": "\"Google Chrome\";v=\"147\", \"Not.A/Brand\";v=\"8\", \"Chromium\";v=\"147\"",
+      "sec-ch-ua-mobile": "?0"
+    }
+  },
+  {
+    "method": "GET",
+    "url": "https://imagenes.preciosclaros.gob.ar/productos/8445290848970.jpg",
+    "headers": {
+      "sec-ch-ua-platform": "\"Windows\"",
+      "referer": "https://www.preciosclaros.gob.ar/",
+      "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36",
+      "sec-ch-ua": "\"Google Chrome\";v=\"147\", \"Not.A/Brand\";v=\"8\", \"Chromium\";v=\"147\"",
+      "sec-ch-ua-mobile": "?0"
+    }
+  },
+  {
+    "method": "GET",
+    "url": "https://imagenes.preciosclaros.gob.ar/productos/7790742363206.jpg",
+    "headers": {
+      "sec-ch-ua-platform": "\"Windows\"",
+      "referer": "https://www.preciosclaros.gob.ar/",
+      "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36",
+      "sec-ch-ua": "\"Google Chrome\";v=\"147\", \"Not.A/Brand\";v=\"8\", \"Chromium\";v=\"147\"",
+      "sec-ch-ua-mobile": "?0"
+    }
+  },
+  {
+    "method": "GET",
+    "url": "https://imagenes.preciosclaros.gob.ar/productos/7798338290035.jpg",
+    "headers": {
+      "sec-ch-ua-platform": "\"Windows\"",
+      "referer": "https://www.preciosclaros.gob.ar/",
+      "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36",
+      "sec-ch-ua": "\"Google Chrome\";v=\"147\", \"Not.A/Brand\";v=\"8\", \"Chromium\";v=\"147\"",
+      "sec-ch-ua-mobile": "?0"
+    }
+  },
+  {
+    "method": "GET",
+    "url": "https://imagenes.preciosclaros.gob.ar/productos/7790742192103.jpg",
+    "headers": {
+      "sec-ch-ua-platform": "\"Windows\"",
+      "referer": "https://www.preciosclaros.gob.ar/",
+      "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36",
+      "sec-ch-ua": "\"Google Chrome\";v=\"147\", \"Not.A/Brand\";v=\"8\", \"Chromium\";v=\"147\"",
+      "sec-ch-ua-mobile": "?0"
+    }
+  },
+  {
+    "method": "GET",
+    "url": "https://imagenes.preciosclaros.gob.ar/productos/7798338291049.jpg",
+    "headers": {
+      "sec-ch-ua-platform": "\"Windows\"",
+      "referer": "https://www.preciosclaros.gob.ar/",
+      "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36",
+      "sec-ch-ua": "\"Google Chrome\";v=\"147\", \"Not.A/Brand\";v=\"8\", \"Chromium\";v=\"147\"",
+      "sec-ch-ua-mobile": "?0"
+    }
+  },
+  {
+    "method": "GET",
+    "url": "https://imagenes.preciosclaros.gob.ar/productos/7790742348005.jpg",
+    "headers": {
+      "sec-ch-ua-platform": "\"Windows\"",
+      "referer": "https://www.preciosclaros.gob.ar/",
+      "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36",
+      "sec-ch-ua": "\"Google Chrome\";v=\"147\", \"Not.A/Brand\";v=\"8\", \"Chromium\";v=\"147\"",
+      "sec-ch-ua-mobile": "?0"
+    }
+  },
+  {
+    "method": "GET",
+    "url": "https://imagenes.preciosclaros.gob.ar/productos/7795323775263.jpg",
+    "headers": {
+      "sec-ch-ua-platform": "\"Windows\"",
+      "referer": "https://www.preciosclaros.gob.ar/",
+      "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36",
+      "sec-ch-ua": "\"Google Chrome\";v=\"147\", \"Not.A/Brand\";v=\"8\", \"Chromium\";v=\"147\"",
+      "sec-ch-ua-mobile": "?0"
+    }
+  },
+  {
+    "method": "GET",
+    "url": "https://imagenes.preciosclaros.gob.ar/productos/7790742333605.jpg",
+    "headers": {
+      "sec-ch-ua-platform": "\"Windows\"",
+      "referer": "https://www.preciosclaros.gob.ar/",
+      "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36",
+      "sec-ch-ua": "\"Google Chrome\";v=\"147\", \"Not.A/Brand\";v=\"8\", \"Chromium\";v=\"147\"",
+      "sec-ch-ua-mobile": "?0"
+    }
+  },
+  {
+    "method": "GET",
+    "url": "https://imagenes.preciosclaros.gob.ar/productos/8445290883858.jpg",
+    "headers": {
+      "sec-ch-ua-platform": "\"Windows\"",
+      "referer": "https://www.preciosclaros.gob.ar/",
+      "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36",
+      "sec-ch-ua": "\"Google Chrome\";v=\"147\", \"Not.A/Brand\";v=\"8\", \"Chromium\";v=\"147\"",
+      "sec-ch-ua-mobile": "?0"
+    }
+  },
+  {
+    "method": "GET",
+    "url": "https://imagenes.preciosclaros.gob.ar/productos/7790742335500.jpg",
+    "headers": {
+      "sec-ch-ua-platform": "\"Windows\"",
+      "referer": "https://www.preciosclaros.gob.ar/",
+      "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36",
+      "sec-ch-ua": "\"Google Chrome\";v=\"147\", \"Not.A/Brand\";v=\"8\", \"Chromium\";v=\"147\"",
+      "sec-ch-ua-mobile": "?0"
+    }
+  },
+  {
+    "method": "GET",
+    "url": "https://imagenes.preciosclaros.gob.ar/productos/7790742335609.jpg",
+    "headers": {
+      "sec-ch-ua-platform": "\"Windows\"",
+      "referer": "https://www.preciosclaros.gob.ar/",
+      "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36",
+      "sec-ch-ua": "\"Google Chrome\";v=\"147\", \"Not.A/Brand\";v=\"8\", \"Chromium\";v=\"147\"",
+      "sec-ch-ua-mobile": "?0"
+    }
+  },
+  {
+    "method": "GET",
+    "url": "https://imagenes.preciosclaros.gob.ar/productos/7790742348302.jpg",
+    "headers": {
+      "sec-ch-ua-platform": "\"Windows\"",
+      "referer": "https://www.preciosclaros.gob.ar/",
+      "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36",
+      "sec-ch-ua": "\"Google Chrome\";v=\"147\", \"Not.A/Brand\";v=\"8\", \"Chromium\";v=\"147\"",
+      "sec-ch-ua-mobile": "?0"
+    }
+  },
+  {
+    "method": "GET",
+    "url": "https://imagenes.preciosclaros.gob.ar/productos/7791337007802.jpg",
+    "headers": {
+      "sec-ch-ua-platform": "\"Windows\"",
+      "referer": "https://www.preciosclaros.gob.ar/",
+      "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36",
+      "sec-ch-ua": "\"Google Chrome\";v=\"147\", \"Not.A/Brand\";v=\"8\", \"Chromium\";v=\"147\"",
+      "sec-ch-ua-mobile": "?0"
+    }
+  },
+  {
+    "method": "GET",
+    "url": "https://imagenes.preciosclaros.gob.ar/productos/7790742335401.jpg",
+    "headers": {
+      "sec-ch-ua-platform": "\"Windows\"",
+      "referer": "https://www.preciosclaros.gob.ar/",
+      "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36",
+      "sec-ch-ua": "\"Google Chrome\";v=\"147\", \"Not.A/Brand\";v=\"8\", \"Chromium\";v=\"147\"",
+      "sec-ch-ua-mobile": "?0"
+    }
+  },
+  {
+    "method": "GET",
+    "url": "https://imagenes.preciosclaros.gob.ar/productos/8445290533982.jpg",
+    "headers": {
+      "sec-ch-ua-platform": "\"Windows\"",
+      "referer": "https://www.preciosclaros.gob.ar/",
+      "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36",
+      "sec-ch-ua": "\"Google Chrome\";v=\"147\", \"Not.A/Brand\";v=\"8\", \"Chromium\";v=\"147\"",
+      "sec-ch-ua-mobile": "?0"
+    }
+  },
+  {
+    "method": "GET",
+    "url": "https://imagenes.preciosclaros.gob.ar/productos/7791337007819.jpg",
+    "headers": {
+      "sec-ch-ua-platform": "\"Windows\"",
+      "referer": "https://www.preciosclaros.gob.ar/",
+      "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36",
+      "sec-ch-ua": "\"Google Chrome\";v=\"147\", \"Not.A/Brand\";v=\"8\", \"Chromium\";v=\"147\"",
+      "sec-ch-ua-mobile": "?0"
+    }
+  },
+  {
+    "method": "GET",
+    "url": "https://imagenes.preciosclaros.gob.ar/productos/7790742363008.jpg",
+    "headers": {
+      "sec-ch-ua-platform": "\"Windows\"",
+      "referer": "https://www.preciosclaros.gob.ar/",
+      "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36",
+      "sec-ch-ua": "\"Google Chrome\";v=\"147\", \"Not.A/Brand\";v=\"8\", \"Chromium\";v=\"147\"",
+      "sec-ch-ua-mobile": "?0"
+    }
+  },
+  {
+    "method": "GET",
+    "url": "https://imagenes.preciosclaros.gob.ar/productos/7790742358608.jpg",
+    "headers": {
+      "sec-ch-ua-platform": "\"Windows\"",
+      "referer": "https://www.preciosclaros.gob.ar/",
+      "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36",
+      "sec-ch-ua": "\"Google Chrome\";v=\"147\", \"Not.A/Brand\";v=\"8\", \"Chromium\";v=\"147\"",
+      "sec-ch-ua-mobile": "?0"
+    }
+  },
+  {
+    "method": "GET",
+    "url": "https://imagenes.preciosclaros.gob.ar/productos/7790742436207.jpg",
+    "headers": {
+      "sec-ch-ua-platform": "\"Windows\"",
+      "referer": "https://www.preciosclaros.gob.ar/",
+      "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36",
+      "sec-ch-ua": "\"Google Chrome\";v=\"147\", \"Not.A/Brand\";v=\"8\", \"Chromium\";v=\"147\"",
+      "sec-ch-ua-mobile": "?0"
+    }
+  },
+  {
+    "method": "GET",
+    "url": "https://imagenes.preciosclaros.gob.ar/productos/7790742363107.jpg",
+    "headers": {
+      "sec-ch-ua-platform": "\"Windows\"",
+      "referer": "https://www.preciosclaros.gob.ar/",
+      "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36",
+      "sec-ch-ua": "\"Google Chrome\";v=\"147\", \"Not.A/Brand\";v=\"8\", \"Chromium\";v=\"147\"",
+      "sec-ch-ua-mobile": "?0"
+    }
+  },
+  {
+    "method": "GET",
+    "url": "https://imagenes.preciosclaros.gob.ar/productos/8445290180209.jpg",
+    "headers": {
+      "sec-ch-ua-platform": "\"Windows\"",
+      "referer": "https://www.preciosclaros.gob.ar/",
+      "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36",
+      "sec-ch-ua": "\"Google Chrome\";v=\"147\", \"Not.A/Brand\";v=\"8\", \"Chromium\";v=\"147\"",
+      "sec-ch-ua-mobile": "?0"
+    }
+  },
+  {
+    "method": "GET",
+    "url": "https://imagenes.preciosclaros.gob.ar/productos/7790742352002.jpg",
+    "headers": {
+      "sec-ch-ua-platform": "\"Windows\"",
+      "referer": "https://www.preciosclaros.gob.ar/",
+      "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36",
+      "sec-ch-ua": "\"Google Chrome\";v=\"147\", \"Not.A/Brand\";v=\"8\", \"Chromium\";v=\"147\"",
+      "sec-ch-ua-mobile": "?0"
+    }
+  },
+  {
+    "method": "GET",
+    "url": "https://imagenes.preciosclaros.gob.ar/productos/7790742358509.jpg",
+    "headers": {
+      "sec-ch-ua-platform": "\"Windows\"",
+      "referer": "https://www.preciosclaros.gob.ar/",
+      "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36",
+      "sec-ch-ua": "\"Google Chrome\";v=\"147\", \"Not.A/Brand\";v=\"8\", \"Chromium\";v=\"147\"",
+      "sec-ch-ua-mobile": "?0"
+    }
+  },
+  {
+    "method": "GET",
+    "url": "https://imagenes.preciosclaros.gob.ar/productos/8445290702234.jpg",
+    "headers": {
+      "sec-ch-ua-platform": "\"Windows\"",
+      "referer": "https://www.preciosclaros.gob.ar/",
+      "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36",
+      "sec-ch-ua": "\"Google Chrome\";v=\"147\", \"Not.A/Brand\";v=\"8\", \"Chromium\";v=\"147\"",
+      "sec-ch-ua-mobile": "?0"
+    }
+  },
+  {
+    "method": "GET",
+    "url": "https://imagenes.preciosclaros.gob.ar/productos/7795323775348.jpg",
+    "headers": {
+      "sec-ch-ua-platform": "\"Windows\"",
+      "referer": "https://www.preciosclaros.gob.ar/",
+      "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36",
+      "sec-ch-ua": "\"Google Chrome\";v=\"147\", \"Not.A/Brand\";v=\"8\", \"Chromium\";v=\"147\"",
+      "sec-ch-ua-mobile": "?0"
+    }
+  },
+  {
+    "method": "GET",
+    "url": "https://imagenes.preciosclaros.gob.ar/productos/7790742625205.jpg",
+    "headers": {
+      "sec-ch-ua-platform": "\"Windows\"",
+      "referer": "https://www.preciosclaros.gob.ar/",
+      "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36",
+      "sec-ch-ua": "\"Google Chrome\";v=\"147\", \"Not.A/Brand\";v=\"8\", \"Chromium\";v=\"147\"",
+      "sec-ch-ua-mobile": "?0"
+    }
+  },
+  {
+    "method": "GET",
+    "url": "https://imagenes.preciosclaros.gob.ar/productos/7798338291070.jpg",
+    "headers": {
+      "sec-ch-ua-platform": "\"Windows\"",
+      "referer": "https://www.preciosclaros.gob.ar/",
+      "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36",
+      "sec-ch-ua": "\"Google Chrome\";v=\"147\", \"Not.A/Brand\";v=\"8\", \"Chromium\";v=\"147\"",
+      "sec-ch-ua-mobile": "?0"
+    }
+  },
+  {
+    "method": "GET",
+    "url": "https://imagenes.preciosclaros.gob.ar/productos/7793913013450.jpg",
+    "headers": {
+      "sec-ch-ua-platform": "\"Windows\"",
+      "referer": "https://www.preciosclaros.gob.ar/",
+      "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36",
+      "sec-ch-ua": "\"Google Chrome\";v=\"147\", \"Not.A/Brand\";v=\"8\", \"Chromium\";v=\"147\"",
+      "sec-ch-ua-mobile": "?0"
+    }
+  },
+  {
+    "method": "GET",
+    "url": "https://imagenes.preciosclaros.gob.ar/productos/7798060850095.jpg",
+    "headers": {
+      "sec-ch-ua-platform": "\"Windows\"",
+      "referer": "https://www.preciosclaros.gob.ar/",
+      "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36",
+      "sec-ch-ua": "\"Google Chrome\";v=\"147\", \"Not.A/Brand\";v=\"8\", \"Chromium\";v=\"147\"",
+      "sec-ch-ua-mobile": "?0"
+    }
+  },
+  {
+    "method": "GET",
+    "url": "https://imagenes.preciosclaros.gob.ar/productos/7790742625304.jpg",
+    "headers": {
+      "sec-ch-ua-platform": "\"Windows\"",
+      "referer": "https://www.preciosclaros.gob.ar/",
+      "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36",
+      "sec-ch-ua": "\"Google Chrome\";v=\"147\", \"Not.A/Brand\";v=\"8\", \"Chromium\";v=\"147\"",
+      "sec-ch-ua-mobile": "?0"
+    }
+  },
+  {
+    "method": "GET",
+    "url": "https://imagenes.preciosclaros.gob.ar/productos/0000077958921.jpg",
+    "headers": {
+      "sec-ch-ua-platform": "\"Windows\"",
+      "referer": "https://www.preciosclaros.gob.ar/",
+      "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36",
+      "sec-ch-ua": "\"Google Chrome\";v=\"147\", \"Not.A/Brand\";v=\"8\", \"Chromium\";v=\"147\"",
+      "sec-ch-ua-mobile": "?0"
+    }
+  },
+  {
+    "method": "GET",
+    "url": "https://imagenes.preciosclaros.gob.ar/productos/7790742625403.jpg",
+    "headers": {
+      "sec-ch-ua-platform": "\"Windows\"",
+      "referer": "https://www.preciosclaros.gob.ar/",
+      "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36",
+      "sec-ch-ua": "\"Google Chrome\";v=\"147\", \"Not.A/Brand\";v=\"8\", \"Chromium\";v=\"147\"",
+      "sec-ch-ua-mobile": "?0"
+    }
+  },
+  {
+    "method": "GET",
+    "url": "https://imagenes.preciosclaros.gob.ar/productos/7790742625106.jpg",
+    "headers": {
+      "sec-ch-ua-platform": "\"Windows\"",
+      "referer": "https://www.preciosclaros.gob.ar/",
+      "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36",
+      "sec-ch-ua": "\"Google Chrome\";v=\"147\", \"Not.A/Brand\";v=\"8\", \"Chromium\";v=\"147\"",
+      "sec-ch-ua-mobile": "?0"
+    }
+  },
+  {
+    "method": "GET",
+    "url": "https://imagenes.preciosclaros.gob.ar/productos/7792410008006.jpg",
+    "headers": {
+      "sec-ch-ua-platform": "\"Windows\"",
+      "referer": "https://www.preciosclaros.gob.ar/",
+      "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36",
+      "sec-ch-ua": "\"Google Chrome\";v=\"147\", \"Not.A/Brand\";v=\"8\", \"Chromium\";v=\"147\"",
+      "sec-ch-ua-mobile": "?0"
+    }
+  },
+  {
+    "method": "GET",
+    "url": "https://imagenes.preciosclaros.gob.ar/productos/7790742011701.jpg",
+    "headers": {
+      "sec-ch-ua-platform": "\"Windows\"",
+      "referer": "https://www.preciosclaros.gob.ar/",
+      "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36",
+      "sec-ch-ua": "\"Google Chrome\";v=\"147\", \"Not.A/Brand\";v=\"8\", \"Chromium\";v=\"147\"",
+      "sec-ch-ua-mobile": "?0"
+    }
+  },
+  {
+    "method": "GET",
+    "url": "https://imagenes.preciosclaros.gob.ar/productos/7790742067005.jpg",
+    "headers": {
+      "sec-ch-ua-platform": "\"Windows\"",
+      "referer": "https://www.preciosclaros.gob.ar/",
+      "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36",
+      "sec-ch-ua": "\"Google Chrome\";v=\"147\", \"Not.A/Brand\";v=\"8\", \"Chromium\";v=\"147\"",
+      "sec-ch-ua-mobile": "?0"
+    }
+  },
+  {
+    "method": "GET",
+    "url": "https://imagenes.preciosclaros.gob.ar/productos/7790742141101.jpg",
+    "headers": {
+      "sec-ch-ua-platform": "\"Windows\"",
+      "referer": "https://www.preciosclaros.gob.ar/",
+      "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36",
+      "sec-ch-ua": "\"Google Chrome\";v=\"147\", \"Not.A/Brand\";v=\"8\", \"Chromium\";v=\"147\"",
+      "sec-ch-ua-mobile": "?0"
+    }
+  },
+  {
+    "method": "GET",
+    "url": "https://imagenes.preciosclaros.gob.ar/productos/7790742141309.jpg",
+    "headers": {
+      "sec-ch-ua-platform": "\"Windows\"",
+      "referer": "https://www.preciosclaros.gob.ar/",
+      "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36",
+      "sec-ch-ua": "\"Google Chrome\";v=\"147\", \"Not.A/Brand\";v=\"8\", \"Chromium\";v=\"147\"",
+      "sec-ch-ua-mobile": "?0"
+    }
+  },
+  {
+    "method": "GET",
+    "url": "https://imagenes.preciosclaros.gob.ar/productos/0000077949677.jpg",
+    "headers": {
+      "sec-ch-ua-platform": "\"Windows\"",
+      "referer": "https://www.preciosclaros.gob.ar/",
+      "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36",
+      "sec-ch-ua": "\"Google Chrome\";v=\"147\", \"Not.A/Brand\";v=\"8\", \"Chromium\";v=\"147\"",
+      "sec-ch-ua-mobile": "?0"
+    }
+  },
+  {
+    "method": "GET",
+    "url": "https://imagenes.preciosclaros.gob.ar/productos/7793913013436.jpg",
+    "headers": {
+      "sec-ch-ua-platform": "\"Windows\"",
+      "referer": "https://www.preciosclaros.gob.ar/",
+      "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36",
+      "sec-ch-ua": "\"Google Chrome\";v=\"147\", \"Not.A/Brand\";v=\"8\", \"Chromium\";v=\"147\"",
+      "sec-ch-ua-mobile": "?0"
+    }
+  },
+  {
+    "method": "GET",
+    "url": "https://imagenes.preciosclaros.gob.ar/productos/7798060850101.jpg",
+    "headers": {
+      "sec-ch-ua-platform": "\"Windows\"",
+      "referer": "https://www.preciosclaros.gob.ar/",
+      "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36",
+      "sec-ch-ua": "\"Google Chrome\";v=\"147\", \"Not.A/Brand\";v=\"8\", \"Chromium\";v=\"147\"",
+      "sec-ch-ua-mobile": "?0"
+    }
+  },
+  {
+    "method": "GET",
+    "url": "https://imagenes.preciosclaros.gob.ar/productos/7790070417916.jpg",
+    "headers": {
+      "sec-ch-ua-platform": "\"Windows\"",
+      "referer": "https://www.preciosclaros.gob.ar/",
+      "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36",
+      "sec-ch-ua": "\"Google Chrome\";v=\"147\", \"Not.A/Brand\";v=\"8\", \"Chromium\";v=\"147\"",
+      "sec-ch-ua-mobile": "?0"
+    }
+  },
+  {
+    "method": "GET",
+    "url": "https://imagenes.preciosclaros.gob.ar/productos/7790742192301.jpg",
+    "headers": {
+      "sec-ch-ua-platform": "\"Windows\"",
+      "referer": "https://www.preciosclaros.gob.ar/",
+      "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36",
+      "sec-ch-ua": "\"Google Chrome\";v=\"147\", \"Not.A/Brand\";v=\"8\", \"Chromium\";v=\"147\"",
+      "sec-ch-ua-mobile": "?0"
+    }
+  },
+  {
+    "method": "GET",
+    "url": "https://imagenes.preciosclaros.gob.ar/productos/7791337008106.jpg",
+    "headers": {
+      "sec-ch-ua-platform": "\"Windows\"",
+      "referer": "https://www.preciosclaros.gob.ar/",
+      "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36",
+      "sec-ch-ua": "\"Google Chrome\";v=\"147\", \"Not.A/Brand\";v=\"8\", \"Chromium\";v=\"147\"",
+      "sec-ch-ua-mobile": "?0"
+    }
+  },
+  {
+    "method": "GET",
+    "url": "https://imagenes.preciosclaros.gob.ar/productos/7790616080116.jpg",
+    "headers": {
+      "sec-ch-ua-platform": "\"Windows\"",
+      "referer": "https://www.preciosclaros.gob.ar/",
+      "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36",
+      "sec-ch-ua": "\"Google Chrome\";v=\"147\", \"Not.A/Brand\";v=\"8\", \"Chromium\";v=\"147\"",
+      "sec-ch-ua-mobile": "?0"
+    }
+  },
+  {
+    "method": "GET",
+    "url": "https://imagenes.preciosclaros.gob.ar/productos/7790742014122.jpg",
+    "headers": {
+      "sec-ch-ua-platform": "\"Windows\"",
+      "referer": "https://www.preciosclaros.gob.ar/",
+      "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36",
+      "sec-ch-ua": "\"Google Chrome\";v=\"147\", \"Not.A/Brand\";v=\"8\", \"Chromium\";v=\"147\"",
+      "sec-ch-ua-mobile": "?0"
+    }
+  },
+  {
+    "method": "GET",
+    "url": "https://imagenes.preciosclaros.gob.ar/productos/7790787153664.jpg",
+    "headers": {
+      "sec-ch-ua-platform": "\"Windows\"",
+      "referer": "https://www.preciosclaros.gob.ar/",
+      "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36",
+      "sec-ch-ua": "\"Google Chrome\";v=\"147\", \"Not.A/Brand\";v=\"8\", \"Chromium\";v=\"147\"",
+      "sec-ch-ua-mobile": "?0"
+    }
+  },
+  {
+    "method": "GET",
+    "url": "https://www.preciosclaros.gob.ar/img/no-image.png",
+    "headers": {
+      "sec-ch-ua-platform": "\"Windows\"",
+      "referer": "https://www.preciosclaros.gob.ar/",
+      "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36",
+      "sec-ch-ua": "\"Google Chrome\";v=\"147\", \"Not.A/Brand\";v=\"8\", \"Chromium\";v=\"147\"",
+      "sec-ch-ua-mobile": "?0"
+    }
+  }
+]

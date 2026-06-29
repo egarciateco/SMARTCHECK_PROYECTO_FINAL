@@ -1,0 +1,7 @@
+*.exe
+*.apk
+*.crdownload
+node_modules/
+.expo/
+.next/
+dist/
