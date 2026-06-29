@@ -1,0 +1,47 @@
+{
+  "expo": {
+    "name": "SmartCheck",
+    "slug": "smartcheck-nuevo",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/logo.png",
+    "userInterfaceStyle": "light",
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#001f3f"
+    },
+    "ios": {
+      "supportsTablet": true
+    },
+    "android": {
+      "package": "com.estebang2026.smartchecknuevo",
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/logo.png",
+        "backgroundColor": "#001f3f"
+      },
+      "permissions": [
+        "ACCESS_COARSE_LOCATION",
+        "ACCESS_FINE_LOCATION",
+        "CAMERA",
+        "RECORD_AUDIO"
+      ],
+      "config": {
+        "googleMaps": {
+          "apiKey": "AIzaSyBvTPOu-ccL2aP6pxKKtW4PJKThnOA7zVI"
+        }
+      }
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "extra": {
+      "eas": {
+        "projectId": "865aa665-efa9-4842-9f74-0817aa91acf2"
+      }
+    },
+    "plugins": [
+      "expo-font"
+    ]
+  }
+}
