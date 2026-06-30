@@ -2,6 +2,8 @@
 const mongoose = require('mongoose');
 const cors = require('cors');
 const path = require('path');
+// Importación necesaria para el motor de TensorFlow en servidor
+const tf = require('@tensorflow/tfjs-node'); 
 const faceapi = require('face-api.js');
 const canvas = require('canvas');
 
@@ -24,17 +26,19 @@ async function startServer() {
         await mongoose.connect(MONGO_URI, { dbName: 'smartcheck' });
         console.log('✅ CONEXIÓN CONFIRMADA EN MONGODB');
 
-        // Configuración entorno facial
+        // Configuración necesaria para entorno facial en Node
         const { Canvas, Image, ImageData } = canvas;
         faceapi.env.monkeyPatch({ Canvas, Image, ImageData });
         
-        // --- INYECCIÓN DE CARGA DE MODELOS ---
-        const MODEL_PATH = path.join(__dirname, 'models'); 
+        // Carga de modelos de IA desde la carpeta 'weights'
+        const MODEL_PATH = path.join(__dirname, 'weights'); 
+        console.log('🔍 Cargando modelos desde:', MODEL_PATH);
+        
         await faceapi.nets.ssdMobilenetv1.loadFromDisk(MODEL_PATH);
         await faceapi.nets.faceLandmark68Net.loadFromDisk(MODEL_PATH);
         await faceapi.nets.faceRecognitionNet.loadFromDisk(MODEL_PATH);
+        
         console.log('✅ Modelos de IA cargados correctamente');
-        // ------------------------------------
 
         const userRoutes = require('./routes/users');
         app.use('/api/users', userRoutes);
@@ -45,7 +49,8 @@ async function startServer() {
         });
 
     } catch (err) {
-        console.error('❌ ERROR CRÍTICO:', err);
+        console.error('❌ ERROR CRÍTICO AL INICIAR EL SERVIDOR:');
+        console.error(err);
         process.exit(1);
     }
 }
