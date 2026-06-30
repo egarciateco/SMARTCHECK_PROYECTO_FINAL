@@ -3,7 +3,7 @@ const mongoose = require('mongoose');
 const cors = require('cors');
 const path = require('path');
 // Importación necesaria para el motor de TensorFlow en servidor
-const tf = require('@tensorflow/tfjs-node'); 
+const tf = require('@tensorflow/tfjs');
 const faceapi = require('face-api.js');
 const canvas = require('canvas');
 
