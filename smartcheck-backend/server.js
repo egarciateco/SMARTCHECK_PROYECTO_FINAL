@@ -2,7 +2,7 @@
 const mongoose = require('mongoose');
 const cors = require('cors');
 const path = require('path');
-// Importación necesaria para el motor de TensorFlow en servidor
+// Importación necesaria para el motor de TensorFlow
 const tf = require('@tensorflow/tfjs');
 const faceapi = require('face-api.js');
 const canvas = require('canvas');
@@ -44,9 +44,15 @@ async function startServer() {
         app.use('/api/users', userRoutes);
         
         const PORT = process.env.PORT || 10000;
-        app.listen(PORT, '0.0.0.0', () => {
+        
+        // --- CONFIGURACIÓN DE TIMEOUTS ---
+        // Aumentamos los tiempos para procesos de IA pesados en Render
+        const server = app.listen(PORT, '0.0.0.0', () => {
             console.log(`🚀 SERVIDOR ONLINE EN EL PUERTO ${PORT}`);
         });
+        
+        server.keepAliveTimeout = 120000; // 2 minutos
+        server.headersTimeout = 120000;
 
     } catch (err) {
         console.error('❌ ERROR CRÍTICO AL INICIAR EL SERVIDOR:');
