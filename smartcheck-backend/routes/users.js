@@ -3,32 +3,39 @@ const router = express.Router();
 const multer = require('multer');
 const faceapi = require('face-api.js');
 const canvas = require('canvas');
-const User = require('../models/User'); // Asumiendo que esta es tu ruta de modelo
+const User = require('../models/User');
 
 const upload = multer({ storage: multer.memoryStorage() });
 
-// Mantenemos toda tu lógica original de rutas aquí
 router.post('/register', upload.single('imageFile'), async (req, res) => {
     try {
-        // Tu lógica de registro original...
-        const { nombre, apellido, email, ...datos } = req.body;
-        
-        // Procesamiento facial para registro
+        if (!req.file) return res.status(400).json({ status: 'error', mensaje: 'Imagen requerida' });
+
+        // 1. Respondemos inmediatamente para evitar que Render cierre la conexión (Timeout 502)
+        res.status(202).json({ status: 'processing', mensaje: 'Procesando registro en segundo plano...' });
+
+        // 2. Procesamos la IA después de haber enviado la respuesta al cliente
         const img = await canvas.loadImage(req.file.buffer);
         const detection = await faceapi.detectSingleFace(img).withFaceLandmarks().withFaceDescriptor();
         
         if (!detection) {
-            return res.status(400).json({ status: 'error', mensaje: 'No se detectó rostro' });
+            console.error('Error: No se detectó rostro');
+            return;
         }
 
-        // Guardado en BD...
-        const newUser = new User({ nombre, apellido, email, faceDescriptor: detection.descriptor, ...datos });
+        const { nombre, apellido, email, ...datos } = req.body;
+        const newUser = new User({ 
+            nombre, 
+            apellido, 
+            email, 
+            faceDescriptor: detection.descriptor, 
+            ...datos 
+        });
         await newUser.save();
-        
-        res.json({ status: 'success', mensaje: 'Usuario registrado' });
+        console.log('✅ Usuario registrado exitosamente en BD');
+
     } catch (error) {
-        console.error('Error en registro:', error);
-        res.status(500).json({ status: 'error', mensaje: 'Error interno' });
+        console.error('Error crítico en registro:', error);
     }
 });
 
@@ -37,16 +44,15 @@ router.post('/biometria', upload.single('imageFile'), async (req, res) => {
         if (!req.file) return res.status(400).json({ status: 'error', mensaje: 'No se envió imagen' });
 
         const img = await canvas.loadImage(req.file.buffer);
-        // Ahora, al usar el modelo ya cargado globalmente en server.js, 
-        // esta llamada no causará el error 502.
-        const detection = await faceapi.detectSingleFace(img).withFaceLandmarks().withFaceRecognition();
+        // Usamos detectSingleFace y withFaceLandmarks().withFaceDescriptor() 
+        // para asegurar compatibilidad con modelos precargados
+        const detection = await faceapi.detectSingleFace(img).withFaceLandmarks().withFaceDescriptor();
 
         if (!detection) {
             return res.status(400).json({ status: 'error', mensaje: 'Rostro no detectado' });
         }
 
-        // Tu lógica de comparación biométrica original...
-        res.json({ status: 'success', data: detection });
+        res.json({ status: 'success', data: detection.descriptor });
     } catch (error) {
         console.error('Error en biometría:', error);
         res.status(500).json({ status: 'error', mensaje: 'Error interno en biometría' });
