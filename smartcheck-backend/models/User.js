@@ -40,10 +40,8 @@ userSchema.pre('save', function(next) {
   next();
 });
 
-// Mensaje de diagnóstico para confirmar la DB al cargar el modelo
-mongoose.connection.on('open', () => {
-    console.log("🔥 EL MODELO USER SE ESTÁ REGISTRANDO EN LA DB:", mongoose.connection.db ? mongoose.connection.db.databaseName : "desconocida");
-});
+// El mensaje de diagnóstico ha sido eliminado para evitar la saturación de logs 
+// y el registro redundante del modelo en cada evento de conexión.
 
 // FORZAR uso de la conexión activa actual para evitar redirección a 'test'
 module.exports = mongoose.connection.models.User || mongoose.model('User', userSchema, 'users');

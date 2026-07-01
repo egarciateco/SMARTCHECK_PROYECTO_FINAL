@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "SmartCheck",
+    "name": "SmartCheck-nuevo",
     "slug": "smartcheck-nuevo",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -15,7 +15,8 @@
       "supportsTablet": true
     },
     "android": {
-      "package": "com.estebang2026.smartchecknuevo",
+      "package": "com.egarciateco.smartcheck",
+      "usesCleartextTraffic": true,
       "adaptiveIcon": {
         "foregroundImage": "./assets/logo.png",
         "backgroundColor": "#001f3f"
