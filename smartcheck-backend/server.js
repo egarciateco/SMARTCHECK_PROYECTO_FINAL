@@ -3,8 +3,9 @@ const mongoose = require('mongoose');
 const cors = require('cors');
 const path = require('path');
 
-// 1. IMPORTACIÓN OPTIMIZADA: Activamos el motor nativo de TensorFlow
-require('@tensorflow/tfjs-node'); 
+// Motor de TensorFlow (si tienes errores al ejecutarlo, mantenlo comentado)
+// require('@tensorflow/tfjs-node'); 
+
 const faceapi = require('face-api.js');
 const canvas = require('canvas');
 
@@ -35,8 +36,7 @@ async function startServer() {
         const MODEL_PATH = path.join(__dirname, 'weights'); 
         console.log('🔍 Cargando modelos desde:', MODEL_PATH);
         
-        // 2. CARGA OPTIMIZADA: Añadimos tinyFaceDetector para estabilidad en Render
-        await faceapi.nets.tinyFaceDetector.loadFromDisk(MODEL_PATH);
+        // CARGA ÚNICAMENTE DE SSD MOBILENET (Modelo pesado pero estable)
         await faceapi.nets.ssdMobilenetv1.loadFromDisk(MODEL_PATH);
         await faceapi.nets.faceLandmark68Net.loadFromDisk(MODEL_PATH);
         await faceapi.nets.faceRecognitionNet.loadFromDisk(MODEL_PATH);
