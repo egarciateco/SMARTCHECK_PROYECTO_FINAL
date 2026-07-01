@@ -39,7 +39,6 @@ export default function FacialLoginScreen() {
         const photo = await cameraRef.current.takePictureAsync({ quality: 0.3 });
 
         // 2. COMPRESIÓN AGRESIVA: Redimensionamos a 500px de ancho y bajamos la calidad al 20%
-        // Esto reduce el tamaño del archivo de ~3MB a menos de 100KB, evitando el Network Error de Render.
         const fotoProcesada = await ImageManipulator.manipulateAsync(
           photo.uri,
           [{ resize: { width: 500 } }], 
@@ -48,6 +47,7 @@ export default function FacialLoginScreen() {
 
         const formData = new FormData();
         
+        // CORRECCIÓN DE ENVÍO DE DATOS SEGÚN OPERACIÓN
         if (tipoOperacion === 'REGISTER') {
           const { dia, mes, anio, nombre, apellido, email, sexo, localidad, provincia } = datosRegistro;
           formData.append('nombre', nombre || '');
@@ -59,6 +59,10 @@ export default function FacialLoginScreen() {
           formData.append('anio', anio || '');
           formData.append('localidad', localidad || '');
           formData.append('provincia', provincia || '');
+        } else if (tipoOperacion === 'LOGIN') {
+          // Extraemos el email que escribió el usuario antes de escanearse
+          const { email } = datosRegistro || {};
+          formData.append('email', email || '');
         }
 
         const filename = fotoProcesada.uri.split('/').pop();
@@ -68,14 +72,13 @@ export default function FacialLoginScreen() {
           type: 'image/jpeg'
         });
 
-        console.log("🚀 ENVIANDO FORM DATA COMPUESTO A REGISTER...");
+        console.log(`🚀 ENVIANDO FORM DATA COMPUESTO A ${tipoOperacion}...`);
 
         const config = { headers: { 'Content-Type': 'multipart/form-data' } };
 
-        // NOTA: Cambiamos dinámicamente según sea REGISTER o LOGIN hacia tu nueva ruta
         const response = tipoOperacion === 'REGISTER' 
             ? await api.post('/api/users/register', formData, config)
-            : await api.post('/api/users/login', formData, config); // <-- Apunta a /login ahora
+            : await api.post('/api/users/login', formData, config);
 
         if (tipoOperacion === 'REGISTER') {
             Alert.alert("Éxito", "Registrado correctamente", [{ text: "OK", onPress: () => navigation.navigate('Login') }]);
