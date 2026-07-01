@@ -35,13 +35,15 @@ export default function FacialLoginScreen() {
     if (cameraRef.current) {
       setLoading(true);
       try {
-        const photo = await cameraRef.current.takePictureAsync({ quality: 0.7 });
+        // 1. CAPTURA: Reducimos la calidad nativa de la captura desde el disparo
+        const photo = await cameraRef.current.takePictureAsync({ quality: 0.3 });
 
-        // Redimensionamiento optimizado para el servidor
+        // 2. COMPRESIÓN AGRESIVA: Redimensionamos a 500px de ancho y bajamos la calidad al 20%
+        // Esto reduce el tamaño del archivo de ~3MB a menos de 100KB, evitando el Network Error de Render.
         const fotoProcesada = await ImageManipulator.manipulateAsync(
           photo.uri,
-          [{ resize: { width: 640 } }], // Ancho optimizado para evitar errores 502
-          { compress: 0.7, format: ImageManipulator.SaveFormat.JPEG }
+          [{ resize: { width: 500 } }], 
+          { compress: 0.2, format: ImageManipulator.SaveFormat.JPEG }
         );
 
         const formData = new FormData();
@@ -70,9 +72,10 @@ export default function FacialLoginScreen() {
 
         const config = { headers: { 'Content-Type': 'multipart/form-data' } };
 
+        // NOTA: Cambiamos dinámicamente según sea REGISTER o LOGIN hacia tu nueva ruta
         const response = tipoOperacion === 'REGISTER' 
             ? await api.post('/api/users/register', formData, config)
-            : await api.post('/api/users/biometria', formData, config);
+            : await api.post('/api/users/login', formData, config); // <-- Apunta a /login ahora
 
         if (tipoOperacion === 'REGISTER') {
             Alert.alert("Éxito", "Registrado correctamente", [{ text: "OK", onPress: () => navigation.navigate('Login') }]);
