@@ -4,7 +4,6 @@ import { CameraView, useCameraPermissions } from 'expo-camera';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as ImageManipulator from 'expo-image-manipulator';
-import * as FileSystem from 'expo-file-system'; // Añadido para manejo seguro de archivos
 import api from '../config/api'; 
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
@@ -18,20 +17,6 @@ export default function FacialLoginScreen() {
   const [countdown, setCountdown] = useState(0);
 
   const { tipoOperacion, datosRegistro } = route.params || { tipoOperacion: 'LOGIN', datosRegistro: {} };
-
-  const subirImagenACloudinary = async (base64) => {
-    const data = new FormData();
-    data.append('file', `data:image/jpg;base64,${base64}`);
-    data.append('upload_preset', 'smartcheck_preset');
-    data.append('cloud_name', 'dkdvhes2i');
-
-    const res = await fetch('https://api.cloudinary.com/v1_1/dkdvhes2i/image/upload', {
-      method: 'POST',
-      body: data
-    });
-    const file = await res.json();
-    return file.secure_url;
-  };
 
   const validarRostro = async () => {
     if (countdown > 0 || loading) return;
@@ -50,27 +35,17 @@ export default function FacialLoginScreen() {
     if (cameraRef.current) {
       setLoading(true);
       try {
-        const photo = await cameraRef.current.takePictureAsync({ 
-          quality: 0.7,
-          skipProcessing: false 
-        });
+        const photo = await cameraRef.current.takePictureAsync({ quality: 0.7 });
 
-        // Redimensionamos a un tamaño amigable para face-api
+        // Redimensionamiento optimizado para el servidor
         const fotoProcesada = await ImageManipulator.manipulateAsync(
           photo.uri,
-          [{ resize: { width: 400 } }],
-          { compress: 0.6, format: ImageManipulator.SaveFormat.JPEG, base64: true }
+          [{ resize: { width: 640 } }], // Ancho optimizado para evitar errores 502
+          { compress: 0.7, format: ImageManipulator.SaveFormat.JPEG }
         );
 
-        let fotoUrl = "";
-        if (tipoOperacion === 'REGISTER') {
-            fotoUrl = await subirImagenACloudinary(fotoProcesada.base64);
-        }
-
-        // Creamos un FormData en lugar de enviar JSON crudo
         const formData = new FormData();
         
-        // Adjuntamos los datos del usuario uno a uno
         if (tipoOperacion === 'REGISTER') {
           const { dia, mes, anio, nombre, apellido, email, sexo, localidad, provincia } = datosRegistro;
           formData.append('nombre', nombre || '');
@@ -82,28 +57,18 @@ export default function FacialLoginScreen() {
           formData.append('anio', anio || '');
           formData.append('localidad', localidad || '');
           formData.append('provincia', provincia || '');
-          formData.append('fotoUrl', fotoUrl);
         }
 
-        // Adjuntamos la foto como un archivo real adjunto
         const filename = fotoProcesada.uri.split('/').pop();
-        const match = /\.(\w+)$/.exec(filename || '');
-        const type = match ? `image/${match[1]}` : `image/jpeg`;
-
         formData.append('imageFile', {
           uri: fotoProcesada.uri,
           name: filename || 'face.jpg',
-          type
+          type: 'image/jpeg'
         });
 
         console.log("🚀 ENVIANDO FORM DATA COMPUESTO A REGISTER...");
 
-        // Configuración de cabeceras para envío de archivos (Multipart)
-        const config = {
-          headers: {
-            'Content-Type': 'multipart/form-data',
-          },
-        };
+        const config = { headers: { 'Content-Type': 'multipart/form-data' } };
 
         const response = tipoOperacion === 'REGISTER' 
             ? await api.post('/api/users/register', formData, config)
@@ -122,9 +87,6 @@ export default function FacialLoginScreen() {
         }
       } catch (error) {
         console.error("❌ ERROR DETECTADO:", error);
-        if (error.response) {
-          console.log("Detalles del error del servidor:", JSON.stringify(error.response.data));
-        }
         Alert.alert("Error", "Fallo al procesar la solicitud biométrica.");
       } finally {
         setLoading(false);

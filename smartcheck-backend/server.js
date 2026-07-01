@@ -2,8 +2,9 @@
 const mongoose = require('mongoose');
 const cors = require('cors');
 const path = require('path');
-// Importación necesaria para el motor de TensorFlow
-const tf = require('@tensorflow/tfjs');
+
+// 1. IMPORTACIÓN OPTIMIZADA: Activamos el motor nativo de TensorFlow
+require('@tensorflow/tfjs-node'); 
 const faceapi = require('face-api.js');
 const canvas = require('canvas');
 
@@ -34,6 +35,8 @@ async function startServer() {
         const MODEL_PATH = path.join(__dirname, 'weights'); 
         console.log('🔍 Cargando modelos desde:', MODEL_PATH);
         
+        // 2. CARGA OPTIMIZADA: Añadimos tinyFaceDetector para estabilidad en Render
+        await faceapi.nets.tinyFaceDetector.loadFromDisk(MODEL_PATH);
         await faceapi.nets.ssdMobilenetv1.loadFromDisk(MODEL_PATH);
         await faceapi.nets.faceLandmark68Net.loadFromDisk(MODEL_PATH);
         await faceapi.nets.faceRecognitionNet.loadFromDisk(MODEL_PATH);
@@ -46,7 +49,6 @@ async function startServer() {
         const PORT = process.env.PORT || 10000;
         
         // --- CONFIGURACIÓN DE TIMEOUTS ---
-        // Aumentamos los tiempos para procesos de IA pesados en Render
         const server = app.listen(PORT, '0.0.0.0', () => {
             console.log(`🚀 SERVIDOR ONLINE EN EL PUERTO ${PORT}`);
         });
