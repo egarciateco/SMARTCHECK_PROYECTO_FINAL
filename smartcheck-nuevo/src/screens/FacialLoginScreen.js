@@ -47,7 +47,7 @@ export default function FacialLoginScreen() {
 
         const formData = new FormData();
         
-        // 3. ARMADO SEGURO DE VARIABLES (Pasando todo obligatoriamente a String)
+        // 3. ARMADO SEGURO DE VARIABLES (Pasando todo a String)
         if (tipoOperacion === 'REGISTER') {
           const { dia, mes, anio, nombre, apellido, email, sexo, localidad, provincia } = datosRegistro || {};
           
@@ -73,29 +73,33 @@ export default function FacialLoginScreen() {
           type: 'image/jpeg'
         });
 
-        console.log(`🚀 ENVIANDO FORM DATA COMPUESTO A ${tipoOperacion}...`);
+        // 5. CONSTRUCCIÓN DE LA URL COMPLETAMENTE DINÁMICA
+        const endpoint = tipoOperacion === 'REGISTER' ? '/api/users/register' : '/api/users/login';
+        const baseUrl = api.defaults.baseURL ? api.defaults.baseURL.replace(/\/$/, '') : 'https://smartcheck-proyecto-final.onrender.com';
+        const urlCompleta = `${baseUrl}${endpoint}`;
 
-        // 5. ENVIAR PETICIÓN EVITANDO QUE AXIOS MUTILE EL FORM DATA INTERNAMENTE
-        const response = tipoOperacion === 'REGISTER' 
-            ? await api.post('/api/users/register', formData, {
-                headers: { 
-                  'Content-Type': 'multipart/form-data',
-                  'Accept': 'application/json'
-                },
-                transformRequest: (data) => data, 
-              })
-            : await api.post('/api/users/login', formData, {
-                headers: { 
-                  'Content-Type': 'multipart/form-data',
-                  'Accept': 'application/json'
-                },
-                transformRequest: (data) => data,
-              });
+        console.log(`🚀 ENVIANDO CON FETCH NATIVO A: ${urlCompleta}`);
+
+        // 6. PETICIÓN CON FETCH NATIVO (Elimina el bug de Axios con Content-Type y boundaries)
+        const response = await fetch(urlCompleta, {
+          method: 'POST',
+          body: formData,
+          headers: {
+            'Accept': 'application/json'
+            // Omitimos 'Content-Type' para que el sistema operativo agregue automáticamente el boundary correcto
+          },
+        });
+
+        const data = await response.json();
+        console.log("📩 RESPUESTA DEL SERVIDOR:", data);
+
+        if (!response.ok) {
+          throw new Error(data.mensaje || `Error en el servidor con estatus ${response.status}`);
+        }
 
         if (tipoOperacion === 'REGISTER') {
             Alert.alert("Éxito", "Registrado correctamente", [{ text: "OK", onPress: () => navigation.navigate('Login') }]);
         } else {
-            const data = response.data;
             if (data && data.status === 'success') {
                 await AsyncStorage.setItem('usuario_logueado', JSON.stringify(data));
                 navigation.reset({ index: 0, routes: [{ name: 'Home', params: data }] });
@@ -104,13 +108,8 @@ export default function FacialLoginScreen() {
             }
         }
       } catch (error) {
-        console.error("❌ ERROR DETECTADO:", error);
-        if (error.response) {
-          console.log("Respuesta de error del servidor:", JSON.stringify(error.response.data));
-          Alert.alert("Error del Servidor", error.response.data.mensaje || "Error en el procesamiento.");
-        } else {
-          Alert.alert("Error de Red", "No se pudo conectar con el servidor. Verifica tu internet.");
-        }
+        console.error("❌ ERROR DETECTADO EN FETCH:", error);
+        Alert.alert("Error de Conexión", error.message || "Fallo al procesar la solicitud biométrica.");
       } finally {
         setLoading(false);
       }
