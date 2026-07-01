@@ -35,50 +35,62 @@ export default function FacialLoginScreen() {
     if (cameraRef.current) {
       setLoading(true);
       try {
-        // 1. CAPTURA: Reducimos la calidad nativa de la captura desde el disparo
+        // 1. CAPTURA CON CALIDAD BAJA DESDE EL ORIGEN
         const photo = await cameraRef.current.takePictureAsync({ quality: 0.3 });
 
-        // 2. COMPRESIÓN AGRESIVA: Redimensionamos a 500px de ancho y bajamos la calidad al 20%
+        // 2. COMPRESIÓN AGRESIVA (Imagen ultraligera menor a 100KB)
         const fotoProcesada = await ImageManipulator.manipulateAsync(
           photo.uri,
-          [{ resize: { width: 500 } }], 
-          { compress: 0.2, format: ImageManipulator.SaveFormat.JPEG }
+          [{ resize: { width: 450 } }], 
+          { compress: 0.15, format: ImageManipulator.SaveFormat.JPEG }
         );
 
         const formData = new FormData();
         
-        // CORRECCIÓN DE ENVÍO DE DATOS SEGÚN OPERACIÓN
+        // 3. ARMADO SEGURO DE VARIABLES (Pasando todo obligatoriamente a String)
         if (tipoOperacion === 'REGISTER') {
-          const { dia, mes, anio, nombre, apellido, email, sexo, localidad, provincia } = datosRegistro;
-          formData.append('nombre', nombre || '');
-          formData.append('apellido', apellido || '');
-          formData.append('email', email || '');
-          formData.append('sexo', sexo || '');
-          formData.append('dia', dia || '');
-          formData.append('mes', mes || '');
-          formData.append('anio', anio || '');
-          formData.append('localidad', localidad || '');
-          formData.append('provincia', provincia || '');
+          const { dia, mes, anio, nombre, apellido, email, sexo, localidad, provincia } = datosRegistro || {};
+          
+          formData.append('nombre', String(nombre || ''));
+          formData.append('apellido', String(apellido || ''));
+          formData.append('email', String(email || '').toLowerCase().trim());
+          formData.append('sexo', String(sexo || ''));
+          formData.append('dia', String(dia || ''));
+          formData.append('mes', String(mes || ''));
+          formData.append('anio', String(anio || ''));
+          formData.append('localidad', String(localidad || ''));
+          formData.append('provincia', String(provincia || ''));
         } else if (tipoOperacion === 'LOGIN') {
-          // Extraemos el email que escribió el usuario antes de escanearse
           const { email } = datosRegistro || {};
-          formData.append('email', email || '');
+          formData.append('email', String(email || '').toLowerCase().trim());
         }
 
-        const filename = fotoProcesada.uri.split('/').pop();
+        // 4. ADJUNTAR LA FOTO PROCESADA AL FORM DATA
+        const filename = fotoProcesada.uri.split('/').pop() || 'face.jpg';
         formData.append('imageFile', {
           uri: fotoProcesada.uri,
-          name: filename || 'face.jpg',
+          name: filename,
           type: 'image/jpeg'
         });
 
         console.log(`🚀 ENVIANDO FORM DATA COMPUESTO A ${tipoOperacion}...`);
 
-        const config = { headers: { 'Content-Type': 'multipart/form-data' } };
-
+        // 5. ENVIAR PETICIÓN EVITANDO QUE AXIOS MUTILE EL FORM DATA INTERNAMENTE
         const response = tipoOperacion === 'REGISTER' 
-            ? await api.post('/api/users/register', formData, config)
-            : await api.post('/api/users/login', formData, config);
+            ? await api.post('/api/users/register', formData, {
+                headers: { 
+                  'Content-Type': 'multipart/form-data',
+                  'Accept': 'application/json'
+                },
+                transformRequest: (data) => data, 
+              })
+            : await api.post('/api/users/login', formData, {
+                headers: { 
+                  'Content-Type': 'multipart/form-data',
+                  'Accept': 'application/json'
+                },
+                transformRequest: (data) => data,
+              });
 
         if (tipoOperacion === 'REGISTER') {
             Alert.alert("Éxito", "Registrado correctamente", [{ text: "OK", onPress: () => navigation.navigate('Login') }]);
@@ -93,7 +105,12 @@ export default function FacialLoginScreen() {
         }
       } catch (error) {
         console.error("❌ ERROR DETECTADO:", error);
-        Alert.alert("Error", "Fallo al procesar la solicitud biométrica.");
+        if (error.response) {
+          console.log("Respuesta de error del servidor:", JSON.stringify(error.response.data));
+          Alert.alert("Error del Servidor", error.response.data.mensaje || "Error en el procesamiento.");
+        } else {
+          Alert.alert("Error de Red", "No se pudo conectar con el servidor. Verifica tu internet.");
+        }
       } finally {
         setLoading(false);
       }
