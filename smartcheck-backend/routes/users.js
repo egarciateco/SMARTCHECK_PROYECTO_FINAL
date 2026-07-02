@@ -31,7 +31,7 @@ router.post('/register', upload.single('imageFile'), async (req, res) => {
         const { nombre, apellido, email, correo, ...datos } = req.body;
 
         // Validar si el email principal ya existe
-        const usuarioExistente = await User.findOne({ email });
+        const usuarioExistente = await User.findOne({ email: email.toLowerCase().trim() });
         if (usuarioExistente) {
             return res.status(400).json({ status: 'error', mensaje: 'El email ya se encuentra registrado' });
         }
@@ -39,7 +39,7 @@ router.post('/register', upload.single('imageFile'), async (req, res) => {
         const newUser = new User({ 
             nombre, 
             apellido, 
-            email, 
+            email: email.toLowerCase().trim(), 
             faceDescriptor: Array.from(detection.descriptor), 
             ...datos 
         });
@@ -55,25 +55,14 @@ router.post('/register', upload.single('imageFile'), async (req, res) => {
     }
 });
 
-// 2. RUTA DE INICIO DE SESIÓN BIOMÉTRICO (LOGIN)
+// 2. RUTA DE INICIO DE SESIÓN BIOMÉTRICO ÁGIL (LOGIN 1 A N - RECONOCIMIENTO GLOBAL)
 router.post('/login', upload.single('imageFile'), async (req, res) => {
     if (!req.file) {
         return res.status(400).json({ status: 'error', mensaje: 'Imagen requerida para verificación' });
     }
 
     try {
-        const { email } = req.body;
-        if (!email) {
-            return res.status(400).json({ status: 'error', mensaje: 'El email es requerido' });
-        }
-
-        // Buscar al usuario por el email canónico
-        const usuario = await User.findOne({ email });
-        if (!usuario || !usuario.faceDescriptor || usuario.faceDescriptor.length === 0) {
-            return res.status(404).json({ status: 'error', mensaje: 'Usuario no encontrado o sin datos biométricos' });
-        }
-
-        // Procesar la foto actual del login
+        // Procesar la foto actual del login enviada por el celular
         const img = await canvas.loadImage(req.file.buffer);
         const detectionOptions = new faceapi.SsdMobilenetv1Options({ minConfidence: 0.5 });
         const loginDetection = await faceapi.detectSingleFace(img, detectionOptions)
@@ -81,33 +70,42 @@ router.post('/login', upload.single('imageFile'), async (req, res) => {
             .withFaceDescriptor();
 
         if (!loginDetection) {
-            return res.status(400).json({ status: 'error', mensaje: 'No se pudo escanear el rostro claramente' });
+            return res.status(400).json({ status: 'error', mensaje: 'No se pudo escanear el rostro claramente. Intente de nuevo.' });
         }
 
-        // Comparar el descriptor nuevo con el guardado en la base de datos
-        const descriptorGuardado = new Float32Array(usuario.faceDescriptor);
         const descriptorActual = loginDetection.descriptor;
 
-        // Calcula la distancia euclidiana (menor distancia = mayor similitud)
-        const distancia = faceapi.euclideanDistance(descriptorActual, descriptorGuardado);
-        console.log(`🔍 Distancia biométrica calculada: ${distancia}`);
+        // 1. Buscamos TODOS los usuarios que tengan datos biométricos guardados
+        const usuarios = await User.find({ faceDescriptor: { $exists: true, $not: { $size: 0 } } });
 
-        // Umbral estándar: 0.6 o menos significa que es la misma persona
-        if (distancia > 0.6) {
-            return res.status(401).json({ status: 'error', mensaje: 'Autenticación fallida: El rostro no coincide' });
+        // 2. Iteramos para encontrar un match por distancia euclidiana
+        for (const usuario of usuarios) {
+            // Reconstituimos el array guardado a Float32Array para usar con face-api
+            const descriptorGuardado = new Float32Array(usuario.faceDescriptor);
+
+            // Calcula la distancia euclidiana
+            const distancia = faceapi.euclideanDistance(descriptorActual, descriptorGuardado);
+
+            // Umbral de tolerancia ajustable (0.48 - 0.52 es ideal para evitar falsos positivos y ser veloz)
+            if (distancia <= 0.50) {
+                console.log(`✅ Match biométrico exitoso. Distancia: ${distancia} para: ${usuario.email}`);
+                
+                return res.status(200).json({ 
+                    status: 'success', 
+                    mensaje: `¡Bienvenido de vuelta, ${usuario.nombre}!`,
+                    usuario: {
+                        id: usuario._id,
+                        nombre: usuario.nombre,
+                        apellido: usuario.apellido,
+                        email: usuario.email
+                    }
+                });
+            }
         }
 
-        console.log(`✅ Login exitoso para: ${usuario.email}`);
-        res.status(200).json({ 
-            status: 'success', 
-            mensaje: 'Autenticación exitosa',
-            usuario: {
-                id: usuario._id,
-                nombre: usuario.nombre,
-                apellido: usuario.apellido,
-                email: usuario.email
-            }
-        });
+        // Si recorrió todos los usuarios y ninguno matcheó
+        console.log('❌ Intento de Login Facial fallido: Rostro no coincide con ningún usuario');
+        return res.status(401).json({ status: 'error', mensaje: 'Autenticación fallida: El rostro no pertenece a ninguna cuenta registrada' });
 
     } catch (error) {
         console.error('❌ Error crítico en login:', error);
