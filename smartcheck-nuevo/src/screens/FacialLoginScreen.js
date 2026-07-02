@@ -90,8 +90,16 @@ export default function FacialLoginScreen() {
           },
         });
 
-        const data = await response.json();
-        console.log("📩 RESPUESTA DEL SERVIDOR:", data);
+        // 7. LECTURA CONTROLADA DE RESPUESTA (Evita crasheos por HTML/Errores de servidor)
+        const textoRespuesta = await response.text();
+        console.log("📩 RESPUESTA RECIBIDA DEL SERVIDOR:", textoRespuesta);
+
+        let data = {};
+        try {
+          data = JSON.parse(textoRespuesta);
+        } catch (e) {
+          throw new Error("El servidor de Render se está despertando de su inactividad. Por favor, reintenta en 15 segundos.");
+        }
 
         if (!response.ok) {
           throw new Error(data.mensaje || `Error en el servidor con estatus ${response.status}`);
@@ -108,8 +116,8 @@ export default function FacialLoginScreen() {
             }
         }
       } catch (error) {
-        console.error("❌ ERROR DETECTADO EN FETCH:", error);
-        Alert.alert("Error de Conexión", error.message || "Fallo al procesar la solicitud biométrica.");
+        console.error("❌ ERROR DETECTADO EN FLOW:", error);
+        Alert.alert("Aviso del Servidor", error.message || "Fallo al procesar la solicitud biométrica.");
       } finally {
         setLoading(false);
       }
