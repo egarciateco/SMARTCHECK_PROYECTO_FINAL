@@ -1,10 +1,10 @@
-﻿const express = require('express');
+﻿// Motor de TensorFlow NATIVO activado en la primera línea para máxima aceleración
+require('@tensorflow/tfjs-node'); 
+
+const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
 const path = require('path');
-
-// Motor de TensorFlow (si tienes errores al ejecutarlo, mantenlo comentado)
-// require('@tensorflow/tfjs-node'); 
 
 const faceapi = require('face-api.js');
 const canvas = require('canvas');
