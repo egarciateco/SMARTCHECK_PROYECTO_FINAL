@@ -1,16 +1,4 @@
-﻿// Carga TensorFlow de forma nativa SOLO si está en producción (Render) para evitar errores en Windows local
-if (process.env.NODE_ENV === 'production' || process.env.RENDER) {
-    try {
-        require('@tensorflow/tfjs-node');
-        console.log('⚡ Motor de TensorFlow NATIVO (C++) cargado con éxito en producción');
-    } catch (err) {
-        console.error('⚠️ No se pudo cargar el acelerador de TensorFlow:', err.message);
-    }
-} else {
-    console.log('💻 Ejecutando backend en entorno local (Modo CPU de JS)');
-}
-
-const express = require('express');
+﻿const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
 const path = require('path');
