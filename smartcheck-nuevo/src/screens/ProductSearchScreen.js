@@ -2,12 +2,14 @@ import React, { useState } from 'react';
 import { View, TextInput, FlatList, TouchableOpacity, Image, Text, StyleSheet, ActivityIndicator, Alert, BackHandler } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import MapView, { Marker } from 'react-native-maps';
+import { useAuth } from '../context/AuthContext'; // <-- Vinculamos tu Contexto global
 
 const API_URL = 'https://smartcheck-proyecto-final.onrender.com';
 
 export default function ProductSearchScreen({ navigation, route }) {
+  const { user } = useAuth(); // <-- Consumimos los datos globales reales
   const params = route?.params || {};
-  const { nombreUsuario = 'Usuario', fotoUrl, latitud, longitud } = params;
+  const { latitud, longitud } = params;
   
   const latNum = latitud ? parseFloat(latitud) : -31.7333;
   const lngNum = longitud ? parseFloat(longitud) : -60.5167;
@@ -23,7 +25,6 @@ export default function ProductSearchScreen({ navigation, route }) {
     }
     setLoading(true);
     try {
-      // Llamada real al endpoint de búsqueda
       const response = await fetch(`${API_URL}/api/users/productos/buscar?q=${encodeURIComponent(search)}`);
       const result = await response.json();
       
@@ -52,15 +53,17 @@ export default function ProductSearchScreen({ navigation, route }) {
       <View style={styles.header}>
         <Image source={require('../../assets/logo.png')} style={styles.logoGrande} />
         <Image source={require('../../assets/nombreapp.png')} style={styles.nombreAppGrande} />
-        {fotoUrl ? (
-          <Image source={{ uri: fotoUrl }} style={styles.userAvatar} />
+        {/* Sincronizado con la foto real global */}
+        {user?.foto ? (
+          <Image source={{ uri: user.foto }} style={styles.userAvatar} />
         ) : (
           <Ionicons name="person-circle" size={50} color="#fff" />
         )}
       </View>
 
       <View style={styles.franjaNegra}>
-        <Text style={styles.tituloFranja}>¡BIENVENID@, {nombreUsuario.toUpperCase()}!</Text>
+        {/* Sincronizado con el nombre global real */}
+        <Text style={styles.tituloFranja}>¡BIENVENID@, {user?.nombre?.toUpperCase() || 'USUARIO'}!</Text>
       </View>
       
       <View style={styles.searchContainer}>

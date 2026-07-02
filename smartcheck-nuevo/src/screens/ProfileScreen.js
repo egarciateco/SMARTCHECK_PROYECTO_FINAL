@@ -1,21 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, Image, TouchableOpacity, ActivityIndicator, Alert, BackHandler } from 'react-native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useAuth } from '../context/AuthContext'; // <-- Vinculamos tu Contexto
 import { userService } from '../config/api';
 
 export default function ProfileScreen({ navigation }) {
-  const [usuario, setUsuario] = useState(null);
+  const { user } = useAuth(); // <-- Tomamos al usuario global directamente
   const [cargando, setCargando] = useState(true);
 
   useEffect(() => {
     const init = async () => {
       try {
-        const infoLocal = await AsyncStorage.getItem('usuario_logueado');
-        if (infoLocal) {
-          const user = JSON.parse(infoLocal);
-          setUsuario(user);
-          
-          // ID obtenido del usuario logueado
+        if (user) {
           const userId = user._id || user.id;
           
           if (userId) {
@@ -33,7 +28,7 @@ export default function ProfileScreen({ navigation }) {
       }
     };
     init();
-  }, []);
+  }, [user]);
 
   if (cargando) return <ActivityIndicator size="large" color="#00ffcc" style={styles.loader} />;
 
@@ -46,19 +41,20 @@ export default function ProfileScreen({ navigation }) {
       <Text style={styles.title}>MI PERFIL DE USUARIO</Text>
       
       <View style={styles.profileCard}>
-        {usuario?.fotoUrl ? (
-            <Image source={{ uri: usuario.fotoUrl }} style={styles.avatar} />
+        {/* Renderiza de manera nativa la foto en string base64 que recuperamos del backend */}
+        {user?.foto ? (
+            <Image source={{ uri: user.foto }} style={styles.avatar} />
         ) : (
             <View style={styles.avatarPlaceholder}><Text style={{color: '#fff'}}>Sin foto</Text></View>
         )}
         
         <View style={styles.infoContainer}>
           <Text style={styles.label}>NOMBRE:</Text>
-          <Text style={styles.value}>{usuario?.apellido?.toUpperCase()}, {usuario?.nombre}</Text>
+          <Text style={styles.value}>{user?.apellido?.toUpperCase()}, {user?.nombre}</Text>
           <Text style={styles.label}>EMAIL:</Text>
-          <Text style={styles.value}>{usuario?.email}</Text>
+          <Text style={styles.value}>{user?.email}</Text>
           <Text style={styles.label}>UBICACIÓN:</Text>
-          <Text style={styles.value}>{usuario?.localidad || 'N/A'}, {usuario?.provincia || 'N/A'}</Text>
+          <Text style={styles.value}>{user?.localidad || 'N/A'}, {user?.provincia || 'N/A'}</Text>
         </View>
       </View>
       

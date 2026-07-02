@@ -16,21 +16,23 @@ export const storage = {
         return false;
       }
       
-      // Limpiar datos sensibles antes de guardar
+      // Limpiar datos sensibles antes de guardar e incluir campos de imagen
       const safeUserData = {
-        id: userData.id,
+        id: userData.id || userData._id,
         email: userData.email.toLowerCase().trim(),
         nombre: userData.nombre,
         apellido: userData.apellido,
         sexo: userData.sexo,
         authMethod: userData.authMethod || 'password',
-        faceData: userData.faceData || null, // Solo referencia, no base64 completo si es muy grande
+        faceData: userData.faceData || null,
+        foto: userData.foto || null,     // <-- CORRECCIÓN: Guardamos la foto base64
+        image: userData.image || null,   // <-- CORRECCIÓN: Guardamos la imagen de respaldo
         createdAt: userData.createdAt || new Date().toISOString(),
         updatedAt: new Date().toISOString()
       };
       
       await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(safeUserData));
-      console.log('✅ Usuario guardado:', safeUserData.email);
+      console.log('✅ Usuario guardado en almacenamiento:', safeUserData.email);
       return true;
     } catch (error) {
       console.error('❌ Error guardando usuario:', error);
@@ -49,7 +51,7 @@ export const storage = {
         return null;
       }
       const userData = JSON.parse(jsonValue);
-      console.log('✅ Usuario cargado:', userData?.email);
+      console.log('✅ Usuario cargado de almacenamiento:', userData?.email);
       return userData;
     } catch (error) {
       console.error('❌ Error cargando usuario:', error);

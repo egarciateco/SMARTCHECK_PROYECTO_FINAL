@@ -40,8 +40,5 @@ userSchema.pre('save', function(next) {
   next();
 });
 
-// El mensaje de diagnóstico ha sido eliminado para evitar la saturación de logs 
-// y el registro redundante del modelo en cada evento de conexión.
-
 // FORZAR uso de la conexión activa actual para evitar redirección a 'test'
 module.exports = mongoose.connection.models.User || mongoose.model('User', userSchema, 'users');

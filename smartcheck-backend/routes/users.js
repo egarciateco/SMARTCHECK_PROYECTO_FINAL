@@ -7,7 +7,7 @@ const User = require('../models/User');
 
 const upload = multer({ storage: multer.memoryStorage() });
 
-// 1. RUTA DE REGISTRO
+// 1. RUTA DE REGISTRO (Guarda el descriptor y la foto real optimizada)
 router.post('/register', upload.single('imageFile'), async (req, res) => {
     if (!req.file) {
         return res.status(400).json({ status: 'error', mensaje: 'Imagen requerida' });
@@ -33,12 +33,26 @@ router.post('/register', upload.single('imageFile'), async (req, res) => {
 
         const arrayDescriptores = Array.from(detection.descriptor);
 
+        // --- OPTIMIZACIÓN Y CONVERSIÓN DE LA FOTO A BASE64 ---
+        // Redimensionamos la foto con un canvas pequeño para que no ocupe espacio innecesario en MongoDB
+        const maxAncho = 300;
+        const escala = maxAncho / img.width;
+        const altoDestino = img.height * escala;
+
+        const miCanvas = canvas.createCanvas(maxAncho, altoDestino);
+        const ctx = miCanvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, maxAncho, altoDestino);
+        
+        // Genera la URI en string comprimido base64 (Formato apto para la etiqueta <Image> de Expo)
+        const fotoBase64 = miCanvas.toDataURL('image/jpeg', 0.7);
+
         const newUser = new User({ 
             nombre, 
             apellido, 
             email: email.toLowerCase().trim(), 
             faceDescriptor: arrayDescriptores, 
-            facialDescriptor: arrayDescriptores, // Guardamos en ambos formatos por compatibilidad
+            facialDescriptor: arrayDescriptores,
+            foto: fotoBase64, // <--- Guardamos la foto en la base de datos
             ...datos 
         });
 
@@ -51,7 +65,7 @@ router.post('/register', upload.single('imageFile'), async (req, res) => {
     }
 });
 
-// 2. RUTA DE LOGIN (COMPATIBILIDAD MEJORADA)
+// 2. RUTA DE LOGIN (Envía los descriptores, nombre y FOTO REAL a la app)
 router.post('/login', upload.single('imageFile'), async (req, res) => {
     if (!req.file) {
         return res.status(400).json({ status: 'error', mensaje: 'Imagen requerida para verificación' });
@@ -70,7 +84,6 @@ router.post('/login', upload.single('imageFile'), async (req, res) => {
 
         const descriptorActual = loginDetection.descriptor;
 
-        // Buscamos usuarios que tengan datos en cualquiera de las dos variantes de nombres
         const usuarios = await User.find({
             $or: [
                 { faceDescriptor: { $exists: true, $not: { $size: 0 } } },
@@ -79,7 +92,6 @@ router.post('/login', upload.single('imageFile'), async (req, res) => {
         });
 
         for (const usuario of usuarios) {
-            // Usamos el array que contenga los datos válidos
             const datosBiometricos = (usuario.faceDescriptor && usuario.faceDescriptor.length > 0) 
                 ? usuario.faceDescriptor 
                 : usuario.facialDescriptor;
@@ -90,7 +102,6 @@ router.post('/login', upload.single('imageFile'), async (req, res) => {
             if (distancia <= 0.50) {
                 console.log(`✅ Match exitoso (Distancia: ${distancia}) para: ${usuario.email}`);
                 
-                // Mapeamos el objeto para asegurar que lleve ambas propiedades rellenas y no rompa el Home
                 return res.status(200).json({ 
                     status: 'success', 
                     mensaje: `¡Bienvenido de vuelta, ${usuario.nombre}!`,
@@ -101,8 +112,9 @@ router.post('/login', upload.single('imageFile'), async (req, res) => {
                         apellido: usuario.apellido,
                         email: usuario.email,
                         sexo: usuario.sexo || 'M',
+                        foto: usuario.foto || null, // <--- ¡Clave! Aquí viaja la foto real del usuario hacia todas tus pantallas
                         faceDescriptor: datosBiometricos,
-                        facialDescriptor: datosBiometricos // <--- Duplicado estratégico para evitar rebotes
+                        facialDescriptor: datosBiometricos 
                     }
                 });
             }

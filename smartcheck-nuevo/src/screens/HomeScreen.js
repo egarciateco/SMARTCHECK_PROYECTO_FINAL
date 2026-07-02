@@ -3,27 +3,32 @@ import { View, Text, StyleSheet, Image, TouchableOpacity, BackHandler, ActivityI
 import { useRoute } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useAuth } from '../context/AuthContext'; // <-- Usamos tu hook useAuth
 
 export default function HomeScreen({ navigation }) {
   const route = useRoute();
-  const [usuario, setUsuario] = useState(null);
+  const { user, login } = useAuth(); // <-- Traemos 'user' global y tu disparador 'login'
   const [cargando, setCargando] = useState(true);
   const API_URL = 'https://smartcheck-proyecto-final.onrender.com';
 
   useEffect(() => {
     const inicializarHome = async () => {
       try {
-        let datos = route.params;
+        let datos = route.params?.usuario || route.params;
 
-        // Recuperar si viene vacío
+        // Recuperar si viene vacío desde la navegación
         if (!datos || !datos._id) {
           const guardado = await AsyncStorage.getItem('usuario_logueado');
           if (guardado) datos = JSON.parse(guardado);
         }
 
         if (datos && datos._id) {
-          setUsuario(datos);
-          // Telemetría
+          // Si el estado global está vacío o cambió, lo inyectamos en tu Contexto global
+          if (!user || user._id !== datos._id) {
+            login(datos);
+          }
+          
+          // Telemetría obligatoria
           await fetch(`${API_URL}/api/users/usuarios/registrar-visita`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -48,16 +53,23 @@ export default function HomeScreen({ navigation }) {
       <View style={styles.header}>
         <Image source={require('../../assets/logo.png')} style={styles.logoGrande} />
         <Image source={require('../../assets/nombreapp.png')} style={styles.nombreAppGrande} />
-        {usuario?.fotoUrl ? <Image source={{ uri: usuario.fotoUrl }} style={styles.userAvatar} /> : <Ionicons name="person-circle" size={50} color="#fff" />}
+        {/* Usamos user.foto (enviada desde el backend) en lugar de fotoUrl obsoleta */}
+        {user?.foto ? (
+          <Image source={{ uri: user.foto }} style={styles.userAvatar} />
+        ) : (
+          <Ionicons name="person-circle" size={50} color="#fff" />
+        )}
       </View>
 
-      <View style={styles.blackBar}><Text style={styles.welcomeText}>¡BIENVENID@, {usuario?.nombre?.toUpperCase() || 'USUARIO'}!</Text></View>
+      <View style={styles.blackBar}>
+        <Text style={styles.welcomeText}>¡BIENVENID@, {user?.nombre?.toUpperCase() || 'USUARIO'}!</Text>
+      </View>
 
       <View style={styles.menuGrid}>
-        <TouchableOpacity style={styles.menuBox} onPress={() => navigation.navigate('Perfil', usuario)}>
+        <TouchableOpacity style={styles.menuBox} onPress={() => navigation.navigate('Perfil')}>
             <Image source={require('../../assets/perfil.png')} style={styles.btnImg} /><Text style={styles.btnLabel}>Mi Perfil</Text>
         </TouchableOpacity>
-        <TouchableOpacity style={styles.menuBox} onPress={() => navigation.navigate('Busqueda', { ...usuario })}>
+        <TouchableOpacity style={styles.menuBox} onPress={() => navigation.navigate('Busqueda')}>
             <Image source={require('../../assets/lupa.png')} style={styles.btnImg} /><Text style={styles.btnLabel}>Buscar Productos</Text>
         </TouchableOpacity>
         <TouchableOpacity style={styles.menuBox} onPress={() => navigation.navigate('AdminPanel')}>

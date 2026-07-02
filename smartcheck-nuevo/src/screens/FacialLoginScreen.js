@@ -2,9 +2,10 @@ import React, { useRef, useState } from 'react';
 import { StyleSheet, Text, View, TouchableOpacity, Alert, ActivityIndicator, Image, BackHandler, Dimensions } from 'react-native';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import { useNavigation, useRoute } from '@react-navigation/native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as ImageManipulator from 'expo-image-manipulator';
 import api from '../config/api'; 
+import { useAuth } from '../context/AuthContext';
+import storage from '../utils/storage'; // <-- CORRECCIÓN: Importamos tu módulo central de storage
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 
@@ -15,6 +16,7 @@ export default function FacialLoginScreen() {
   const [permission, requestPermission] = useCameraPermissions();
   const [loading, setLoading] = useState(false);
   const [countdown, setCountdown] = useState(0);
+  const { login } = useAuth();
 
   const { tipoOperacion, datosRegistro } = route.params || { tipoOperacion: 'LOGIN', datosRegistro: {} };
 
@@ -35,10 +37,10 @@ export default function FacialLoginScreen() {
     if (cameraRef.current) {
       setLoading(true);
       try {
-        // 1. CAPTURA CON CALIDAD BAJA DESDE EL ORIGEN
+        // 1. CAPTURA CON CALIDAD BAJA
         const photo = await cameraRef.current.takePictureAsync({ quality: 0.3 });
 
-        // 2. COMPRESIÓN AGRESIVA (Imagen ultraligera menor a 100KB)
+        // 2. COMPRESIÓN AGRESIVA
         const fotoProcesada = await ImageManipulator.manipulateAsync(
           photo.uri,
           [{ resize: { width: 450 } }], 
@@ -47,7 +49,7 @@ export default function FacialLoginScreen() {
 
         const formData = new FormData();
         
-        // 3. ARMADO SEGURO DE VARIABLES (Pasando todo a String)
+        // 3. ARMADO DE FORM DATA
         if (tipoOperacion === 'REGISTER') {
           const { dia, mes, anio, nombre, apellido, email, sexo, localidad, provincia } = datosRegistro || {};
           
@@ -60,12 +62,9 @@ export default function FacialLoginScreen() {
           formData.append('anio', String(anio || ''));
           formData.append('localidad', String(localidad || ''));
           formData.append('provincia', String(provincia || ''));
-        } else if (tipoOperacion === 'LOGIN') {
-          const { email } = datosRegistro || {};
-          formData.append('email', String(email || '').toLowerCase().trim());
         }
 
-        // 4. ADJUNTAR LA FOTO PROCESADA AL FORM DATA
+        // 4. ADJUNTAR LA FOTO PROCESADA
         const filename = fotoProcesada.uri.split('/').pop() || 'face.jpg';
         formData.append('imageFile', {
           uri: fotoProcesada.uri,
@@ -73,24 +72,23 @@ export default function FacialLoginScreen() {
           type: 'image/jpeg'
         });
 
-        // 5. CONSTRUCCIÓN DE LA URL COMPLETAMENTE DINÁMICA
+        // 5. CONSTRUCCIÓN DE LA URL
         const endpoint = tipoOperacion === 'REGISTER' ? '/api/users/register' : '/api/users/login';
         const baseUrl = api.defaults.baseURL ? api.defaults.baseURL.replace(/\/$/, '') : 'https://smartcheck-proyecto-final.onrender.com';
         const urlCompleta = `${baseUrl}${endpoint}`;
 
         console.log(`🚀 ENVIANDO CON FETCH NATIVO A: ${urlCompleta}`);
 
-        // 6. PETICIÓN CON FETCH NATIVO (Elimina el bug de Axios con Content-Type y boundaries)
+        // 6. PETICIÓN CON FETCH
         const response = await fetch(urlCompleta, {
           method: 'POST',
           body: formData,
           headers: {
             'Accept': 'application/json'
-            // Omitimos 'Content-Type' para que el sistema operativo agregue automáticamente el boundary correcto
           },
         });
 
-        // 7. LECTURA CONTROLADA DE RESPUESTA (Evita crasheos por HTML/Errores de servidor)
+        // 7. LECTURA CONTROLADA
         const textoRespuesta = await response.text();
         console.log("📩 RESPUESTA RECIBIDA DEL SERVIDOR:", textoRespuesta);
 
@@ -109,8 +107,16 @@ export default function FacialLoginScreen() {
             Alert.alert("Éxito", "Registrado correctamente", [{ text: "OK", onPress: () => navigation.navigate('Login') }]);
         } else {
             if (data && data.status === 'success') {
-                await AsyncStorage.setItem('usuario_logueado', JSON.stringify(data));
-                navigation.reset({ index: 0, routes: [{ name: 'Home', params: data }] });
+                const sesionUsuario = data.usuario; 
+                
+                // CORRECCIÓN: Guardamos usando tu lógica de storage limpia con el prefijo oficial
+                await storage.saveUser(sesionUsuario);
+                
+                // Notificamos al estado global para actualizar el header y el perfil
+                login(sesionUsuario);
+                
+                // Redirigimos al Home pasando el objeto estructurado
+                navigation.reset({ index: 0, routes: [{ name: 'Home', params: sesionUsuario }] });
             } else {
                 Alert.alert("Error", data.mensaje || "No se pudo reconocer el rostro.");
             }

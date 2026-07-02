@@ -50,19 +50,6 @@ export default function LoginScreen() {
     }
   };
 
-  // CORRECCIÓN: Función controladora para pasar el email al flujo biométrico
-  const handleLoginFacial = () => {
-    if (!email) {
-      Alert.alert("Email requerido", "Por favor, escribe tu email antes de iniciar el escaneo facial para saber qué usuario loguear.");
-      return;
-    }
-    // Navegamos a la cámara inyectando de manera estructurada el email ingresado
-    navigation.navigate('Camera', { 
-      tipoOperacion: 'LOGIN', 
-      datosRegistro: { email: email } 
-    });
-  };
-
   return (
     <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.container}>
       <View style={styles.headerArea}>
@@ -85,8 +72,7 @@ export default function LoginScreen() {
         {loading ? <ActivityIndicator size="large" color="#ffcc00" style={{ marginVertical: 20 }} /> : (
             <View>
                 <TouchableOpacity style={styles.btn} onPress={handleLoginManual}><Text style={styles.btnText}>INGRESAR</Text></TouchableOpacity>
-                {/* Asignamos la nueva función controladora corregida */}
-                <TouchableOpacity style={styles.btnFacial} onPress={handleLoginFacial}><Text style={styles.btnText}>LOGIN FACIAL</Text></TouchableOpacity>
+                <TouchableOpacity style={styles.btnFacial} onPress={() => navigation.navigate('Camera', { tipoOperacion: 'LOGIN' })}><Text style={styles.btnText}>LOGIN FACIAL</Text></TouchableOpacity>
             </View>
         )}
         <TouchableOpacity onPress={() => navigation.navigate('Register')}><Text style={styles.link}>¿No tienes cuenta? Regístrate</Text></TouchableOpacity>
