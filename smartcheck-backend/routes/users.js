@@ -34,7 +34,6 @@ router.post('/register', upload.single('imageFile'), async (req, res) => {
         const arrayDescriptores = Array.from(detection.descriptor);
 
         // --- OPTIMIZACIÓN Y CONVERSIÓN DE LA FOTO A BASE64 ---
-        // Redimensionamos la foto con un canvas pequeño para que no ocupe espacio innecesario en MongoDB
         const maxAncho = 300;
         const escala = maxAncho / img.width;
         const altoDestino = img.height * escala;
@@ -43,7 +42,6 @@ router.post('/register', upload.single('imageFile'), async (req, res) => {
         const ctx = miCanvas.getContext('2d');
         ctx.drawImage(img, 0, 0, maxAncho, altoDestino);
         
-        // Genera la URI en string comprimido base64 (Formato apto para la etiqueta <Image> de Expo)
         const fotoBase64 = miCanvas.toDataURL('image/jpeg', 0.7);
 
         const newUser = new User({ 
@@ -52,7 +50,7 @@ router.post('/register', upload.single('imageFile'), async (req, res) => {
             email: email.toLowerCase().trim(), 
             faceDescriptor: arrayDescriptores, 
             facialDescriptor: arrayDescriptores,
-            foto: fotoBase64, // <--- Guardamos la foto en la base de datos
+            foto: fotoBase64, 
             ...datos 
         });
 
@@ -84,14 +82,13 @@ router.post('/login', upload.single('imageFile'), async (req, res) => {
 
         const descriptorActual = loginDetection.descriptor;
 
-        // OPTIMIZACIÓN 1: Forzamos la selección de 'foto' y usamos `.lean()` para obtener un JSON plano.
-        // Esto permite que Javascript acceda a las propiedades del documento sin restricciones de Mongoose.
+        // SOLUCIÓN: Eliminamos el .select() restrictivo para que traiga TODO lo que contenga el documento de MongoDB Atlas
         const usuarios = await User.find({
             $or: [
                 { faceDescriptor: { $exists: true, $not: { $size: 0 } } },
                 { facialDescriptor: { $exists: true, $not: { $size: 0 } } }
             ]
-        }).select('+foto nombre apellido email sexo faceDescriptor facialDescriptor').lean();
+        }).lean();
 
         for (const usuario of usuarios) {
             const datosBiometricos = (usuario.faceDescriptor && usuario.faceDescriptor.length > 0) 
@@ -106,10 +103,9 @@ router.post('/login', upload.single('imageFile'), async (req, res) => {
             if (distancia <= 0.50) {
                 console.log(`✅ Match exitoso (Distancia: ${distancia}) para: ${usuario.email}`);
                 
-                // Mapeo flexible: capturamos la foto sin importar si la base de datos la llamó 'foto' o 'image'
-                const fotoFinal = usuario.foto || usuario.image || null;
+                // Mapeo ultra flexible: capturamos la propiedad de la foto sin importar variantes de nombres comunes
+                const fotoFinal = usuario.foto || usuario.Foto || usuario.image || usuario.imagen || null;
 
-                // OPTIMIZACIÓN 2: No devolvemos los descriptores biométricos pesados a la App.
                 return res.status(200).json({ 
                     status: 'success', 
                     mensaje: `¡Bienvenido de vuelta, ${usuario.nombre}!`,
@@ -120,7 +116,7 @@ router.post('/login', upload.single('imageFile'), async (req, res) => {
                         apellido: usuario.apellido,
                         email: usuario.email,
                         sexo: usuario.sexo || 'M',
-                        foto: fotoFinal // Garantizado que viaja la cadena en base64 de MongoDB
+                        foto: fotoFinal 
                     }
                 });
             }
