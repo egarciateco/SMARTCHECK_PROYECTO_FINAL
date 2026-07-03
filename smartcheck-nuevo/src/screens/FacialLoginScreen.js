@@ -116,9 +116,17 @@ export default function FacialLoginScreen() {
                 Alert.alert("Éxito", "Registrado correctamente", [{ text: "OK", onPress: () => navigation.navigate('Login') }]);
               }, 1500);
           } else {
+              // Obtenemos los datos del usuario devueltos por el backend
               const sesionUsuario = data.usuario || data; 
+              
+              // REPARACIÓN: Hacemos un spread (...sesionUsuario) completo para heredar dia, mes, anio, edad, sexo, etc., 
+              // sin que falte absolutamente nada, acoplándole la geolocalización actual del GPS celular.
               const usuarioConUbicacion = {
                 ...sesionUsuario,
+                dia: sesionUsuario.dia || '',
+                mes: sesionUsuario.mes || '',
+                anio: sesionUsuario.anio || '',
+                edad: sesionUsuario.edad || '',
                 localidad: geoData?.localidad || 'N/A',
                 provincia: geoData?.provincia || 'N/A'
               };
@@ -127,7 +135,10 @@ export default function FacialLoginScreen() {
               setMensajeFeedback('¡Tu foto salió perfecta!');
               hablarText(`Bienvenido de vuelta, ${usuarioConUbicacion.nombre || 'Usuario'}`);
 
+              // Guardamos en el Storage local persistente
               await storage.saveUser(usuarioConUbicacion);
+              
+              // Actualizamos el contexto global de autenticación de la app
               login(usuarioConUbicacion);
               
               setTimeout(() => {
@@ -165,7 +176,6 @@ export default function FacialLoginScreen() {
       </View>
       
       <View style={styles.centerSection}>
-        {/* CORRECCIÓN DE ERROR NATIVO: Si ya se validó con éxito, renderizamos una vista estática congelada para evitar duplicar el nodo de la cámara */}
         <View style={styles.cameraContainer}>
           {statusVerificacion === 'SUCCESS' ? (
             <View style={[styles.camera, styles.overlaySuccessContainer]}>
@@ -183,7 +193,6 @@ export default function FacialLoginScreen() {
           )}
         </View>
 
-        {/* FEEDBACK DE TEXTO ABAJO DEL ÓVALO */}
         <View style={styles.feedbackContainer}>
           {statusVerificacion === 'SUCCESS' && (
             <View style={styles.feedbackBox}>
