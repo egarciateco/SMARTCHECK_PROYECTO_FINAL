@@ -1,44 +1,34 @@
+// src/screens/HomeScreen.js
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, Image, TouchableOpacity, BackHandler, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, Image, TouchableOpacity, BackHandler, ActivityIndicator, Alert } from 'react-native';
 import { useRoute } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useAuth } from '../context/AuthContext'; // <-- Usamos tu hook useAuth
+import storage from '../utils/storage'; // <-- Usamos tu storage unificado
+import { useAuth } from '../context/AuthContext';
 
 export default function HomeScreen({ navigation }) {
   const route = useRoute();
-  const { user, login } = useAuth(); // <-- Traemos 'user' global y tu disparador 'login'
+  const { user, login, logout } = useAuth();
   const [cargando, setCargando] = useState(true);
-  const API_URL = 'https://smartcheck-proyecto-final.onrender.com';
 
   useEffect(() => {
     const inicializarHome = async () => {
       try {
         let datos = route.params?.usuario || route.params;
 
-        // Recuperar si viene vacío desde la navegación
-        if (!datos || !datos._id) {
-          const guardado = await AsyncStorage.getItem('usuario_logueado');
-          if (guardado) datos = JSON.parse(guardado);
+        if (!datos || (!datos.id && !datos._id)) {
+          datos = await storage.getUser();
         }
 
-        if (datos && datos._id) {
-          // Si el estado global está vacío o cambió, lo inyectamos en tu Contexto global
-          if (!user || user._id !== datos._id) {
+        if (datos && (datos.id || datos._id)) {
+          if (!user || (user.id !== datos.id && user._id !== datos._id)) {
             login(datos);
           }
-          
-          // Telemetría obligatoria
-          await fetch(`${API_URL}/api/users/usuarios/registrar-visita`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ userId: datos._id })
-          }).catch(e => console.log('Error telemetría:', e.message));
         } else {
-          navigation.replace('Login');
+          navigation.reset({ index: 0, routes: [{ name: 'Login' }] });
         }
       } catch (error) {
-        console.error("Error al inicializar:", error);
+        console.error("Error al inicializar Home:", error);
       } finally {
         setCargando(false);
       }
@@ -46,19 +36,54 @@ export default function HomeScreen({ navigation }) {
     inicializarHome();
   }, [route.params]);
 
-  if (cargando) return <View style={styles.container}><ActivityIndicator size="large" color="#fff" /></View>;
+  // Manejo del renderizado de la imagen Base64 del avatar
+  const renderAvatar = () => {
+    const fotoBase64 = user?.foto || user?.image;
+    
+    if (!fotoBase64) {
+      return <Ionicons name="person-circle" size={50} color="#fff" />;
+    }
+
+    const cleanUri = fotoBase64.startsWith('data:image') 
+      ? fotoBase64 
+      : `data:image/jpeg;base64,${fotoBase64}`;
+
+    return <Image source={{ uri: cleanUri }} style={styles.userAvatar} />;
+  };
+
+  // Función segura para el botón de cerrar sesión
+  const handleVolverCerrarSesion = () => {
+    Alert.alert(
+      "Cerrar Sesión", 
+      "¿Estás seguro de que deseas salir al menú de login?",
+      [
+        { text: "Cancelar", style: "cancel" },
+        { 
+          text: "Salir", 
+          onPress: async () => {
+            await logout(); 
+            navigation.reset({ index: 0, routes: [{ name: 'Login' }] });
+          } 
+        }
+      ]
+    );
+  };
+
+  if (cargando) {
+    return <View style={styles.container}><ActivityIndicator size="large" color="#00ffcc" /></View>;
+  }
+
+  // 🔍 PRUEBA DE TELEMETRÍA/DEBUGGER: Esto imprimirá los datos exactos del usuario en tu terminal
+  console.log("========================================");
+  console.log("🔍 DATOS DEL USUARIO ACTUAL EN HOME:", JSON.stringify(user, null, 2));
+  console.log("========================================");
 
   return (
     <View style={styles.container}>
       <View style={styles.header}>
         <Image source={require('../../assets/logo.png')} style={styles.logoGrande} />
         <Image source={require('../../assets/nombreapp.png')} style={styles.nombreAppGrande} />
-        {/* Usamos user.foto (enviada desde el backend) en lugar de fotoUrl obsoleta */}
-        {user?.foto ? (
-          <Image source={{ uri: user.foto }} style={styles.userAvatar} />
-        ) : (
-          <Ionicons name="person-circle" size={50} color="#fff" />
-        )}
+        {renderAvatar()}
       </View>
 
       <View style={styles.blackBar}>
@@ -78,8 +103,12 @@ export default function HomeScreen({ navigation }) {
       </View>
 
       <View style={styles.footerArea}>
-        <TouchableOpacity onPress={() => navigation.goBack()}><Image source={require('../../assets/volver.png')} style={styles.navIcon} /></TouchableOpacity>
-        <TouchableOpacity onPress={() => BackHandler.exitApp()}><Image source={require('../../assets/salir.png')} style={styles.navIcon} /></TouchableOpacity>
+        <TouchableOpacity onPress={handleVolverCerrarSesion}>
+          <Image source={require('../../assets/volver.png')} style={styles.navIcon} />
+        </TouchableOpacity>
+        <TouchableOpacity onPress={() => BackHandler.exitApp()}>
+          <Image source={require('../../assets/salir.png')} style={styles.navIcon} />
+        </TouchableOpacity>
       </View>
     </View>
   );
