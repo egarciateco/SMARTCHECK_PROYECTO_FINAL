@@ -22,14 +22,12 @@ export default function FacialLoginScreen() {
   const [mensajeFeedback, setMensajeFeedback] = useState('');
   const { login } = useAuth();
 
-  // Capturamos geoData proveniente de LoginScreen para usarlo en caso de un LOGIN exitoso
   const { tipoOperacion, datosRegistro, geoData } = route.params || { 
     tipoOperacion: 'LOGIN', 
     datosRegistro: {}, 
     geoData: { localidad: 'N/A', provincia: 'N/A' } 
   };
 
-  // Función para reproducir audio hablado nativo
   const hablarText = (texto) => {
     Speech.speak(texto, { language: 'es-ES', pitch: 1.0, rate: 1.0 });
   };
@@ -47,21 +45,18 @@ export default function FacialLoginScreen() {
       }
     }
 
-    // Conteo regresivo con audio hablado
     for (let i = 3; i > 0; i--) {
       setCountdown(i);
       hablarText(String(i));
       await new Promise(resolve => setTimeout(resolve, 1000));
     }
-    setCountdown(0); // Desaparece el número '1' antes de capturar la foto
+    setCountdown(0); 
 
     if (cameraRef.current) {
       setLoading(true);
       try {
-        // 1. CAPTURA CON CALIDAD BAJA
         const photo = await cameraRef.current.takePictureAsync({ quality: 0.3 });
 
-        // 2. COMPRESIÓN AGRESIVA
         const fotoProcesada = await ImageManipulator.manipulateAsync(
           photo.uri,
           [{ resize: { width: 450 } }], 
@@ -70,7 +65,6 @@ export default function FacialLoginScreen() {
 
         const formData = new FormData();
         
-        // 3. ARMADO DE FORM DATA
         if (tipoOperacion === 'REGISTER') {
           const { dia, mes, anio, nombre, apellido, email, sexo, localidad, provincia } = datosRegistro || {};
           formData.append('nombre', String(nombre || ''));
@@ -84,7 +78,6 @@ export default function FacialLoginScreen() {
           formData.append('provincia', String(provincia || ''));
         }
 
-        // 4. ADJUNTAR LA FOTO PROCESADA
         const filename = fotoProcesada.uri.split('/').pop() || 'face.jpg';
         formData.append('imageFile', {
           uri: fotoProcesada.uri,
@@ -92,24 +85,19 @@ export default function FacialLoginScreen() {
           type: 'image/jpeg'
         });
 
-        // 5. CONSTRUCCIÓN DE LA URL
         const endpoint = tipoOperacion === 'REGISTER' ? '/api/users/register' : '/api/users/login';
         const baseUrl = api.defaults.baseURL ? api.defaults.baseURL.replace(/\/$/, '') : 'https://smartcheck-proyecto-final.onrender.com';
         const urlCompleta = `${baseUrl}${endpoint}`;
 
         console.log(`🚀 ENVIANDO CON FETCH NATIVO A: ${urlCompleta}`);
 
-        // 6. PETICIÓN CON FETCH
         const response = await fetch(urlCompleta, {
           method: 'POST',
           body: formData,
           headers: { 'Accept': 'application/json' },
         });
 
-        // 7. LECTURA CONTROLADA
         const textoRespuesta = await response.text();
-        console.log("📩 RESPUESTA RECIBIDA DEL SERVIDOR:", textoRespuesta);
-
         let data = {};
         try {
           data = JSON.parse(textoRespuesta);
@@ -119,7 +107,6 @@ export default function FacialLoginScreen() {
           }
         }
 
-        // Procesamiento en base al estado de la respuesta estructurada
         if (data && data.status === 'success') {
           if (tipoOperacion === 'REGISTER') {
               setStatusVerificacion('SUCCESS');
@@ -164,7 +151,6 @@ export default function FacialLoginScreen() {
 
   return (
     <View style={styles.container}>
-      {/* HEADER DE LA APP */}
       <View style={styles.topSection}>
         <View style={styles.header}>
           <Image source={require('../../assets/logo.png')} style={styles.logo} />
@@ -172,7 +158,6 @@ export default function FacialLoginScreen() {
         </View>
       </View>
 
-      {/* TÍTULO EN FRANJA NEGRA INSTITUCIONAL */}
       <View style={styles.blackTitleBar}>
         <Text style={styles.titleText}>
           {tipoOperacion === 'REGISTER' ? "REGISTRO BIOMÉTRICO" : "AUTENTICACIÓN FACIAL"}
@@ -180,29 +165,25 @@ export default function FacialLoginScreen() {
       </View>
       
       <View style={styles.centerSection}>
-        {/* CONTENEDOR DE CÁMARA CON ÓVALO AGRANDADO */}
+        {/* CORRECCIÓN DE ERROR NATIVO: Si ya se validó con éxito, renderizamos una vista estática congelada para evitar duplicar el nodo de la cámara */}
         <View style={styles.cameraContainer}>
-          <CameraView style={styles.camera} facing="front" ref={cameraRef}>
-            <View style={[
-              styles.overlay, 
-              statusVerificacion === 'SUCCESS' && styles.overlaySuccess
-            ]}>
-                {countdown > 0 && <Text style={styles.timerText}>{countdown}</Text>}
-                
-                {/* Óvalo dinámico estilo image_3bf280.jpg */}
-                <View style={[
-                  styles.faceOval,
-                  statusVerificacion === 'SUCCESS' && styles.faceOvalSuccess
-                ]}>
-                  {statusVerificacion === 'SUCCESS' && (
-                    <Ionicons name="checkmark-circle" size={80} color="#fff" />
-                  )}
-                </View>
+          {statusVerificacion === 'SUCCESS' ? (
+            <View style={[styles.camera, styles.overlaySuccessContainer]}>
+              <View style={[styles.faceOval, styles.faceOvalSuccess]}>
+                <Ionicons name="checkmark-circle" size={80} color="#fff" />
+              </View>
             </View>
-          </CameraView>
+          ) : (
+            <CameraView style={styles.camera} facing="front" ref={cameraRef}>
+              <View style={styles.overlay}>
+                  {countdown > 0 && <Text style={styles.timerText}>{countdown}</Text>}
+                  <View style={styles.faceOval} />
+              </View>
+            </CameraView>
+          )}
         </View>
 
-        {/* FEEDBACK DE TEXTO ABAJO DEL ÓVALO ESTILO image_3bf280.jpg */}
+        {/* FEEDBACK DE TEXTO ABAJO DEL ÓVALO */}
         <View style={styles.feedbackContainer}>
           {statusVerificacion === 'SUCCESS' && (
             <View style={styles.feedbackBox}>
@@ -225,9 +206,11 @@ export default function FacialLoginScreen() {
           {loading ? (
             <ActivityIndicator size="large" color="#00ffcc" />
           ) : (
-            <TouchableOpacity style={styles.btnCaptura} onPress={validarRostro}>
-              <Text style={styles.btnText}>{tipoOperacion === 'REGISTER' ? "REGISTRAR ROSTRO" : "ESCANEAR E INGRESAR"}</Text>
-            </TouchableOpacity>
+            statusVerificacion !== 'SUCCESS' && (
+              <TouchableOpacity style={styles.btnCaptura} onPress={validarRostro}>
+                <Text style={styles.btnText}>{tipoOperacion === 'REGISTER' ? "REGISTRAR ROSTRO" : "ESCANEAR E INGRESAR"}</Text>
+              </TouchableOpacity>
+            )
           )}
         </View>
       </View>
@@ -252,10 +235,10 @@ const styles = StyleSheet.create({
 
   centerSection: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   
-  cameraContainer: { height: 380, width: '92%', borderRadius: 25, overflow: 'hidden', elevation: 4 },
+  cameraContainer: { height: 380, width: '92%', borderRadius: 25, overflow: 'hidden', backgroundColor: '#000' },
   camera: { flex: 1 },
   overlay: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  overlaySuccess: { backgroundColor: 'rgba(0, 255, 204, 0.25)' }, 
+  overlaySuccessContainer: { backgroundColor: '#002a54', justifyContent: 'center', alignItems: 'center' }, 
   
   faceOval: { 
     width: 270, 
@@ -267,7 +250,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center'
   },
-  faceOvalSuccess: { borderColor: '#00ffcc', borderStyle: 'solid', backgroundColor: 'rgba(0, 255, 204, 0.1)' },
+  faceOvalSuccess: { borderColor: '#00ffcc', borderStyle: 'solid', backgroundColor: 'rgba(0, 255, 204, 0.25)' },
   
   timerText: { fontSize: 90, color: '#fff', fontWeight: 'bold', position: 'absolute' },
   
@@ -277,7 +260,7 @@ const styles = StyleSheet.create({
   feedbackSub: { color: '#00ffcc', fontSize: 15, fontWeight: '500', textAlign: 'center' },
   instruccion: { color: '#fff', textAlign: 'center', fontSize: 14, fontWeight: '500' },
   
-  statusArea: { marginTop: 5, marginBottom: 10 },
+  statusArea: { marginTop: 5, marginBottom: 10, height: 50, justifyContent: 'center' },
   btnCaptura: { backgroundColor: '#00ffcc', paddingVertical: 14, paddingHorizontal: 35, borderRadius: 25 },
   btnText: { fontWeight: 'bold', fontSize: 13, color: '#001f3f', letterSpacing: 0.5 },
   footerArea: { flexDirection: 'row', justifyContent: 'space-between', paddingHorizontal: 40, marginBottom: 20 },
