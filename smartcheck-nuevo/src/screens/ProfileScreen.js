@@ -43,30 +43,36 @@ export default function ProfileScreen({ navigation }) {
     uriFoto = `data:image/jpeg;base64,${base64Puro}`;
   }
 
-  // Formateador de Fecha de Nacimiento (DD/MM/AAAA)
-  const fechaOriginal = user?.fechaNacimiento || user?.fechanacimiento;
+  // RECONSTRUCCIÓN Y CÁLCULO DESDE LA BASE DE DATOS (dia, mes, anio)
   let fechaFormateada = 'N/A';
   let edadCalculada = 'N/A';
 
-  if (fechaOriginal) {
+  if (user?.dia && user?.mes && user?.anio) {
     try {
-      const d = new Date(fechaOriginal);
-      if (!isNaN(d.getTime())) {
-        fechaFormateada = `${d.getDate().toString().padStart(2, '0')}/${(d.getMonth() + 1).toString().padStart(2, '0')}/${d.getFullYear()}`;
-        
-        // CÁLCULO DE EDAD: Fecha actual de 2026 menos fecha de nacimiento
-        const hoy = new Date();
-        let edad = hoy.getFullYear() - d.getFullYear();
-        const mes = hoy.getMonth() - d.getMonth();
-        if (mes < 0 || (mes === 0 && hoy.getDate() < d.getDate())) {
-          edad--;
-        }
-        edadCalculada = `${edad} AÑOS`;
-      } else {
-        fechaFormateada = fechaOriginal;
+      // Formateamos la visualización en DD/MM/AAAA asegurando los dos dígitos
+      const diaPad = user.dia.toString().padStart(2, '0');
+      const mesPad = user.mes.toString().padStart(2, '0');
+      fechaFormateada = `${diaPad}/${mesPad}/${user.anio}`;
+
+      // Convertimos a enteros para el cálculo matemático estricto
+      const birthDay = parseInt(user.dia, 10);
+      const birthMonth = parseInt(user.mes, 10) - 1; // Enero es 0 en JavaScript
+      const birthYear = parseInt(user.anio, 10);
+
+      // Calculamos la edad exacta basándonos en la fecha actual (Año actual 2026)
+      const hoy = new Date();
+      let edad = hoy.getFullYear() - birthYear;
+      const mesDiferencia = hoy.getMonth() - birthMonth;
+      
+      if (mesDiferencia < 0 || (mesDiferencia === 0 && hoy.getDate() < birthDay)) {
+        edad--;
       }
-    } catch {
+      
+      edadCalculada = `${edad} AÑOS`;
+    } catch (err) {
+      console.error("Error al procesar la edad:", err);
       fechaFormateada = 'N/A';
+      edadCalculada = 'N/A';
     }
   }
 
@@ -125,7 +131,7 @@ export default function ProfileScreen({ navigation }) {
             </View>
             <View style={{ flex: 1, paddingLeft: 10 }}>
               <Text style={styles.label}>EDAD:</Text>
-              <Text style={styles.value}>{user?.edad ? `${user.edad} AÑOS` : edadCalculada}</Text>
+              <Text style={styles.value}>{edadCalculada}</Text>
             </View>
           </View>
           
@@ -172,15 +178,15 @@ const styles = StyleSheet.create({
     paddingHorizontal: 18, 
     alignItems: 'center', 
     borderWidth: 1.2, 
-    borderColor: '#ff9933', // Línea naranja suave y fina
+    borderColor: '#ff9933', 
     marginHorizontal: 20,
-    flex: 1, // Se expande de forma controlada ocupando el espacio justo sin desbordar
+    flex: 1, 
     marginBottom: 10
   },
   
   avatar: { width: 90, height: 90, borderRadius: 45, borderWidth: 2, borderColor: '#00ffcc', marginBottom: 12 },
   avatarPlaceholder: { width: 90, height: 90, borderRadius: 45, backgroundColor: '#003b75', justifyContent: 'center', alignItems: 'center', marginBottom: 12 },
-  infoContainer: { width: '100%', flex: 1, justifyContent: 'space-around' }, // Distribuye los campos verticalmente de forma compacta
+  infoContainer: { width: '100%', flex: 1, justifyContent: 'space-around' }, 
   
   dataRow: { width: '100%', marginBottom: 4 },
   dataRowInline: { flexDirection: 'row', width: '100%', marginBottom: 4 },

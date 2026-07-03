@@ -15,12 +15,19 @@ export default function AdminPanelScreen({ navigation }) {
   const cargarTelemetriaMovil = async () => {
     setLoading(true);
     try {
-      console.log(`📡 Solicitando usuarios de administración a: ${API_URL}/api/users/admin/usuarios`);
+      // Usamos la ruta limpia estándar de administración. 
+      // Si tu backend no expone /admin, podés cambiarlo aquí a `${API_URL}/api/users`
+      const URL_LIMPIA = `${API_URL}/api/users/admin`;
+      console.log(`📡 Solicitando usuarios de administración a: ${URL_LIMPIA}`);
       
-      const respuesta = await fetch(`${API_URL}/api/users/admin/usuarios`, {
+      const respuesta = await fetch(URL_LIMPIA, {
         method: 'GET',
         headers: { 'Accept': 'application/json' }
       });
+
+      if (!respuesta.ok) {
+        throw new Error(`Error del servidor: código ${respuesta.status}`);
+      }
 
       const textoRespuesta = await respuesta.text();
       let datos = {};
@@ -28,19 +35,26 @@ export default function AdminPanelScreen({ navigation }) {
       try {
         datos = JSON.parse(textoRespuesta);
       } catch (jsonErr) {
-        throw new Error("El servidor se está despertando. Por favor, reintente en 10 segundos.");
+        throw new Error("La respuesta del servidor no tiene un formato JSON válido.");
       }
 
       if (datos && datos.status !== 'error') {
-        setDataAdmin(datos);
+        // Si el backend responde directamente con un Array de usuarios en vez de un objeto complejo
+        if (Array.isArray(datos)) {
+          setDataAdmin({ totalUsuarios: datos.length, totalVisitas: 0, usuarios: datos });
+        } else if (datos.usuarios) {
+          setDataAdmin(datos);
+        } else {
+          setDataAdmin({ totalUsuarios: 0, totalVisitas: 0, usuarios: [] });
+        }
       } else {
         Alert.alert("Error", datos.mensaje || "No se pudieron obtener datos");
       }
     } catch (e) { 
       console.error("❌ Falló la conexión con el panel:", e);
       Alert.alert(
-        "Servidor inactivo", 
-        "El servidor gratuito está despertando de su inactividad. Esperá unos segundos y volvé a ingresar el código."
+        "Error de Conexión", 
+        "Hubo un problema al comunicarse con el panel de administración. Por favor, verificá que la ruta coincida con tu backend."
       ); 
     } finally {
       setLoading(false);
