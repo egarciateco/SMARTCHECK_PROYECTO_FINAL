@@ -30,7 +30,6 @@ export default function ProfileScreen({ navigation }) {
 
   if (cargando) return <ActivityIndicator size="large" color="#00ffcc" style={styles.loader} />;
 
-  // Formateador estricto de la foto Base64
   const fotoBase64 = user?.foto || user?.image;
   let uriFoto = null;
 
@@ -43,56 +42,47 @@ export default function ProfileScreen({ navigation }) {
     uriFoto = `data:image/jpeg;base64,${base64Puro}`;
   }
 
-  // RECONSTRUCCIÓN Y CÁLCULO DESDE LA BASE DE DATOS (dia, mes, anio)
+  // RECONSTRUCCIÓN DINÁMICA DESDE LA RAÍZ DEL DOCUMENTO
   let fechaFormateada = 'N/A';
   let edadCalculada = 'N/A';
 
-  if (user?.dia && user?.mes && user?.anio) {
-    try {
-      // Formateamos la visualización en DD/MM/AAAA asegurando los dos dígitos
-      const diaPad = user.dia.toString().padStart(2, '0');
-      const mesPad = user.mes.toString().padStart(2, '0');
-      fechaFormateada = `${diaPad}/${mesPad}/${user.anio}`;
+  // Forzamos la lectura de los campos exactos visibles en MongoDB
+  const diaUser = user?.dia;
+  const mesUser = user?.mes;
+  const anioUser = user?.anio;
 
-      // Convertimos a enteros para el cálculo matemático estricto
-      const birthDay = parseInt(user.dia, 10);
-      const birthMonth = parseInt(user.mes, 10) - 1; // Enero es 0 en JavaScript
-      const birthYear = parseInt(user.anio, 10);
+  if (diaUser && mesUser && anioUser) {
+    const diaPad = diaUser.toString().padStart(2, '0');
+    const mesPad = mesUser.toString().padStart(2, '0');
+    fechaFormateada = `${diaPad}/${mesPad}/${anioUser}`;
 
-      // Calculamos la edad exacta basándonos en la fecha actual (Año actual 2026)
-      const hoy = new Date();
-      let edad = hoy.getFullYear() - birthYear;
-      const mesDiferencia = hoy.getMonth() - birthMonth;
-      
-      if (mesDiferencia < 0 || (mesDiferencia === 0 && hoy.getDate() < birthDay)) {
-        edad--;
-      }
-      
-      edadCalculada = `${edad} AÑOS`;
-    } catch (err) {
-      console.error("Error al procesar la edad:", err);
-      fechaFormateada = 'N/A';
-      edadCalculada = 'N/A';
+    const birthDay = parseInt(diaUser, 10);
+    const birthMonth = parseInt(mesUser, 10) - 1;
+    const birthYear = parseInt(anioUser, 10);
+
+    // Ajustado estrictamente al año actual 2026 del sistema
+    const hoy = new Date();
+    let edad = hoy.getFullYear() - birthYear;
+    const mesDiferencia = hoy.getMonth() - birthMonth;
+    
+    if (mesDiferencia < 0 || (mesDiferencia === 0 && hoy.getDate() < birthDay)) {
+      edad--;
     }
+    edadCalculada = `${edad} AÑOS`;
   }
 
   return (
     <View style={styles.container}>
-      {/* HEADER DE LA APP */}
       <View style={styles.header}>
         <Image source={require('../../assets/logo.png')} style={styles.logoPanel} />
         <Image source={require('../../assets/nombreapp.png')} style={styles.nombreAppPanel} />
       </View>
       
-      {/* TÍTULO EN FRANJA NEGRA CON LETRA BLANCA */}
       <View style={styles.blackTitleBar}>
         <Text style={styles.titleText}>MI PERFIL DE USUARIO</Text>
       </View>
       
-      {/* TARJETA DE PERFIL CONTENIDA SIN SCROLL */}
       <View style={styles.profileCard}>
-        
-        {/* FOTO DE PERFIL */}
         {uriFoto ? (
             <Image source={{ uri: uriFoto }} style={styles.avatar} key={uriFoto} />
         ) : (
@@ -101,7 +91,6 @@ export default function ProfileScreen({ navigation }) {
             </View>
         )}
         
-        {/* GRILLA DE DATOS COMPACTA */}
         <View style={styles.infoContainer}>
           <View style={styles.dataRow}>
             <Text style={styles.label}>NOMBRE Y APELLIDO:</Text>
@@ -142,10 +131,8 @@ export default function ProfileScreen({ navigation }) {
             </Text>
           </View>
         </View>
-
       </View>
       
-      {/* BOTONERA INFERIOR */}
       <View style={styles.footerArea}>
         <TouchableOpacity onPress={() => navigation.goBack()}>
           <Image source={require('../../assets/volver.png')} style={styles.navIcon} />
@@ -167,32 +154,16 @@ const styles = StyleSheet.create({
   header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12, paddingHorizontal: 20 },
   logoPanel: { width: 42, height: 42, resizeMode: 'contain' },
   nombreAppPanel: { width: 110, height: 35, resizeMode: 'contain' },
-  
   blackTitleBar: { backgroundColor: '#000', paddingVertical: 8, width: '100%', marginBottom: 12 },
   titleText: { color: '#fff', fontWeight: 'bold', fontSize: 14, textAlign: 'center', letterSpacing: 0.5 },
-  
-  profileCard: { 
-    backgroundColor: '#002a54', 
-    borderRadius: 12, 
-    paddingVertical: 12,
-    paddingHorizontal: 18, 
-    alignItems: 'center', 
-    borderWidth: 1.2, 
-    borderColor: '#ff9933', 
-    marginHorizontal: 20,
-    flex: 1, 
-    marginBottom: 10
-  },
-  
+  profileCard: { backgroundColor: '#002a54', borderRadius: 12, paddingVertical: 12, paddingHorizontal: 18, alignItems: 'center', borderWidth: 1.2, borderColor: '#ff9933', marginHorizontal: 20, flex: 1, marginBottom: 10 },
   avatar: { width: 90, height: 90, borderRadius: 45, borderWidth: 2, borderColor: '#00ffcc', marginBottom: 12 },
   avatarPlaceholder: { width: 90, height: 90, borderRadius: 45, backgroundColor: '#003b75', justifyContent: 'center', alignItems: 'center', marginBottom: 12 },
   infoContainer: { width: '100%', flex: 1, justifyContent: 'space-around' }, 
-  
   dataRow: { width: '100%', marginBottom: 4 },
   dataRowInline: { flexDirection: 'row', width: '100%', marginBottom: 4 },
   label: { color: '#00ffcc', fontSize: 10, fontWeight: '700', letterSpacing: 0.3, marginBottom: 1 },
   value: { color: '#fff', fontSize: 13, fontWeight: 'bold' },
-  
   footerArea: { flexDirection: 'row', justifyContent: 'space-between', paddingHorizontal: 40, paddingBottom: height * 0.02, paddingTop: 5 },
   navIcon: { width: 38, height: 38, resizeMode: 'contain' }
 });

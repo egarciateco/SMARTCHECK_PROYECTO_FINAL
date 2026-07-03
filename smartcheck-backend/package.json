@@ -19,8 +19,6 @@
     "cheerio": "^1.2.0",
     "cors": "^2.8.6",
     "dotenv": "^16.6.1",
-    "expo-dev-client": "^56.0.20",
-    "expo-speech": "~57.0.0",
     "express": "^4.18.2",
     "face-api.js": "0.22.2",
     "mongoose": "^8.0.0",
