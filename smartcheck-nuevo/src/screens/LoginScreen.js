@@ -1,19 +1,49 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { StyleSheet, View, TextInput, TouchableOpacity, Text, Image, KeyboardAvoidingView, Platform, Alert, ActivityIndicator, BackHandler } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useAuth } from '../context/AuthContext'; // <-- Importante: conectamos tu contexto
+import { useAuth } from '../context/AuthContext';
+import * as Location from 'expo-location';
 
 const API_URL = 'https://smartcheck-proyecto-final.onrender.com';
 
 export default function LoginScreen() {
   const navigation = useNavigation();
-  const { login } = useAuth(); // <-- Obtenemos tu función login
+  const { login } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPass, setShowPass] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [geoData, setGeoData] = useState({ localidad: 'N/A', provincia: 'N/A' });
+
+  // Solicitar permisos y obtener la geolocalización al montar la pantalla
+  useEffect(() => {
+    (async () => {
+      try {
+        let { status } = await Location.requestForegroundPermissionsAsync();
+        if (status !== 'granted') {
+          console.warn('Permiso de localización denegado.');
+          return;
+        }
+        let location = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Low });
+        let reverseGeocode = await Location.reverseGeocodeAsync({
+          latitude: location.coords.latitude,
+          longitude: location.coords.longitude
+        });
+
+        if (reverseGeocode && reverseGeocode.length > 0) {
+          const resultado = reverseGeocode[0];
+          setGeoData({
+            localidad: resultado.city || resultado.subregion || resultado.district || 'Desconocida',
+            provincia: resultado.region || 'Desconocida'
+          });
+        }
+      } catch (err) {
+        console.error("Error al capturar geolocalización inicial:", err);
+      }
+    })();
+  }, []);
 
   const ejecutarLogout = async () => {
     await AsyncStorage.removeItem('usuario_logueado');
@@ -40,12 +70,17 @@ export default function LoginScreen() {
       setLoading(false);
       
       if (response.ok && data.status === 'success') {
-        // Guardamos de manera persistente
-        await AsyncStorage.setItem('usuario_logueado', JSON.stringify(data.usuario || data));
+        const usuarioBase = data.usuario || data;
         
-        // Guardamos en tu estado global para que impacte el nombre y la foto en toda la app
-        login(data.usuario || data);
-        
+        // Inyectamos la geolocalización resuelta por el celular en el objeto final
+        const usuarioCompleto = {
+          ...usuarioBase,
+          localidad: geoData.localidad,
+          provincia: geoData.provincia
+        };
+
+        await AsyncStorage.setItem('usuario_logueado', JSON.stringify(usuarioCompleto));
+        login(usuarioCompleto);
         navigation.replace('Home');
       } else {
         Alert.alert("Acceso denegado", data.mensaje || "Credenciales incorrectas.");
@@ -79,7 +114,12 @@ export default function LoginScreen() {
         {loading ? <ActivityIndicator size="large" color="#ffcc00" style={{ marginVertical: 20 }} /> : (
             <View>
                 <TouchableOpacity style={styles.btn} onPress={handleLoginManual}><Text style={styles.btnText}>INGRESAR</Text></TouchableOpacity>
-                <TouchableOpacity style={styles.btnFacial} onPress={() => navigation.navigate('Camera', { tipoOperacion: 'LOGIN' })}><Text style={styles.btnText}>LOGIN FACIAL</Text></TouchableOpacity>
+                <TouchableOpacity 
+                  style={styles.btnFacial} 
+                  onPress={() => navigation.navigate('Camera', { tipoOperacion: 'LOGIN', geoData })}
+                >
+                  <Text style={styles.btnText}>LOGIN FACIAL</Text>
+                </TouchableOpacity>
             </View>
         )}
         <TouchableOpacity onPress={() => navigation.navigate('Register')}><Text style={styles.link}>¿No tienes cuenta? Regístrate</Text></TouchableOpacity>

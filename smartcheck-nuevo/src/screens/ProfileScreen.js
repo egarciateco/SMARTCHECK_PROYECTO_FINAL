@@ -1,6 +1,6 @@
 // src/screens/ProfileScreen.js
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, Image, TouchableOpacity, ActivityIndicator, Alert, BackHandler, Dimensions, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, Image, TouchableOpacity, ActivityIndicator, Alert, BackHandler, Dimensions } from 'react-native';
 import { useAuth } from '../context/AuthContext'; 
 import { userService } from '../config/api';
 
@@ -43,17 +43,32 @@ export default function ProfileScreen({ navigation }) {
     uriFoto = `data:image/jpeg;base64,${base64Puro}`;
   }
 
-  // Función auxiliar para formatear la fecha de nacimiento de forma legible
-  const formatearFecha = (fecha) => {
-    if (!fecha) return 'N/A';
+  // Formateador de Fecha de Nacimiento (DD/MM/AAAA)
+  const fechaOriginal = user?.fechaNacimiento || user?.fechanacimiento;
+  let fechaFormateada = 'N/A';
+  let edadCalculada = 'N/A';
+
+  if (fechaOriginal) {
     try {
-      const d = new Date(fecha);
-      if (isNaN(d.getTime())) return fecha; // Si ya es un string formateado, lo devuelve tal cual
-      return `${d.getDate().toString().padStart(2, '0')}/${(d.getMonth() + 1).toString().padStart(2, '0')}/${d.getFullYear()}`;
+      const d = new Date(fechaOriginal);
+      if (!isNaN(d.getTime())) {
+        fechaFormateada = `${d.getDate().toString().padStart(2, '0')}/${(d.getMonth() + 1).toString().padStart(2, '0')}/${d.getFullYear()}`;
+        
+        // CÁLCULO DE EDAD: Fecha actual de 2026 menos fecha de nacimiento
+        const hoy = new Date();
+        let edad = hoy.getFullYear() - d.getFullYear();
+        const mes = hoy.getMonth() - d.getMonth();
+        if (mes < 0 || (mes === 0 && hoy.getDate() < d.getDate())) {
+          edad--;
+        }
+        edadCalculada = `${edad} AÑOS`;
+      } else {
+        fechaFormateada = fechaOriginal;
+      }
     } catch {
-      return 'N/A';
+      fechaFormateada = 'N/A';
     }
-  };
+  }
 
   return (
     <View style={styles.container}>
@@ -68,47 +83,61 @@ export default function ProfileScreen({ navigation }) {
         <Text style={styles.titleText}>MI PERFIL DE USUARIO</Text>
       </View>
       
-      {/* CONTENIDO CON SCROLL EN CASO DE PANTALLAS CHICAS */}
-      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+      {/* TARJETA DE PERFIL CONTENIDA SIN SCROLL */}
+      <View style={styles.profileCard}>
         
-        {/* TARJETA DE PERFIL CON BORDE NARANJA SUAVE FINO */}
-        <View style={styles.profileCard}>
-          
-          {/* FOTO DE PERFIL */}
-          {uriFoto ? (
-              <Image source={{ uri: uriFoto }} style={styles.avatar} key={uriFoto} />
-          ) : (
-              <View style={styles.avatarPlaceholder}>
-                <Text style={{color: '#fff', fontSize: 12, fontWeight: 'bold'}}>SIN FOTO</Text>
-              </View>
-          )}
-          
-          {/* TODOS LOS DATOS RECABADOS */}
-          <View style={styles.infoContainer}>
+        {/* FOTO DE PERFIL */}
+        {uriFoto ? (
+            <Image source={{ uri: uriFoto }} style={styles.avatar} key={uriFoto} />
+        ) : (
+            <View style={styles.avatarPlaceholder}>
+              <Text style={{color: '#fff', fontSize: 11, fontWeight: 'bold'}}>SIN FOTO</Text>
+            </View>
+        )}
+        
+        {/* GRILLA DE DATOS COMPACTA */}
+        <View style={styles.infoContainer}>
+          <View style={styles.dataRow}>
             <Text style={styles.label}>NOMBRE Y APELLIDO:</Text>
             <Text style={styles.value}>{user?.nombre} {user?.apellido?.toUpperCase()}</Text>
-            
+          </View>
+          
+          <View style={styles.dataRow}>
             <Text style={styles.label}>EMAIL:</Text>
             <Text style={styles.value}>{user?.email}</Text>
-            
-            <Text style={styles.label}>LOCALIDAD:</Text>
-            <Text style={styles.value}>{user?.localidad || 'N/A'}</Text>
-            
-            <Text style={styles.label}>PROVINCIA:</Text>
-            <Text style={styles.value}>{user?.provincia || 'N/A'}</Text>
-            
-            <Text style={styles.label}>FECHA DE NACIMIENTO:</Text>
-            <Text style={styles.value}>{formatearFecha(user?.fechaNacimiento || user?.fechanacimiento)}</Text>
-            
-            <Text style={styles.label}>EDAD:</Text>
-            <Text style={styles.value}>{user?.edad || 'N/A'} AÑOS</Text>
-            
-            <Text style={styles.label}>SEXO:</Text>
-            <Text style={styles.value}>{user?.sexo === 'M' ? 'MASCULINO' : user?.sexo === 'F' ? 'FEMENINO' : user?.sexo || 'N/A'}</Text>
           </View>
-
+          
+          <View style={styles.dataRowInline}>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.label}>LOCALIDAD:</Text>
+              <Text style={styles.value}>{user?.localidad || 'N/A'}</Text>
+            </View>
+            <View style={{ flex: 1, paddingLeft: 10 }}>
+              <Text style={styles.label}>PROVINCIA:</Text>
+              <Text style={styles.value}>{user?.provincia || 'N/A'}</Text>
+            </View>
+          </View>
+          
+          <View style={styles.dataRowInline}>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.label}>FECHA DE NACIMIENTO:</Text>
+              <Text style={styles.value}>{fechaFormateada}</Text>
+            </View>
+            <View style={{ flex: 1, paddingLeft: 10 }}>
+              <Text style={styles.label}>EDAD:</Text>
+              <Text style={styles.value}>{user?.edad ? `${user.edad} AÑOS` : edadCalculada}</Text>
+            </View>
+          </View>
+          
+          <View style={styles.dataRow}>
+            <Text style={styles.label}>SEXO:</Text>
+            <Text style={styles.value}>
+              {user?.sexo === 'M' ? 'MASCULINO' : user?.sexo === 'F' ? 'FEMENINO' : user?.sexo || 'N/A'}
+            </Text>
+          </View>
         </View>
-      </ScrollView>
+
+      </View>
       
       {/* BOTONERA INFERIOR */}
       <View style={styles.footerArea}>
@@ -127,38 +156,37 @@ export default function ProfileScreen({ navigation }) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#001f3f', paddingTop: height * 0.05 },
+  container: { flex: 1, backgroundColor: '#001f3f', paddingTop: height * 0.04 },
   loader: { flex: 1, justifyContent: 'center', backgroundColor: '#001f3f' },
-  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 15, paddingHorizontal: 20 },
-  logoPanel: { width: 45, height: 45, resizeMode: 'contain' },
-  nombreAppPanel: { width: 120, height: 40, resizeMode: 'contain' },
+  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12, paddingHorizontal: 20 },
+  logoPanel: { width: 42, height: 42, resizeMode: 'contain' },
+  nombreAppPanel: { width: 110, height: 35, resizeMode: 'contain' },
   
-  // ESTILO DE LA FRANJA NEGRA DE TÍTULO
-  blackTitleBar: { backgroundColor: '#000', paddingVertical: 10, width: '100%', marginBottom: 15 },
-  titleText: { color: '#fff', fontWeight: 'bold', fontSize: 15, textAlign: 'center', letterSpacing: 1 },
+  blackTitleBar: { backgroundColor: '#000', paddingVertical: 8, width: '100%', marginBottom: 12 },
+  titleText: { color: '#fff', fontWeight: 'bold', fontSize: 14, textAlign: 'center', letterSpacing: 0.5 },
   
-  scrollContent: { paddingHorizontal: 20, paddingBottom: 20 },
-  
-  // TARJETA RECTANGULAR CON BORDE NARANJA FINO Y SUAVE
   profileCard: { 
     backgroundColor: '#002a54', 
-    borderRadius: 15, 
-    padding: 20, 
+    borderRadius: 12, 
+    paddingVertical: 12,
+    paddingHorizontal: 18, 
     alignItems: 'center', 
-    borderWidth: 1.5, 
-    borderColor: '#ff9933', // Naranja suave fino
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
-    elevation: 5
+    borderWidth: 1.2, 
+    borderColor: '#ff9933', // Línea naranja suave y fina
+    marginHorizontal: 20,
+    flex: 1, // Se expande de forma controlada ocupando el espacio justo sin desbordar
+    marginBottom: 10
   },
   
-  avatar: { width: 110, height: 110, borderRadius: 55, borderWidth: 3, borderColor: '#00ffcc', marginBottom: 20 },
-  avatarPlaceholder: { width: 110, height: 110, borderRadius: 55, backgroundColor: '#003b75', justifyContent: 'center', alignItems: 'center', marginBottom: 20 },
-  infoContainer: { width: '100%' },
-  label: { color: '#00ffcc', fontSize: 11, fontWeight: '700', letterSpacing: 0.5, marginBottom: 2 },
-  value: { color: '#fff', fontSize: 14, fontWeight: 'bold', marginBottom: 12 },
-  footerArea: { flexDirection: 'row', justifyContent: 'space-between', paddingHorizontal: 40, paddingBottom: height * 0.03, paddingTop: 10 },
-  navIcon: { width: 42, height: 42, resizeMode: 'contain' }
+  avatar: { width: 90, height: 90, borderRadius: 45, borderWidth: 2, borderColor: '#00ffcc', marginBottom: 12 },
+  avatarPlaceholder: { width: 90, height: 90, borderRadius: 45, backgroundColor: '#003b75', justifyContent: 'center', alignItems: 'center', marginBottom: 12 },
+  infoContainer: { width: '100%', flex: 1, justifyContent: 'space-around' }, // Distribuye los campos verticalmente de forma compacta
+  
+  dataRow: { width: '100%', marginBottom: 4 },
+  dataRowInline: { flexDirection: 'row', width: '100%', marginBottom: 4 },
+  label: { color: '#00ffcc', fontSize: 10, fontWeight: '700', letterSpacing: 0.3, marginBottom: 1 },
+  value: { color: '#fff', fontSize: 13, fontWeight: 'bold' },
+  
+  footerArea: { flexDirection: 'row', justifyContent: 'space-between', paddingHorizontal: 40, paddingBottom: height * 0.02, paddingTop: 5 },
+  navIcon: { width: 38, height: 38, resizeMode: 'contain' }
 });
