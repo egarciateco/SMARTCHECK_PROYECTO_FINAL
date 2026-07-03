@@ -3,7 +3,7 @@ import { StyleSheet, Text, View, TouchableOpacity, Alert, ActivityIndicator, Ima
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import * as ImageManipulator from 'expo-image-manipulator';
-import * as Speech from 'expo-speech'; // <-- Nueva librería para audio hablado
+import * as Speech from 'expo-speech'; 
 import { Ionicons } from '@expo/vector-icons';
 import api from '../config/api'; 
 import { useAuth } from '../context/AuthContext';
@@ -22,7 +22,12 @@ export default function FacialLoginScreen() {
   const [mensajeFeedback, setMensajeFeedback] = useState('');
   const { login } = useAuth();
 
-  const { tipoOperacion, datosRegistro, geoData } = route.params || { tipoOperacion: 'LOGIN', datosRegistro: {}, geoData: { localidad: 'N/A', provincia: 'N/A' } };
+  // Capturamos geoData proveniente de LoginScreen para usarlo en caso de un LOGIN exitoso
+  const { tipoOperacion, datosRegistro, geoData } = route.params || { 
+    tipoOperacion: 'LOGIN', 
+    datosRegistro: {}, 
+    geoData: { localidad: 'N/A', provincia: 'N/A' } 
+  };
 
   // Función para reproducir audio hablado nativo
   const hablarText = (texto) => {
@@ -48,13 +53,15 @@ export default function FacialLoginScreen() {
       hablarText(String(i));
       await new Promise(resolve => setTimeout(resolve, 1000));
     }
-    setCountdown(0); // Desaparece el número '1' antes de capturar
+    setCountdown(0); // Desaparece el número '1' antes de capturar la foto
 
     if (cameraRef.current) {
       setLoading(true);
       try {
+        // 1. CAPTURA CON CALIDAD BAJA
         const photo = await cameraRef.current.takePictureAsync({ quality: 0.3 });
 
+        // 2. COMPRESIÓN AGRESIVA
         const fotoProcesada = await ImageManipulator.manipulateAsync(
           photo.uri,
           [{ resize: { width: 450 } }], 
@@ -63,6 +70,7 @@ export default function FacialLoginScreen() {
 
         const formData = new FormData();
         
+        // 3. ARMADO DE FORM DATA
         if (tipoOperacion === 'REGISTER') {
           const { dia, mes, anio, nombre, apellido, email, sexo, localidad, provincia } = datosRegistro || {};
           formData.append('nombre', String(nombre || ''));
@@ -76,6 +84,7 @@ export default function FacialLoginScreen() {
           formData.append('provincia', String(provincia || ''));
         }
 
+        // 4. ADJUNTAR LA FOTO PROCESADA
         const filename = fotoProcesada.uri.split('/').pop() || 'face.jpg';
         formData.append('imageFile', {
           uri: fotoProcesada.uri,
@@ -83,63 +92,67 @@ export default function FacialLoginScreen() {
           type: 'image/jpeg'
         });
 
+        // 5. CONSTRUCCIÓN DE LA URL
         const endpoint = tipoOperacion === 'REGISTER' ? '/api/users/register' : '/api/users/login';
         const baseUrl = api.defaults.baseURL ? api.defaults.baseURL.replace(/\/$/, '') : 'https://smartcheck-proyecto-final.onrender.com';
         const urlCompleta = `${baseUrl}${endpoint}`;
 
+        console.log(`🚀 ENVIANDO CON FETCH NATIVO A: ${urlCompleta}`);
+
+        // 6. PETICIÓN CON FETCH
         const response = await fetch(urlCompleta, {
           method: 'POST',
           body: formData,
           headers: { 'Accept': 'application/json' },
         });
 
+        // 7. LECTURA CONTROLADA
         const textoRespuesta = await response.text();
+        console.log("📩 RESPUESTA RECIBIDA DEL SERVIDOR:", textoRespuesta);
+
         let data = {};
         try {
           data = JSON.parse(textoRespuesta);
         } catch (e) {
-          throw new Error("El servidor se está despertando. Por favor, reintenta.");
+          if (!response.ok) {
+            throw new Error("El servidor se está despertando de su inactividad. Por favor, reintenta en 15 segundos.");
+          }
         }
 
-        if (!response.ok) {
-          throw new Error(data.mensaje || `Error estatus ${response.status}`);
-        }
+        // Procesamiento en base al estado de la respuesta estructurada
+        if (data && data.status === 'success') {
+          if (tipoOperacion === 'REGISTER') {
+              setStatusVerificacion('SUCCESS');
+              setMensajeFeedback('¡Tu foto salió perfecta!');
+              hablarText("Registro completado con éxito");
+              setTimeout(() => {
+                Alert.alert("Éxito", "Registrado correctamente", [{ text: "OK", onPress: () => navigation.navigate('Login') }]);
+              }, 1500);
+          } else {
+              const sesionUsuario = data.usuario || data; 
+              const usuarioConUbicacion = {
+                ...sesionUsuario,
+                localidad: geoData?.localidad || 'N/A',
+                provincia: geoData?.provincia || 'N/A'
+              };
+              
+              setStatusVerificacion('SUCCESS');
+              setMensajeFeedback('¡Tu foto salió perfecta!');
+              hablarText(`Bienvenido de vuelta, ${usuarioConUbicacion.nombre || 'Usuario'}`);
 
-        if (tipoOperacion === 'REGISTER') {
-            setStatusVerificacion('SUCCESS');
-            setMensajeFeedback('¡Tu foto salió perfecta!');
-            hablarText("Registro completado con éxito");
-            setTimeout(() => {
-              Alert.alert("Éxito", "Registrado correctamente", [{ text: "OK", onPress: () => navigation.navigate('Login') }]);
-            }, 1500);
+              await storage.saveUser(usuarioConUbicacion);
+              login(usuarioConUbicacion);
+              
+              setTimeout(() => {
+                navigation.reset({ index: 0, routes: [{ name: 'Home', params: usuarioConUbicacion }] });
+              }, 1800);
+          }
         } else {
-            if (data && data.status === 'success') {
-                const sesionUsuario = data.usuario; 
-                const usuarioConUbicacion = {
-                  ...sesionUsuario,
-                  localidad: geoData?.localidad || 'N/A',
-                  provincia: geoData?.provincia || 'N/A'
-                };
-                
-                setStatusVerificacion('SUCCESS');
-                setMensajeFeedback('¡Tu foto salió perfecta!');
-                hablarText(`Bienvenido de vuelta, ${usuarioConUbicacion.nombre}`);
-
-                await storage.saveUser(usuarioConUbicacion);
-                login(usuarioConUbicacion);
-                
-                setTimeout(() => {
-                  navigation.reset({ index: 0, routes: [{ name: 'Home', params: usuarioConUbicacion }] });
-                }, 1800);
-            } else {
-                setStatusVerificacion('ERROR');
-                const msgErr = data.mensaje || "No se pudo reconocer el rostro.";
-                setMensajeFeedback(msgErr);
-                hablarText(msgErr);
-            }
+          throw new Error(data.mensaje || `Error en la autenticación con estatus ${response.status}`);
         }
+
       } catch (error) {
-        console.error("❌ ERROR:", error);
+        console.error("❌ ERROR DETECTADO EN FLOW:", error);
         setStatusVerificacion('ERROR');
         setMensajeFeedback(error.message);
         hablarText(error.message);
@@ -176,7 +189,7 @@ export default function FacialLoginScreen() {
             ]}>
                 {countdown > 0 && <Text style={styles.timerText}>{countdown}</Text>}
                 
-                {/* Óvalo dinámico: cambia a verde si es exitoso */}
+                {/* Óvalo dinámico estilo image_3bf280.jpg */}
                 <View style={[
                   styles.faceOval,
                   statusVerificacion === 'SUCCESS' && styles.faceOvalSuccess
@@ -189,7 +202,7 @@ export default function FacialLoginScreen() {
           </CameraView>
         </View>
 
-        {/* FEEDBACK DE TEXTO ESTILO "image_3bf280.jpg" */}
+        {/* FEEDBACK DE TEXTO ABAJO DEL ÓVALO ESTILO image_3bf280.jpg */}
         <View style={styles.feedbackContainer}>
           {statusVerificacion === 'SUCCESS' && (
             <View style={styles.feedbackBox}>
@@ -234,17 +247,15 @@ const styles = StyleSheet.create({
   logo: { width: 45, height: 45, resizeMode: 'contain' },
   nombreApp: { width: 130, height: 40, resizeMode: 'contain', marginLeft: 10 },
   
-  // FRANJA NEGRA INSTITUCIONAL
   blackTitleBar: { backgroundColor: '#000', paddingVertical: 8, width: '100%', marginBottom: 15 },
   titleText: { color: '#fff', fontWeight: 'bold', fontSize: 14, textAlign: 'center', letterSpacing: 0.5 },
 
   centerSection: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   
-  // SE AGRANDÓ EL CONTENEDOR Y EL ÓVALO DE LA CÁMARA
   cameraContainer: { height: 380, width: '92%', borderRadius: 25, overflow: 'hidden', elevation: 4 },
   camera: { flex: 1 },
   overlay: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  overlaySuccess: { backgroundColor: 'rgba(0, 255, 204, 0.25)' }, // Filtro verde sutil tras validación exitosa
+  overlaySuccess: { backgroundColor: 'rgba(0, 255, 204, 0.25)' }, 
   
   faceOval: { 
     width: 270, 
@@ -260,7 +271,6 @@ const styles = StyleSheet.create({
   
   timerText: { fontSize: 90, color: '#fff', fontWeight: 'bold', position: 'absolute' },
   
-  // CONTENEDOR DE FEEDBACK ESTILO SOLICITADO
   feedbackContainer: { height: 70, justifyContent: 'center', alignItems: 'center', marginTop: 15 },
   feedbackBox: { alignItems: 'center' },
   feedbackTitle: { color: '#fff', fontSize: 22, fontWeight: 'bold', marginBottom: 2 },
