@@ -3,11 +3,13 @@ import { StyleSheet, View, TextInput, TouchableOpacity, Text, Image, KeyboardAvo
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useAuth } from '../context/AuthContext'; // <-- Importante: conectamos tu contexto
 
 const API_URL = 'https://smartcheck-proyecto-final.onrender.com';
 
 export default function LoginScreen() {
   const navigation = useNavigation();
+  const { login } = useAuth(); // <-- Obtenemos tu función login
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPass, setShowPass] = useState(false);
@@ -38,8 +40,13 @@ export default function LoginScreen() {
       setLoading(false);
       
       if (response.ok && data.status === 'success') {
-        await AsyncStorage.setItem('usuario_logueado', JSON.stringify(data));
-        navigation.replace('Home', data);
+        // Guardamos de manera persistente
+        await AsyncStorage.setItem('usuario_logueado', JSON.stringify(data.usuario || data));
+        
+        // Guardamos en tu estado global para que impacte el nombre y la foto en toda la app
+        login(data.usuario || data);
+        
+        navigation.replace('Home');
       } else {
         Alert.alert("Acceso denegado", data.mensaje || "Credenciales incorrectas.");
       }

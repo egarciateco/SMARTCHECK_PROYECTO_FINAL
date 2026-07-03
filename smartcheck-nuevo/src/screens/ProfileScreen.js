@@ -15,8 +15,14 @@ export default function ProfileScreen({ navigation }) {
           
           if (userId) {
             console.log("APP: Enviando registro de visita para ID:", userId);
-            const response = await userService.registrarVisita(userId);
-            console.log("APP: Respuesta del servidor tras registrar visita:", response.data);
+            
+            // Verificación segura: si el servicio no existe en la API, no rompe la app
+            if (userService && typeof userService.registrarVisita === 'function') {
+              const response = await userService.registrarVisita(userId);
+              console.log("APP: Respuesta del servidor tras registrar visita:", response.data);
+            } else {
+              console.warn("APP: 'registrarVisita' no está implementado en userService todavía. Omitiendo.");
+            }
           } else {
             console.warn("APP: No se encontró ID en el usuario logueado.");
           }
@@ -32,6 +38,12 @@ export default function ProfileScreen({ navigation }) {
 
   if (cargando) return <ActivityIndicator size="large" color="#00ffcc" style={styles.loader} />;
 
+  // Limpieza y formateo seguro del String Base64 para la etiqueta Image
+  const fotoBase64 = user?.foto || user?.image;
+  const uriFoto = fotoBase64 
+    ? (fotoBase64.startsWith('data:image') ? fotoBase64 : `data:image/jpeg;base64,${fotoBase64}`)
+    : null;
+
   return (
     <View style={styles.container}>
       <View style={styles.header}>
@@ -42,8 +54,8 @@ export default function ProfileScreen({ navigation }) {
       
       <View style={styles.profileCard}>
         {/* Renderiza de manera nativa la foto en string base64 que recuperamos del backend */}
-        {user?.foto ? (
-            <Image source={{ uri: user.foto }} style={styles.avatar} />
+        {uriFoto ? (
+            <Image source={{ uri: uriFoto }} style={styles.avatar} />
         ) : (
             <View style={styles.avatarPlaceholder}><Text style={{color: '#fff'}}>Sin foto</Text></View>
         )}
