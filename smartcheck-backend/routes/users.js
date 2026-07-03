@@ -84,19 +84,21 @@ router.post('/login', upload.single('imageFile'), async (req, res) => {
 
         const descriptorActual = loginDetection.descriptor;
 
-        // OPTIMIZACIÓN 1: Forzamos la selección de 'foto' por si tu esquema tiene select: false,
-        // trayendo solo los campos estrictamente necesarios para la validación.
+        // OPTIMIZACIÓN 1: Forzamos la selección de 'foto' y usamos `.lean()` para obtener un JSON plano.
+        // Esto permite que Javascript acceda a las propiedades del documento sin restricciones de Mongoose.
         const usuarios = await User.find({
             $or: [
                 { faceDescriptor: { $exists: true, $not: { $size: 0 } } },
                 { facialDescriptor: { $exists: true, $not: { $size: 0 } } }
             ]
-        }).select('+foto nombre apellido email sexo faceDescriptor facialDescriptor');
+        }).select('+foto nombre apellido email sexo faceDescriptor facialDescriptor').lean();
 
         for (const usuario of usuarios) {
             const datosBiometricos = (usuario.faceDescriptor && usuario.faceDescriptor.length > 0) 
                 ? usuario.faceDescriptor 
                 : usuario.facialDescriptor;
+
+            if (!datosBiometricos || datosBiometricos.length === 0) continue;
 
             const descriptorGuardado = new Float32Array(datosBiometricos);
             const distancia = faceapi.euclideanDistance(descriptorActual, descriptorGuardado);
@@ -104,8 +106,10 @@ router.post('/login', upload.single('imageFile'), async (req, res) => {
             if (distancia <= 0.50) {
                 console.log(`✅ Match exitoso (Distancia: ${distancia}) para: ${usuario.email}`);
                 
+                // Mapeo flexible: capturamos la foto sin importar si la base de datos la llamó 'foto' o 'image'
+                const fotoFinal = usuario.foto || usuario.image || null;
+
                 // OPTIMIZACIÓN 2: No devolvemos los descriptores biométricos pesados a la App.
-                // Esto reduce el tamaño de la respuesta HTTP en un 90% haciendo el login inmediato.
                 return res.status(200).json({ 
                     status: 'success', 
                     mensaje: `¡Bienvenido de vuelta, ${usuario.nombre}!`,
@@ -116,7 +120,7 @@ router.post('/login', upload.single('imageFile'), async (req, res) => {
                         apellido: usuario.apellido,
                         email: usuario.email,
                         sexo: usuario.sexo || 'M',
-                        foto: usuario.foto || null // Garantizado que viaja la cadena en base64 de MongoDB
+                        foto: fotoFinal // Garantizado que viaja la cadena en base64 de MongoDB
                     }
                 });
             }
