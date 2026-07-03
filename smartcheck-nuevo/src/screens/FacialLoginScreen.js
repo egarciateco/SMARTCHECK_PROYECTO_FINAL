@@ -116,16 +116,20 @@ export default function FacialLoginScreen() {
                 Alert.alert("Éxito", "Registrado correctamente", [{ text: "OK", onPress: () => navigation.navigate('Login') }]);
               }, 1500);
           } else {
-              // Obtenemos los datos del usuario devueltos por el backend
               const sesionUsuario = data.usuario || data; 
               
-              // REPARACIÓN: Hacemos un spread (...sesionUsuario) completo para heredar dia, mes, anio, edad, sexo, etc., 
-              // sin que falte absolutamente nada, acoplándole la geolocalización actual del GPS celular.
+              // 🔍 DETECTOR DE CAMPOS BACKEND: Imprime el objeto exacto recibido en la terminal de Node
+              console.log("==================================================");
+              console.log("🕵️‍♂️ OBJETO RECIBIDO DESDE EL BACKEND:", JSON.stringify(sesionUsuario, null, 2));
+              console.log("==================================================");
+
+              // Intentamos mapear de forma flexible según los nombres comunes que suelen venir del backend
               const usuarioConUbicacion = {
                 ...sesionUsuario,
-                dia: sesionUsuario.dia || '',
-                mes: sesionUsuario.mes || '',
-                anio: sesionUsuario.anio || '',
+                // Si el backend usa dia/mes/anio los toma, sino busca alternativas comunes
+                dia: sesionUsuario.dia || sesionUsuario.dia_nacimiento || '',
+                mes: sesionUsuario.mes || sesionUsuario.mes_nacimiento || '',
+                anio: sesionUsuario.anio || sesionUsuario.anio_nacimiento || '',
                 edad: sesionUsuario.edad || '',
                 localidad: geoData?.localidad || 'N/A',
                 provincia: geoData?.provincia || 'N/A'
@@ -135,10 +139,7 @@ export default function FacialLoginScreen() {
               setMensajeFeedback('¡Tu foto salió perfecta!');
               hablarText(`Bienvenido de vuelta, ${usuarioConUbicacion.nombre || 'Usuario'}`);
 
-              // Guardamos en el Storage local persistente
               await storage.saveUser(usuarioConUbicacion);
-              
-              // Actualizamos el contexto global de autenticación de la app
               login(usuarioConUbicacion);
               
               setTimeout(() => {
