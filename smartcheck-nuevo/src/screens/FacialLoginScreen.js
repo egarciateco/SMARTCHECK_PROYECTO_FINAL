@@ -37,14 +37,15 @@ export default function FacialLoginScreen() {
   const cameraRef = useRef(null);
   const soundRef = useRef(new Audio.Sound());
 
-  // Función para reproducir archivos locales específicos
+  // Función para reproducir archivos locales específicos incluyendo vozreconocida
   const reproducirVoz = async (tipo) => {
     try {
       await soundRef.current.unloadAsync();
       const audios = {
         bienvenida: require('../../assets/vozmasculina.mp3'),
         verificando: require('../../assets/vozverificando.mp3'),
-        error: require('../../assets/vozerror.mp3')
+        error: require('../../assets/vozerror.mp3'),
+        reconocida: require('../../assets/vozreconocida.mp3') // Nuevo archivo agregado
       };
       if (audios[tipo]) {
         await soundRef.current.loadAsync(audios[tipo]);
@@ -55,7 +56,6 @@ export default function FacialLoginScreen() {
     }
   };
 
-  // Efecto para geolocalización
   useEffect(() => {
     (async () => {
       try {
@@ -77,13 +77,10 @@ export default function FacialLoginScreen() {
       } catch (err) { console.log(err); }
     })();
 
-    // Reproducir mensaje de bienvenida
     reproducirVoz('bienvenida');
-
     return () => { soundRef.current.unloadAsync(); };
   }, []);
 
-  // Animación de puntos
   useEffect(() => {
     let intervalo;
     if (loading) {
@@ -107,7 +104,6 @@ export default function FacialLoginScreen() {
       }
     }
 
-    // Cuenta regresiva visual
     for (let i = 3; i > 0; i--) {
       setCountdown(i);
       await new Promise(resolve => setTimeout(resolve, 1000));
@@ -116,7 +112,7 @@ export default function FacialLoginScreen() {
 
     if (cameraRef.current) {
       setLoading(true);
-      reproducirVoz('verificando'); // Reproducir voz al verificar
+      reproducirVoz('verificando');
 
       try {
         const photo = await cameraRef.current.takePictureAsync({ quality: 0.3 });
@@ -153,6 +149,8 @@ export default function FacialLoginScreen() {
 
         if (data.status === 'success') {
           setStatusVerificacion('SUCCESS');
+          reproducirVoz('reconocida'); // Se reproduce el nuevo audio de éxito
+          
           if (tipoOperacion === 'REGISTER') {
             setTimeout(() => Alert.alert("Éxito", "Registrado correctamente", [{ text: "OK", onPress: () => navigation.navigate('Login') }]), 1500);
           } else {
@@ -167,7 +165,7 @@ export default function FacialLoginScreen() {
       } catch (error) {
         setStatusVerificacion('ERROR');
         setMensajeFeedback(error.message);
-        reproducirVoz('error'); // Reproducir voz de error
+        reproducirVoz('error');
       } finally {
         setLoading(false);
       }
@@ -211,7 +209,7 @@ export default function FacialLoginScreen() {
           <Text style={styles.waitingText}>Verificando su rostro, espere por favor{puntos}</Text>
         ) : (
           <>
-            {statusVerificacion === 'SUCCESS' && <Text style={[styles.feedbackText, { color: '#00ffcc' }]}>¡Foto exitosa!</Text>}
+            {statusVerificacion === 'SUCCESS' && <Text style={[styles.feedbackText, { color: '#00ffcc' }]}>¡Rostro reconocido!</Text>}
             {statusVerificacion === 'ERROR' && <Text style={[styles.feedbackText, { color: '#ff3333' }]}>{mensajeFeedback}</Text>}
             {statusVerificacion === 'IDLE' && <Text style={styles.instructions}>Encuadrá tu rostro en el círculo y presioná el botón de Biometría Facial</Text>}
           </>
