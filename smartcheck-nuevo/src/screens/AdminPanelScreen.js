@@ -1,10 +1,10 @@
 // src/screens/AdminPanelScreen.js
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, FlatList, Alert, Image, Dimensions } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, FlatList, Alert, Image, Dimensions, TextInput } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import axios from 'axios';
 
-const { height } = Dimensions.get('window');
+const { width } = Dimensions.get('window');
 
 export default function AdminPanelScreen({ navigation }) {
   const [pin, setPin] = useState('');
@@ -39,43 +39,44 @@ export default function AdminPanelScreen({ navigation }) {
     }, [autenticado])
   );
 
-  const presionarTecla = (num) => {
-    if (pin.length < 5) {
-      const nuevoPin = pin + num;
-      setPin(nuevoPin);
-      
-      if (nuevoPin === '00192') {
-        setTimeout(() => {
-          setAutenticado(true);
-        }, 100);
-      } else if (nuevoPin.length === 5) {
-        setTimeout(() => {
-          Alert.alert("Error", "Pin incorrecto");
-          setPin('');
-        }, 200);
-      }
+  // Maneja la verificación con el TextInput nativo
+  const handleIngresar = () => {
+    if (pin === '00192') {
+      setAutenticado(true);
+    } else {
+      Alert.alert("Error", "Pin incorrecto");
+      setPin('');
     }
-  };
-
-  const borrarTecla = () => {
-    setPin(pin.slice(0, -1));
   };
 
   if (!autenticado) {
     return (
       <View style={styles.container}>
-        <View style={styles.blackTitleBar}><Text style={styles.titleText}>INGRESO ADMINISTRADOR</Text></View>
-        <View style={styles.pinDisplayContainer}>
-          <Text style={styles.pinDisplay}>{"* ".repeat(pin.length)}</Text>
+        <View style={styles.blackTitleBar}>
+          <Text style={styles.titleText}>INGRESO ADMINISTRADOR</Text>
         </View>
-        <View style={styles.teclado}>
-          {['1', '2', '3', '4', '5', '6', '7', '8', '9', '0'].map((num) => (
-            <TouchableOpacity key={num} style={styles.tecla} onPress={() => presionarTecla(num)}>
-              <Text style={styles.teclaTexto}>{num}</Text>
-            </TouchableOpacity>
-          ))}
-          <TouchableOpacity style={[styles.tecla, styles.teclaBorrar]} onPress={borrarTecla}>
-            <Text style={styles.teclaTexto}>⌫</Text>
+        
+        <View style={styles.loginBox}>
+          <TextInput
+            style={styles.input}
+            placeholder="Ingrese PIN de administrador"
+            placeholderTextColor="#888"
+            secureTextEntry={true}
+            value={pin}
+            onChangeText={setPin}
+            keyboardType="numeric"
+            maxLength={5}
+            autoFocus={true}
+          />
+
+          <TouchableOpacity style={styles.botonIngresar} onPress={handleIngresar}>
+            <Text style={styles.botonTexto}>INGRESAR</Text>
+          </TouchableOpacity>
+        </View>
+
+        <View style={styles.footerArea}>
+          <TouchableOpacity onPress={() => { setPin(''); navigation.goBack(); }}>
+            <Image source={require('../../assets/volver.png')} style={styles.navIcon} />
           </TouchableOpacity>
         </View>
       </View>
@@ -114,12 +115,13 @@ const styles = StyleSheet.create({
   center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   blackTitleBar: { backgroundColor: '#000', paddingVertical: 12, marginBottom: 15 },
   titleText: { color: '#fff', fontWeight: 'bold', fontSize: 14, textAlign: 'center' },
-  pinDisplayContainer: { backgroundColor: '#002a54', padding: 20, marginHorizontal: 40, borderRadius: 10, alignItems: 'center', marginBottom: 20 },
-  pinDisplay: { color: '#00ffcc', fontSize: 24, fontWeight: 'bold', height: 30 },
-  teclado: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', paddingHorizontal: 20 },
-  tecla: { width: 75, height: 75, backgroundColor: '#002a54', borderRadius: 37.5, justifyContent: 'center', alignItems: 'center', margin: 10, borderWidth: 1, borderColor: '#ff9933' },
-  teclaBorrar: { backgroundColor: '#a30000', borderColor: '#ff0000' },
-  teclaTexto: { color: '#fff', fontSize: 22, fontWeight: 'bold' },
+  
+  // Nuevos estilos de la caja de login nativa restablecida
+  loginBox: { flex: 1, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 40 },
+  input: { backgroundColor: '#002a54', color: '#fff', fontSize: 18, width: '100%', height: 50, borderRadius: 8, paddingHorizontal: 15, textAlign: 'center', borderWidth: 1, borderColor: '#ff9933', marginBottom: 20, letterSpacing: 5 },
+  botonIngresar: { backgroundColor: '#ff9933', width: '100%', height: 48, borderRadius: 8, justifyContent: 'center', alignItems: 'center' },
+  botonTexto: { color: '#001f3f', fontSize: 16, fontWeight: 'bold' },
+
   cardUsuario: { backgroundColor: '#002a54', padding: 15, borderRadius: 8, marginBottom: 10, borderWidth: 1, borderColor: '#ff9933' },
   userTitle: { color: '#00ffcc', fontWeight: 'bold', fontSize: 14 },
   userSub: { color: '#fff', fontSize: 12, marginTop: 2 },
