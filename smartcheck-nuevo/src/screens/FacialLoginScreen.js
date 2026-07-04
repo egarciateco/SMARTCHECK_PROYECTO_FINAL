@@ -68,14 +68,13 @@ export default function FacialLoginScreen() {
     async function detectarVozMasculina() {
       try {
         const voces = await Speech.getAvailableVoicesAsync();
-        // Filtramos voces en español que contengan indicios de ser masculinas en su nombre o ID
         const vozMasc = voces.find(v => 
           v.language.startsWith('es') && 
           (v.name.toLowerCase().includes('male') || 
            v.identifier.toLowerCase().includes('male') || 
            v.name.toLowerCase().includes('masc') ||
-           v.name.toLowerCase().includes('mexico-1') || // IDs comunes masculinos de Google
-           v.name.toLowerCase().includes('es-es-x-ana-local')) // Fallback si aplica
+           v.name.toLowerCase().includes('mexico-1') || 
+           v.name.toLowerCase().includes('es-es-x-ana-local')) 
         );
         if (vozMasc) {
           setIdVozMasculina(vozMasc.identifier);
@@ -118,7 +117,6 @@ export default function FacialLoginScreen() {
     if (cameraRef.current) {
       setLoading(true);
       try {
-        // Voz masculina con el mensaje exacto solicitado
         hablarText("Verificando su rostro, espere por favor"); 
 
         const photo = await cameraRef.current.takePictureAsync({ quality: 0.3 });
@@ -272,7 +270,8 @@ export default function FacialLoginScreen() {
               <Text style={[styles.feedbackText, { color: '#ff3333' }]}>{mensajeFeedback}</Text>
             )}
             {statusVerificacion === 'IDLE' && (
-              <Text style={styles.instructions}>Encuadrá tu rostro en el círculo y presioná el botón de verificar</Text>
+              /* Modificado: Texto exacto y estilo adaptado */
+              <Text style={styles.instructions}>Encuadrá tu rostro en el círculo y presioná el botón de Biometría Facial</Text>
             )}
           </>
         )}
@@ -332,14 +331,13 @@ const styles = StyleSheet.create({
   feedbackContainer: { width: '85%', minHeight: 65, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 10, marginVertical: 5 },
   feedbackText: { fontSize: 14, fontWeight: 'bold', textAlign: 'center' },
   waitingText: { color: '#00ffcc', fontSize: 14, fontWeight: 'bold', textAlign: 'center' },
-  instructions: { color: '#aaa', fontSize: 13, textAlign: 'center', lineHeight: 18 },
+  
+  // Modificado: El tamaño de la fuente subió a 15 y el interlineado a 20 para mejorar lectura
+  instructions: { color: '#aaa', fontSize: 15, textAlign: 'center', lineHeight: 20 },
   
   footer: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', width: '100%', paddingHorizontal: 35, paddingBottom: 10 },
-  
-  // Modificado: Se agrandó el contenedor y la imagen al doble
   captureButton: { width: 130, height: 130, justifyContent: 'center', alignItems: 'center' },
   verifyIcon: { width: 130, height: 130, resizeMode: 'contain' },
-
   navButton: { width: 50, height: 50, justifyContent: 'center', alignItems: 'center' },
   disabledButton: { opacity: 0.4 },
   navIcon: { width: 42, height: 42, resizeMode: 'contain', tintColor: '#00ffcc' }
