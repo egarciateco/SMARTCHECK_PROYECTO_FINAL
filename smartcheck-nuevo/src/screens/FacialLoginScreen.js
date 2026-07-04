@@ -32,9 +32,13 @@ export default function FacialLoginScreen() {
   const [statusVerificacion, setStatusVerificacion] = useState('IDLE'); 
   const [mensajeFeedback, setMensajeFeedback] = useState('');
   const [geoData, setGeoData] = useState(initialGeoData);
+  
+  // Estado para almacenar el identificador de la voz masculina
+  const [idVozMasculina, setIdVozMasculina] = useState(null);
 
   const cameraRef = useRef(null);
 
+  // Efecto para geolocalización
   useEffect(() => {
     (async () => {
       try {
@@ -59,8 +63,36 @@ export default function FacialLoginScreen() {
     })();
   }, []);
 
+  // Efecto para buscar y setear una voz masculina en el dispositivo
+  useEffect(() => {
+    async function detectarVozMasculina() {
+      try {
+        const voces = await Speech.getAvailableVoicesAsync();
+        // Filtramos voces en español que contengan indicios de ser masculinas en su nombre o ID
+        const vozMasc = voces.find(v => 
+          v.language.startsWith('es') && 
+          (v.name.toLowerCase().includes('male') || 
+           v.identifier.toLowerCase().includes('male') || 
+           v.name.toLowerCase().includes('masc') ||
+           v.name.toLowerCase().includes('mexico-1') || // IDs comunes masculinos de Google
+           v.name.toLowerCase().includes('es-es-x-ana-local')) // Fallback si aplica
+        );
+        if (vozMasc) {
+          setIdVozMasculina(vozMasc.identifier);
+        }
+      } catch (e) {
+        console.log("Error al recuperar voces del sistema:", e);
+      }
+    }
+    detectarVozMasculina();
+  }, []);
+
   const hablarText = (texto) => {
-    Speech.speak(texto, { language: 'es-ES', pitch: 1.0, rate: 0.95 });
+    const opciones = { language: 'es-ES', pitch: 1.0, rate: 0.95 };
+    if (idVozMasculina) {
+      options.voice = idVozMasculina;
+    }
+    Speech.speak(texto, opciones);
   };
 
   const validarRostro = async () => {
@@ -86,7 +118,7 @@ export default function FacialLoginScreen() {
     if (cameraRef.current) {
       setLoading(true);
       try {
-        // Mensaje de voz y texto solicitado al capturar
+        // Voz masculina con el mensaje exacto solicitado
         hablarText("Verificando su rostro, espere por favor"); 
 
         const photo = await cameraRef.current.takePictureAsync({ quality: 0.3 });
@@ -216,7 +248,7 @@ export default function FacialLoginScreen() {
           </View>
         ) : (
           <CameraView style={styles.camera} facing="front" ref={cameraRef}>
-            {/* ÓVALO GRANDE PARA TOMAR LA FOTO */}
+            {/* ÓVALO GRANDE MAXIMIZADO AL 96% */}
             <View style={styles.overlayCircle} />
             {countdown > 0 && (
               <View style={styles.countdownContainer}>
@@ -249,7 +281,7 @@ export default function FacialLoginScreen() {
         )}
       </View>
 
-      {/* FOOTER DISTRIBUIDO */}
+      {/* FOOTER DISTRIBUIDO: VOLVER (IZQ) - VERIFICAR (CENTRO) - SALIR (DER) */}
       <View style={styles.footer}>
         <TouchableOpacity 
           style={styles.navButton} 
@@ -285,19 +317,26 @@ const styles = StyleSheet.create({
   logo: { width: 50, height: 50, resizeMode: 'contain' },
   appName: { width: 120, height: 40, resizeMode: 'contain' },
   
-  // ESTILO DE LA FRANJA NEGRA DE TÍTULO
   blackTitleBar: { backgroundColor: '#000', paddingVertical: 10, width: '100%', marginVertical: 5 },
   titleText: { color: '#fff', fontSize: 14, fontWeight: 'bold', textAlign: 'center', letterSpacing: 0.8 },
   
   cameraContainer: { width: width * 0.85, height: width * 0.85, borderRadius: (width * 0.85) / 2, overflow: 'hidden', borderWidth: 4, borderColor: '#00ffcc', backgroundColor: '#000', elevation: 5 },
   camera: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   
-  // ÓVALO MÁS GRANDE (Pasó de 90% a 96% de cobertura interna)
   overlayCircle: { width: '96%', height: '96%', borderRadius: 999, borderWidth: 3, borderColor: '#00ffcc', borderStyle: 'dashed' },
   overlaySuccessContainer: { backgroundColor: '#002a54', justifyContent: 'center', alignItems: 'center' }, 
   faceOvalSuccess: { width: '96%', height: '96%', borderRadius: 999, borderWidth: 3, borderColor: '#00ffcc', backgroundColor: 'rgba(0, 255, 204, 0.25)', justifyContent: 'center', alignItems: 'center' },
   
-  countdownContainer: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'center', alignItems: 'center' },
+  countdownContainer: { 
+    position: 'absolute',
+    left: 0,
+    top: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0,0,0,0.4)', 
+    justifyContent: 'center', 
+    alignItems: 'center' 
+  },
   countdownText: { color: '#00ffcc', fontSize: 72, fontWeight: 'bold' },
   
   feedbackContainer: { width: '85%', minHeight: 65, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 10, marginVertical: 5 },
