@@ -45,7 +45,11 @@ export default function RegisterScreen() {
         <Image source={require('../../assets/logo.png')} style={styles.logo} />
         <Image source={require('../../assets/nombreapp.png')} style={styles.nombreApp} />
       </View>
-      <View style={styles.blackBar}><Text style={styles.titleText}>REGISTRO DE USUARIO</Text></View>
+      
+      {/* Barra de título con estilo unificado */}
+      <View style={styles.blackBar}>
+        <Text style={styles.titleText}>REGISTRO DE USUARIO</Text>
+      </View>
 
       <ScrollView contentContainerStyle={styles.scrollContent}>
         <View style={styles.formFrame}>
@@ -90,15 +94,31 @@ export default function RegisterScreen() {
           {metodo === 'facial' && (
             <View style={{alignItems: 'center'}}>
               <Text style={styles.aviso}>⚠️ No uses anteojos. Ubica tu cara en el óvalo.</Text>
-              <TouchableOpacity onPress={validarYRegistrar}><Image source={require('../../assets/btn_biometria_facial.png')} style={styles.btnBio} /></TouchableOpacity>
+              {/* Quitamos el botón viejo de acá, ahora la acción se traslada al centro del footer */}
+              <Text style={styles.avisoFacialActivo}>Presione el botón de verificación inferior para continuar.</Text>
             </View>
           )}
         </View>
       </ScrollView>
 
+      {/* Footer distribuido e idéntico a la lógica de la app */}
       <View style={styles.footerArea}>
-        <TouchableOpacity onPress={() => navigation.goBack()}><Image source={require('../../assets/volver.png')} style={styles.navIcon} /></TouchableOpacity>
-        <TouchableOpacity onPress={() => BackHandler.exitApp()}><Image source={require('../../assets/salir.png')} style={styles.navIcon} /></TouchableOpacity>
+        <TouchableOpacity style={styles.navButton} onPress={() => navigation.goBack()}>
+          <Image source={require('../../assets/volver.png')} style={styles.navIcon} />
+        </TouchableOpacity>
+
+        {/* El botón del medio aparece de manera libre únicamente si se eligió el método facial */}
+        {metodo === 'facial' ? (
+          <TouchableOpacity style={styles.captureButton} onPress={validarYRegistrar}>
+            <Image source={require('../../assets/verificar.png')} style={styles.verifyIcon} />
+          </TouchableOpacity>
+        ) : (
+          <View style={styles.spaceFiller} />
+        )}
+
+        <TouchableOpacity style={styles.navButton} onPress={() => BackHandler.exitApp()}>
+          <Image source={require('../../assets/salir.png')} style={styles.navIcon} />
+        </TouchableOpacity>
       </View>
     </KeyboardAvoidingView>
   );
@@ -109,8 +129,8 @@ const styles = StyleSheet.create({
   header: { padding: 20, flexDirection: 'row', alignItems: 'center', justifyContent: 'center' },
   logo: { width: 60, height: 60, resizeMode: 'contain' },
   nombreApp: { width: 140, height: 40, resizeMode: 'contain', marginLeft: 10 },
-  blackBar: { backgroundColor: '#000', padding: 10, alignItems: 'center' },
-  titleText: { color: '#fff', fontSize: 16, fontWeight: 'bold' },
+  blackBar: { backgroundColor: '#000', paddingVertical: 10, width: '100%', marginVertical: 5 },
+  titleText: { color: '#fff', fontSize: 14, fontWeight: 'bold', textAlign: 'center', letterSpacing: 0.8 },
   scrollContent: { padding: 20 },
   formFrame: { borderWidth: 1, borderColor: '#ffa500', borderRadius: 10, padding: 15 },
   inputContainer: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#fff', marginBottom: 10, paddingHorizontal: 10, borderRadius: 5 },
@@ -125,8 +145,14 @@ const styles = StyleSheet.create({
   metalBtnTxt: { fontWeight: '900', color: '#000', fontSize: 10, textAlign: 'center', lineHeight: 12 },
   finalBtn: { backgroundColor: '#fff', padding: 15, borderRadius: 5, alignItems: 'center', marginTop: 10 },
   btnTxt: { fontWeight: '800', color: '#001f3f', textAlign: 'center' },
-  btnBio: { width: 200, height: 80, resizeMode: 'contain' },
   aviso: { color: '#ffa500', textAlign: 'center', marginBottom: 10, fontSize: 12 },
-  footerArea: { flexDirection: 'row', justifyContent: 'space-between', paddingHorizontal: 40, paddingBottom: 20 },
-  navIcon: { width: 45, height: 45, resizeMode: 'contain' }
+  avisoFacialActivo: { color: '#00ffcc', textAlign: 'center', fontWeight: 'bold', marginTop: 10, fontSize: 13 },
+  
+  // Estilos del Footer unificado
+  footerArea: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', width: '100%', paddingHorizontal: 35, paddingBottom: 15 },
+  navButton: { width: 50, height: 50, justifyContent: 'center', alignItems: 'center' },
+  captureButton: { justifyContent: 'center', alignItems: 'center' },
+  spaceFiller: { width: 65 }, // Mantiene el espacio exacto cuando no se usa la biometría
+  verifyIcon: { width: 65, height: 65, resizeMode: 'contain' },
+  navIcon: { width: 42, height: 42, resizeMode: 'contain', tintColor: '#00ffcc' }
 });
