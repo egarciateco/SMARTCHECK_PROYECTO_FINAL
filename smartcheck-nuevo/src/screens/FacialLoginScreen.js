@@ -90,7 +90,7 @@ export default function FacialLoginScreen() {
   const hablarText = (texto) => {
     const opciones = { language: 'es-ES', pitch: 1.0, rate: 0.95 };
     if (idVozMasculina) {
-      options.voice = idVozMasculina;
+      opciones.voice = idVozMasculina;
     }
     Speech.speak(texto, opciones);
   };
@@ -232,7 +232,6 @@ export default function FacialLoginScreen() {
         <Image source={require('../../assets/nombreapp.png')} style={styles.appName} />
       </View>
 
-      {/* TITULO EN LETRAS BLANCAS DENTRO DE UNA FRANJA NEGRA */}
       <View style={styles.blackTitleBar}>
         <Text style={styles.titleText}>
           {tipoOperacion === 'REGISTER' ? 'REGISTRO FACIAL' : 'AUTENTICACIÓN FACIAL'}
@@ -248,7 +247,6 @@ export default function FacialLoginScreen() {
           </View>
         ) : (
           <CameraView style={styles.camera} facing="front" ref={cameraRef}>
-            {/* ÓVALO GRANDE MAXIMIZADO AL 96% */}
             <View style={styles.overlayCircle} />
             {countdown > 0 && (
               <View style={styles.countdownContainer}>
@@ -263,7 +261,6 @@ export default function FacialLoginScreen() {
         {loading ? (
           <View style={{ alignItems: 'center' }}>
             <ActivityIndicator size="small" color="#00ffcc" style={{ marginBottom: 8 }} />
-            {/* TEXTO DE ESPERA SOLICITADO */}
             <Text style={styles.waitingText}>Verificando su rostro, espere por favor.</Text>
           </View>
         ) : (
@@ -281,7 +278,6 @@ export default function FacialLoginScreen() {
         )}
       </View>
 
-      {/* FOOTER DISTRIBUIDO: VOLVER (IZQ) - VERIFICAR (CENTRO) - SALIR (DER) */}
       <View style={styles.footer}>
         <TouchableOpacity 
           style={styles.navButton} 
@@ -328,14 +324,8 @@ const styles = StyleSheet.create({
   faceOvalSuccess: { width: '96%', height: '96%', borderRadius: 999, borderWidth: 3, borderColor: '#00ffcc', backgroundColor: 'rgba(0, 255, 204, 0.25)', justifyContent: 'center', alignItems: 'center' },
   
   countdownContainer: { 
-    position: 'absolute',
-    left: 0,
-    top: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: 'rgba(0,0,0,0.4)', 
-    justifyContent: 'center', 
-    alignItems: 'center' 
+    position: 'absolute', left: 0, top: 0, right: 0, bottom: 0,
+    backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'center', alignItems: 'center' 
   },
   countdownText: { color: '#00ffcc', fontSize: 72, fontWeight: 'bold' },
   
@@ -345,9 +335,12 @@ const styles = StyleSheet.create({
   instructions: { color: '#aaa', fontSize: 13, textAlign: 'center', lineHeight: 18 },
   
   footer: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', width: '100%', paddingHorizontal: 35, paddingBottom: 10 },
-  captureButton: { justifyContent: 'center', alignItems: 'center' },
+  
+  // Modificado: Se agrandó el contenedor y la imagen al doble
+  captureButton: { width: 130, height: 130, justifyContent: 'center', alignItems: 'center' },
+  verifyIcon: { width: 130, height: 130, resizeMode: 'contain' },
+
   navButton: { width: 50, height: 50, justifyContent: 'center', alignItems: 'center' },
   disabledButton: { opacity: 0.4 },
-  verifyIcon: { width: 65, height: 65, resizeMode: 'contain' },
   navIcon: { width: 42, height: 42, resizeMode: 'contain', tintColor: '#00ffcc' }
 });
