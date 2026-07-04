@@ -42,14 +42,13 @@ export default function ProfileScreen({ navigation }) {
     uriFoto = `data:image/jpeg;base64,${base64Puro}`;
   }
 
-  // RECONSTRUCCIÓN DINÁMICA DESDE LA RAÍZ DEL DOCUMENTO
+  // RECONSTRUCCIÓN DINÁMICA DESDE LA RAÍZ DEL DOCUMENTO (Soportando fallback de nombres de campos)
   let fechaFormateada = 'N/A';
   let edadCalculada = 'N/A';
 
-  // Forzamos la lectura de los campos exactos visibles en MongoDB
-  const diaUser = user?.dia;
-  const mesUser = user?.mes;
-  const anioUser = user?.anio;
+  const diaUser = user?.dia || user?.dia_nacimiento;
+  const mesUser = user?.mes || user?.mes_nacimiento;
+  const anioUser = user?.anio || user?.anio_nacimiento;
 
   if (diaUser && mesUser && anioUser) {
     const diaPad = diaUser.toString().padStart(2, '0');
@@ -69,6 +68,9 @@ export default function ProfileScreen({ navigation }) {
       edad--;
     }
     edadCalculada = `${edad} AÑOS`;
+  } else if (user?.edad) {
+    // Fallback directo por si viene únicamente la edad calculada desde el almacenamiento local
+    edadCalculada = `${user.edad.toString().toUpperCase()} AÑOS`;
   }
 
   return (

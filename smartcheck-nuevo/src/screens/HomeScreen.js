@@ -23,9 +23,32 @@ export default function HomeScreen({ navigation }) {
         }
 
         if (datos && (datos.id || datos._id)) {
-          if (!user || (user.id !== datos.id && user._id !== datos._id) || !user.foto) {
-            // Forzamos actualización por si la foto vino nueva desde el backend
-            login(datos);
+          // Normalización estricta también en la inicialización por si los datos provienen del storage viejo
+          const d = datos.dia || datos.dia_nacimiento || '';
+          const m = datos.mes || datos.mes_nacimiento || '';
+          const a = datos.anio || datos.anio_nacimiento || '';
+
+          let edadCalculada = datos.edad || '';
+          if (d && m && a) {
+            const hoy = new Date();
+            let edad = hoy.getFullYear() - parseInt(a, 10);
+            const mesDiferencia = hoy.getMonth() - (parseInt(m, 10) - 1);
+            if (mesDiferencia < 0 || (mesDiferencia === 0 && hoy.getDate() < parseInt(d, 10))) {
+              edad--;
+            }
+            edadCalculada = String(edad);
+          }
+
+          const datosNormalizados = {
+            ...datos,
+            dia: d ? String(d) : '',
+            mes: m ? String(m) : '',
+            anio: a ? String(a) : '',
+            edad: edadCalculada
+          };
+
+          if (!user || (user.id !== datosNormalizados.id && user._id !== datosNormalizados._id) || !user.foto || !user.edad || user.edad === 'N/A') {
+            login(datosNormalizados);
           }
         } else {
           navigation.reset({ index: 0, routes: [{ name: 'Login' }] });
@@ -101,7 +124,6 @@ export default function HomeScreen({ navigation }) {
             <Text style={styles.btnLabel}>Buscar Productos</Text>
         </TouchableOpacity>
         
-        {/* PANEL ADMIN REDISEÑADO: Más estilizado y compacto para que no sature la pantalla */}
         <TouchableOpacity style={[styles.menuBox, styles.adminBox]} onPress={() => navigation.navigate('AdminPanel')}>
             <Image source={require('../../assets/admin.png')} style={styles.btnImgAdmin} />
             <Text style={styles.btnLabel}>Panel Admin</Text>
