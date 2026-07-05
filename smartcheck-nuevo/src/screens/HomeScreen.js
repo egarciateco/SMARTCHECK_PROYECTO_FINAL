@@ -1,4 +1,3 @@
-// src/screens/HomeScreen.js
 import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, Image, TouchableOpacity, BackHandler, ActivityIndicator, Alert, Dimensions } from 'react-native';
 import { useRoute } from '@react-navigation/native';
@@ -16,90 +15,33 @@ export default function HomeScreen({ navigation }) {
   useEffect(() => {
     const inicializarHome = async () => {
       try {
-        let datos = route.params?.usuario || route.params;
-
-        if (!datos || (!datos.id && !datos._id)) {
-          datos = await storage.getUser();
-        }
-
+        let datos = route.params || await storage.getUser();
         if (datos && (datos.id || datos._id)) {
-          // Normalización estricta también en la inicialización por si los datos provienen del storage viejo
-          const d = datos.dia || datos.dia_nacimiento || '';
-          const m = datos.mes || datos.mes_nacimiento || '';
-          const a = datos.anio || datos.anio_nacimiento || '';
-
-          let edadCalculada = datos.edad || '';
-          if (d && m && a) {
-            const hoy = new Date();
-            let edad = hoy.getFullYear() - parseInt(a, 10);
-            const mesDiferencia = hoy.getMonth() - (parseInt(m, 10) - 1);
-            if (mesDiferencia < 0 || (mesDiferencia === 0 && hoy.getDate() < parseInt(d, 10))) {
-              edad--;
-            }
-            edadCalculada = String(edad);
-          }
-
-          const datosNormalizados = {
-            ...datos,
-            dia: d ? String(d) : '',
-            mes: m ? String(m) : '',
-            anio: a ? String(a) : '',
-            edad: edadCalculada
-          };
-
-          if (!user || (user.id !== datosNormalizados.id && user._id !== datosNormalizados._id) || !user.foto || !user.edad || user.edad === 'N/A') {
-            login(datosNormalizados);
-          }
-        } else {
+          // Si faltan campos críticos, actualizamos el estado con lo que tengamos
+          login(datos);
+        } else if (!user) {
           navigation.reset({ index: 0, routes: [{ name: 'Login' }] });
         }
-      } catch (error) {
-        console.error("Error al inicializar Home:", error);
-      } finally {
-        setCargando(false);
-      }
+      } catch (error) { console.error(error); } finally { setCargando(false); }
     };
     inicializarHome();
-  }, [route.params]);
+  }, []);
 
   const renderAvatar = () => {
     const fotoBase64 = user?.foto || user?.image;
-    
-    if (!fotoBase64 || fotoBase64 === 'null' || typeof fotoBase64 !== 'string') {
-      return <Ionicons name="person-circle" size={45} color="#00ffcc" />;
-    }
-
-    let base64Puro = fotoBase64;
-    if (base64Puro.includes('base64,')) {
-      base64Puro = base64Puro.split('base64,').pop();
-    }
-    base64Puro = base64Puro.replace(/\s/g, '');
-
-    const cleanUri = `data:image/jpeg;base64,${base64Puro}`;
-
-    return <Image source={{ uri: cleanUri }} style={styles.userAvatar} key={cleanUri} />;
+    if (!fotoBase64 || typeof fotoBase64 !== 'string') return <Ionicons name="person-circle" size={45} color="#00ffcc" />;
+    const cleanUri = `data:image/jpeg;base64,${fotoBase64.replace('data:image/jpeg;base64,', '').replace(/\s/g, '')}`;
+    return <Image source={{ uri: cleanUri }} style={styles.userAvatar} />;
   };
 
   const handleVolverCerrarSesion = () => {
-    Alert.alert(
-      "Cerrar Sesión", 
-      "¿Estás seguro de que deseas salir al menú de login?",
-      [
-        { text: "Cancelar", style: "cancel" },
-        { 
-          text: "Salir", 
-          onPress: async () => {
-            await logout(); 
-            navigation.reset({ index: 0, routes: [{ name: 'Login' }] });
-          } 
-        }
-      ]
-    );
+    Alert.alert("Cerrar Sesión", "¿Salir al login?", [
+      { text: "Cancelar" },
+      { text: "Salir", onPress: async () => { await logout(); navigation.reset({ index: 0, routes: [{ name: 'Login' }] }); } }
+    ]);
   };
 
-  if (cargando) {
-    return <View style={styles.container}><ActivityIndicator size="large" color="#00ffcc" /></View>;
-  }
+  if (cargando) return <View style={styles.container}><ActivityIndicator size="large" color="#00ffcc" /></View>;
 
   return (
     <View style={styles.container}>
@@ -108,35 +50,15 @@ export default function HomeScreen({ navigation }) {
         <Image source={require('../../assets/nombreapp.png')} style={styles.nombreAppGrande} />
         {renderAvatar()}
       </View>
-
-      <View style={styles.blackBar}>
-        <Text style={styles.welcomeText}>¡BIENVENID@, {user?.nombre?.toUpperCase() || 'USUARIO'}!</Text>
-      </View>
-
+      <View style={styles.blackBar}><Text style={styles.welcomeText}>¡BIENVENID@, {user?.nombre?.toUpperCase() || 'USUARIO'}!</Text></View>
       <View style={styles.menuGrid}>
-        <TouchableOpacity style={styles.menuBox} onPress={() => navigation.navigate('Perfil')}>
-            <Image source={require('../../assets/perfil.png')} style={styles.btnImg} />
-            <Text style={styles.btnLabel}>Mi Perfil</Text>
-        </TouchableOpacity>
-        
-        <TouchableOpacity style={styles.menuBox} onPress={() => navigation.navigate('Busqueda')}>
-            <Image source={require('../../assets/lupa.png')} style={styles.btnImg} />
-            <Text style={styles.btnLabel}>Buscar Productos</Text>
-        </TouchableOpacity>
-        
-        <TouchableOpacity style={[styles.menuBox, styles.adminBox]} onPress={() => navigation.navigate('AdminPanel')}>
-            <Image source={require('../../assets/admin.png')} style={styles.btnImgAdmin} />
-            <Text style={styles.btnLabel}>Panel Admin</Text>
-        </TouchableOpacity>
+        <TouchableOpacity style={styles.menuBox} onPress={() => navigation.navigate('Perfil')}><Image source={require('../../assets/perfil.png')} style={styles.btnImg} /><Text style={styles.btnLabel}>Mi Perfil</Text></TouchableOpacity>
+        <TouchableOpacity style={styles.menuBox} onPress={() => navigation.navigate('Busqueda')}><Image source={require('../../assets/lupa.png')} style={styles.btnImg} /><Text style={styles.btnLabel}>Buscar Productos</Text></TouchableOpacity>
+        <TouchableOpacity style={[styles.menuBox, styles.adminBox]} onPress={() => navigation.navigate('AdminPanel')}><Image source={require('../../assets/admin.png')} style={styles.btnImgAdmin} /><Text style={styles.btnLabel}>Panel Admin</Text></TouchableOpacity>
       </View>
-
       <View style={styles.footerArea}>
-        <TouchableOpacity onPress={handleVolverCerrarSesion}>
-          <Image source={require('../../assets/volver.png')} style={styles.navIcon} />
-        </TouchableOpacity>
-        <TouchableOpacity onPress={() => BackHandler.exitApp()}>
-          <Image source={require('../../assets/salir.png')} style={styles.navIcon} />
-        </TouchableOpacity>
+        <TouchableOpacity onPress={handleVolverCerrarSesion}><Image source={require('../../assets/volver.png')} style={styles.navIcon} /></TouchableOpacity>
+        <TouchableOpacity onPress={() => BackHandler.exitApp()}><Image source={require('../../assets/salir.png')} style={styles.navIcon} /></TouchableOpacity>
       </View>
     </View>
   );
@@ -151,7 +73,7 @@ const styles = StyleSheet.create({
   blackBar: { backgroundColor: '#000', paddingVertical: 8, marginBottom: 15 },
   welcomeText: { color: '#fff', textAlign: 'center', fontWeight: 'bold', fontSize: 14 },
   menuGrid: { flex: 1, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 25, gap: 15 },
-  menuBox: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#002a54', width: '100%', paddingVertical: 10, paddingHorizontal: 15, borderRadius: 12, borderWidth: 1, borderColor: '#003b75', elevation: 2 },
+  menuBox: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#002a54', width: '100%', paddingVertical: 10, paddingHorizontal: 15, borderRadius: 12, borderWidth: 1, borderColor: '#003b75' },
   adminBox: { borderColor: '#ffcc00', backgroundColor: '#001b3a' }, 
   btnImg: { width: 38, height: 38, resizeMode: 'contain' },
   btnImgAdmin: { width: 38, height: 38, resizeMode: 'contain' }, 
