@@ -146,9 +146,20 @@ export default function FacialLoginScreen() {
       <View style={styles.blackTitleBar}><Text style={styles.titleText}>{tipoOperacion === 'REGISTER' ? 'REGISTRO FACIAL' : 'AUTENTICACIÓN FACIAL'}</Text></View>
       <View style={styles.cameraContainer}>
         {statusVerificacion === 'SUCCESS' ? (
-          <View style={[styles.camera, styles.overlaySuccessContainer]}><View style={styles.faceOvalSuccess}><Ionicons name="checkmark-circle" size={80} color="#fff" /></View></View>
+          <View style={[styles.camera, styles.overlaySuccessContainer]}>
+            <View style={styles.faceOvalSuccess}>
+              <Ionicons name="checkmark-circle" size={80} color="#fff" />
+            </View>
+          </View>
         ) : (
-          <CameraView style={styles.camera} facing="front" ref={cameraRef}><View style={styles.overlayCircle} />{countdown > 0 && <View style={styles.countdownContainer}><Text style={styles.countdownText}>{countdown}</Text></View></CameraView>
+          <CameraView style={styles.camera} facing="front" ref={cameraRef}>
+            <View style={styles.overlayCircle} />
+            {countdown > 0 && (
+              <View style={styles.countdownContainer}>
+                <Text style={styles.countdownText}>{countdown}</Text>
+              </View>
+            )}
+          </CameraView>
         )}
       </View>
       <View style={styles.feedbackContainer}>
