@@ -82,22 +82,37 @@ export default function FacialLoginScreen() {
     if (countdown > 0 || loading) return;
     setStatusVerificacion('IDLE');
     setMensajeFeedback('');
-    if (!permission?.granted) { const s = await requestPermission(); if (!s.granted) return; }
-    for (let i = 3; i > 0; i--) { setCountdown(i); await new Promise(r => setTimeout(r, 1000)); }
+    
+    if (!permission?.granted) { 
+      const s = await requestPermission(); 
+      if (!s.granted) return; 
+    }
+    
+    for (let i = 3; i > 0; i--) { 
+      setCountdown(i); 
+      await new Promise(r => setTimeout(r, 1000)); 
+    }
     setCountdown(0); 
+    
     if (cameraRef.current) {
       setLoading(true);
       reproducirVoz('verificando');
       try {
-        const photo = await cameraRef.current.takePictureAsync({ quality: 0.3 });
-        const p = await ImageManipulator.manipulateAsync(photo.uri, [{ resize: { width: 450 } }], { compress: 0.15, format: 'jpeg' });
+        const photo = await cameraRef.current.takePictureAsync({ quality: 0.5 });
+        const p = await ImageManipulator.manipulateAsync(photo.uri, [{ resize: { width: 300 } }], { compress: 0.7, format: 'jpeg' });
+        
         const fd = new FormData();
         if (tipoOperacion === 'REGISTER') {
           Object.entries(datosRegistro || {}).forEach(([k, v]) => fd.append(k, String(v)));
         }
         fd.append('imageFile', { uri: p.uri, name: 'face.jpg', type: 'image/jpeg' });
-        const res = await fetch(`${(api.defaults.baseURL || 'https://smartcheck-proyecto-final.onrender.com').replace(/\/$/, '')}${tipoOperacion === 'REGISTER' ? '/api/users/register' : '/api/users/login'}`, { method: 'POST', body: fd });
-        const data = await res.json();
+        
+        const endpoint = tipoOperacion === 'REGISTER' ? '/api/users/register' : '/api/users/biometria';
+        const response = await api.post(endpoint, fd, {
+          headers: { 'Content-Type': 'multipart/form-data' }
+        });
+        
+        const data = response.data;
         if (data.status === 'success') {
           setStatusVerificacion('SUCCESS');
           const usuarioConUbicacion = { ...data.usuario || data, localidad: geoData.localidad, provincia: geoData.provincia };
@@ -108,8 +123,17 @@ export default function FacialLoginScreen() {
             login(usuarioConUbicacion);
             reproducirVoz('reconocida', () => navigation.reset({ index: 0, routes: [{ name: 'Home', params: usuarioConUbicacion }] }));
           }
-        } else throw new Error(data.mensaje || "Error");
-      } catch (e) { setStatusVerificacion('ERROR'); setMensajeFeedback(e.message); reproducirVoz('error'); } finally { setLoading(false); }
+        } else {
+          throw new Error(data.mensaje || "Error en autenticación");
+        }
+      } catch (e) { 
+        console.error("❌ Error en validación:", e.response?.data || e.message);
+        setStatusVerificacion('ERROR'); 
+        setMensajeFeedback(e.response?.data?.mensaje || "Error de conexión"); 
+        reproducirVoz('error'); 
+      } finally { 
+        setLoading(false); 
+      }
     }
   };
 
@@ -124,7 +148,7 @@ export default function FacialLoginScreen() {
         {statusVerificacion === 'SUCCESS' ? (
           <View style={[styles.camera, styles.overlaySuccessContainer]}><View style={styles.faceOvalSuccess}><Ionicons name="checkmark-circle" size={80} color="#fff" /></View></View>
         ) : (
-          <CameraView style={styles.camera} facing="front" ref={cameraRef}><View style={styles.overlayCircle} />{countdown > 0 && <View style={styles.countdownContainer}><Text style={styles.countdownText}>{countdown}</Text></View>}</CameraView>
+          <CameraView style={styles.camera} facing="front" ref={cameraRef}><View style={styles.overlayCircle} />{countdown > 0 && <View style={styles.countdownContainer}><Text style={styles.countdownText}>{countdown}</Text></View></CameraView>
         )}
       </View>
       <View style={styles.feedbackContainer}>
