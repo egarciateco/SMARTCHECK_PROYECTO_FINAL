@@ -2,12 +2,12 @@ import React, { useState } from 'react';
 import { View, TextInput, FlatList, TouchableOpacity, Image, Text, StyleSheet, ActivityIndicator, Alert, BackHandler } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import MapView, { Marker } from 'react-native-maps';
-import { useAuth } from '../context/AuthContext'; // <-- Vinculamos tu Contexto global
+import { useAuth } from '../context/AuthContext';
 
 const API_URL = 'https://smartcheck-proyecto-final.onrender.com';
 
 export default function ProductSearchScreen({ navigation, route }) {
-  const { user } = useAuth(); // <-- Consumimos los datos globales reales
+  const { user } = useAuth();
   const params = route?.params || {};
   const { latitud, longitud } = params;
   
@@ -53,7 +53,6 @@ export default function ProductSearchScreen({ navigation, route }) {
       <View style={styles.header}>
         <Image source={require('../../assets/logo.png')} style={styles.logoGrande} />
         <Image source={require('../../assets/nombreapp.png')} style={styles.nombreAppGrande} />
-        {/* Sincronizado con la foto real global */}
         {user?.foto ? (
           <Image source={{ uri: user.foto }} style={styles.userAvatar} />
         ) : (
@@ -62,7 +61,6 @@ export default function ProductSearchScreen({ navigation, route }) {
       </View>
 
       <View style={styles.franjaNegra}>
-        {/* Sincronizado con el nombre global real */}
         <Text style={styles.tituloFranja}>¡BIENVENID@, {user?.nombre?.toUpperCase() || 'USUARIO'}!</Text>
       </View>
       
@@ -87,14 +85,17 @@ export default function ProductSearchScreen({ navigation, route }) {
       <View style={styles.mapSection}>
         <View style={styles.locationRow}>
           <Image source={require('../../assets/location.png')} style={styles.locationIcon} />
-          <Text style={styles.locationText}>Tu última ubicación de escaneo</Text>
+          <Text style={styles.locationText}>
+            {user?.localidad || 'Ubicación'} - {user?.provincia || 'Provincia'}
+          </Text>
         </View>
         <View style={styles.mapCanvasWrapper}>
           <MapView 
+            provider="google"
             style={styles.mapCanvas} 
-            region={{ latitude: latNum, longitude: lngNum, latitudeDelta: 0.01, longitudeDelta: 0.01 }}
+            region={{ latitude: latNum, longitude: lngNum, latitudeDelta: 0.05, longitudeDelta: 0.05 }}
           >
-             <Marker coordinate={{ latitude: latNum, longitude: lngNum }} pinColor="#00ffcc" />
+            <Marker coordinate={{ latitude: latNum, longitude: lngNum }} pinColor="#00ffcc" />
           </MapView>
         </View>
       </View>
@@ -136,13 +137,13 @@ const styles = StyleSheet.create({
   input: { flex: 1, backgroundColor: '#002a54', padding: 12, borderRadius: 10, color: '#fff', borderWidth: 1, borderColor: '#004a91' },
   btnBuscar: { backgroundColor: '#00ffcc', padding: 12, borderRadius: 10, marginLeft: 10 },
   btnScanner: { alignItems: 'center', marginVertical: 10 },
-  scannerImg: { width: 180, height: 50, resizeMode: 'contain' },
+  scannerImg: { width: 220, height: 60, resizeMode: 'contain' },
   mapSection: { marginHorizontal: 20, marginBottom: 10 },
   locationRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 5 },
   locationIcon: { width: 16, height: 16, resizeMode: 'contain', marginRight: 5 },
-  locationText: { color: '#aaa', fontSize: 12 },
-  mapCanvasWrapper: { width: '100%', height: 120, borderRadius: 10, overflow: 'hidden', borderWidth: 1, borderColor: '#004a91' },
-  mapCanvas: { width: '100%', height: 100 },
+  locationText: { color: '#fff', fontSize: 13, fontWeight: 'bold' },
+  mapCanvasWrapper: { width: '100%', height: 150, borderRadius: 10, overflow: 'hidden', borderWidth: 1, borderColor: '#004a91' },
+  mapCanvas: { width: '100%', height: 150 },
   listArea: { flex: 1, paddingHorizontal: 20, marginTop: 10 },
   itemRow: { backgroundColor: '#002a54', padding: 15, borderRadius: 10, marginBottom: 5 },
   itemText: { color: '#fff' },

@@ -1,4 +1,3 @@
-// src/screens/ProfileScreen.js
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, Image, TouchableOpacity, ActivityIndicator, Alert, BackHandler, Dimensions } from 'react-native';
 import { useAuth } from '../context/AuthContext'; 
@@ -20,7 +19,7 @@ export default function ProfileScreen({ navigation }) {
           }
         }
       } catch (error) {
-        console.warn("APP: Error silencioso al registrar visita:", error.message);
+        console.warn("APP: Error al registrar visita:", error.message);
       } finally {
         setCargando(false);
       }
@@ -30,46 +29,34 @@ export default function ProfileScreen({ navigation }) {
 
   if (cargando) return <ActivityIndicator size="large" color="#00ffcc" style={styles.loader} />;
 
+  // Manejo de la foto
   const fotoBase64 = user?.foto || user?.image;
   let uriFoto = null;
-
   if (fotoBase64 && fotoBase64 !== 'null' && typeof fotoBase64 === 'string') {
-    let base64Puro = fotoBase64;
-    if (base64Puro.includes('base64,')) {
-      base64Puro = base64Puro.split('base64,').pop();
-    }
-    base64Puro = base64Puro.replace(/\s/g, '');
-    uriFoto = `data:image/jpeg;base64,${base64Puro}`;
+    uriFoto = fotoBase64.startsWith('data:image') ? fotoBase64 : `data:image/jpeg;base64,${fotoBase64.split('base64,').pop().replace(/\s/g, '')}`;
   }
 
-  // RECONSTRUCCIÓN DINÁMICA DESDE LA RAÍZ DEL DOCUMENTO (Soportando fallback de nombres de campos)
+  // Cálculo preciso de fecha y edad
   let fechaFormateada = 'N/A';
   let edadCalculada = 'N/A';
 
-  const diaUser = user?.dia || user?.dia_nacimiento;
-  const mesUser = user?.mes || user?.mes_nacimiento;
-  const anioUser = user?.anio || user?.anio_nacimiento;
+  const dia = user?.dia || user?.dia_nacimiento;
+  const mes = user?.mes || user?.mes_nacimiento;
+  const anio = user?.anio || user?.anio_nacimiento;
 
-  if (diaUser && mesUser && anioUser) {
-    const diaPad = diaUser.toString().padStart(2, '0');
-    const mesPad = mesUser.toString().padStart(2, '0');
-    fechaFormateada = `${diaPad}/${mesPad}/${anioUser}`;
-
-    const birthDay = parseInt(diaUser, 10);
-    const birthMonth = parseInt(mesUser, 10) - 1;
-    const birthYear = parseInt(anioUser, 10);
-
-    // Ajustado estrictamente al año actual 2026 del sistema
-    const hoy = new Date();
-    let edad = hoy.getFullYear() - birthYear;
-    const mesDiferencia = hoy.getMonth() - birthMonth;
+  if (dia && mes && anio) {
+    fechaFormateada = `${dia.toString().padStart(2, '0')}/${mes.toString().padStart(2, '0')}/${anio}`;
     
-    if (mesDiferencia < 0 || (mesDiferencia === 0 && hoy.getDate() < birthDay)) {
+    const hoy = new Date();
+    const birthDate = new Date(parseInt(anio), parseInt(mes) - 1, parseInt(dia));
+    let edad = hoy.getFullYear() - birthDate.getFullYear();
+    const m = hoy.getMonth() - birthDate.getMonth();
+    
+    if (m < 0 || (m === 0 && hoy.getDate() < birthDate.getDate())) {
       edad--;
     }
     edadCalculada = `${edad} AÑOS`;
   } else if (user?.edad) {
-    // Fallback directo por si viene únicamente la edad calculada desde el almacenamiento local
     edadCalculada = `${user.edad.toString().toUpperCase()} AÑOS`;
   }
 
@@ -86,7 +73,7 @@ export default function ProfileScreen({ navigation }) {
       
       <View style={styles.profileCard}>
         {uriFoto ? (
-            <Image source={{ uri: uriFoto }} style={styles.avatar} key={uriFoto} />
+            <Image source={{ uri: uriFoto }} style={styles.avatar} />
         ) : (
             <View style={styles.avatarPlaceholder}>
               <Text style={{color: '#fff', fontSize: 11, fontWeight: 'bold'}}>SIN FOTO</Text>
@@ -139,7 +126,7 @@ export default function ProfileScreen({ navigation }) {
         <TouchableOpacity onPress={() => navigation.goBack()}>
           <Image source={require('../../assets/volver.png')} style={styles.navIcon} />
         </TouchableOpacity>
-        <TouchableOpacity onPress={() => Alert.alert("Salir", "¿Está seguro que desea cerrar la aplicación?", [
+        <TouchableOpacity onPress={() => Alert.alert("Salir", "¿Seguro que desea cerrar la aplicación?", [
             { text: "No", style: "cancel" }, 
             { text: "Sí", onPress: () => BackHandler.exitApp() }
         ])}>

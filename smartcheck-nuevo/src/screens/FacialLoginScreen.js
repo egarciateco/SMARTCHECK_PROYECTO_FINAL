@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { StyleSheet, Text, View, TouchableOpacity, Alert, Image, Dimensions, BackHandler } from 'react-native';
+import { StyleSheet, Text, View, TouchableOpacity, Image, Dimensions, BackHandler } from 'react-native';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import { Audio } from 'expo-av';
 import * as ImageManipulator from 'expo-image-manipulator';
@@ -43,17 +43,12 @@ export default function FacialLoginScreen() {
         error: require('../../assets/vozerror.mp3'),
         reconocida: require('../../assets/vozreconocida.mp3')
       };
-      
       if (audios[tipo]) {
         await soundRef.current.loadAsync(audios[tipo]);
-        if (onFinish) {
-          soundRef.current.setOnPlaybackStatusUpdate((status) => {
-            if (status.didJustFinish) onFinish();
-          });
-        }
+        if (onFinish) soundRef.current.setOnPlaybackStatusUpdate((s) => { if (s.didJustFinish) onFinish(); });
         await soundRef.current.playAsync();
       }
-    } catch (error) { console.log("Error audio:", error); }
+    } catch (e) { console.log("Audio error:", e); }
   };
 
   useEffect(() => {
@@ -65,23 +60,15 @@ export default function FacialLoginScreen() {
           let rev = await Location.reverseGeocodeAsync({ latitude: loc.coords.latitude, longitude: loc.coords.longitude });
           if (rev.length > 0) setGeoData({ localidad: rev[0].city || 'N/A', provincia: rev[0].region || 'N/A' });
         }
-      } catch (err) { console.log(err); }
+      } catch (e) { console.log(e); }
     })();
     reproducirVoz('bienvenida');
     return () => { soundRef.current.unloadAsync(); };
   }, []);
 
-  useEffect(() => {
-    let intervalo;
-    if (loading) intervalo = setInterval(() => setPuntos(p => p === '...' ? '' : p + '.'), 400);
-    else setPuntos('');
-    return () => clearInterval(intervalo);
-  }, [loading]);
-
   const validarRostro = async () => {
     if (countdown > 0 || loading) return;
     setStatusVerificacion('IDLE');
-    setMensajeFeedback('');
     if (!permission?.granted) { const s = await requestPermission(); if (!s.granted) return; }
     for (let i = 3; i > 0; i--) { setCountdown(i); await new Promise(r => setTimeout(r, 1000)); }
     setCountdown(0); 
@@ -92,18 +79,11 @@ export default function FacialLoginScreen() {
         const photo = await cameraRef.current.takePictureAsync({ quality: 0.3 });
         const p = await ImageManipulator.manipulateAsync(photo.uri, [{ resize: { width: 450 } }], { compress: 0.15, format: 'jpeg' });
         const fd = new FormData();
-        if (tipoOperacion === 'REGISTER') {
-          Object.entries(datosRegistro || {}).forEach(([k, v]) => fd.append(k, String(v)));
-        }
+        if (tipoOperacion === 'REGISTER') Object.entries(datosRegistro || {}).forEach(([k, v]) => fd.append(k, String(v)));
         fd.append('imageFile', { uri: p.uri, name: 'face.jpg', type: 'image/jpeg' });
         
-        // --- AQUÍ ESTÁ LA LÓGICA ORIGINAL QUE SÍ FUNCIONABA ---
-        const res = await fetch(`${(api.defaults.baseURL || 'https://smartcheck-proyecto-final.onrender.com').replace(/\/$/, '')}${tipoOperacion === 'REGISTER' ? '/api/users/register' : '/api/users/biometria'}`, { 
-            method: 'POST', 
-            body: fd 
-        });
+        const res = await fetch(`${(api.defaults.baseURL || 'https://smartcheck-proyecto-final.onrender.com').replace(/\/$/, '')}${tipoOperacion === 'REGISTER' ? '/api/users/register' : '/api/users/biometria'}`, { method: 'POST', body: fd });
         const data = await res.json();
-        // --------------------------------------------------------
 
         if (data.status === 'success') {
           setStatusVerificacion('SUCCESS');
@@ -126,27 +106,44 @@ export default function FacialLoginScreen() {
         <Image source={require('../../assets/logo.png')} style={styles.logo} />
         <Image source={require('../../assets/nombreapp.png')} style={styles.appName} />
       </View>
-      <View style={styles.blackTitleBar}><Text style={styles.titleText}>{tipoOperacion === 'REGISTER' ? 'REGISTRO FACIAL' : 'AUTENTICACIÓN FACIAL'}</Text></View>
+      
+      <View style={styles.blackTitleBar}>
+        <Text style={styles.titleText}>{tipoOperacion === 'REGISTER' ? 'REGISTRO FACIAL' : 'AUTENTICACIÓN FACIAL'}</Text>
+      </View>
+      
       <View style={styles.cameraContainer}>
         {statusVerificacion === 'SUCCESS' ? (
-          <View style={[styles.camera, styles.overlaySuccessContainer]}><View style={styles.faceOvalSuccess}><Ionicons name="checkmark-circle" size={80} color="#fff" /></View></View>
+          <View style={[styles.camera, styles.overlaySuccessContainer]}>
+            <View style={styles.faceOvalSuccess}>
+              <Ionicons name="checkmark-circle" size={80} color="#fff" />
+            </View>
+          </View>
         ) : (
-          <CameraView style={styles.camera} facing="front" ref={cameraRef}><View style={styles.overlayCircle} />{countdown > 0 && <View style={styles.countdownContainer}><Text style={styles.countdownText}>{countdown}</Text></View></CameraView>
+          <CameraView style={styles.camera} facing="front" ref={cameraRef}>
+            <View style={styles.overlayCircle} />
+            {countdown > 0 && (
+              <View style={styles.countdownContainer}>
+                <Text style={styles.countdownText}>{countdown}</Text>
+              </View>
+            )}
+          </CameraView>
         )}
       </View>
+
       <View style={styles.feedbackContainer}>
-        {loading ? <Text style={styles.waitingText}>Verificando su rostro{puntos}</Text> : (
+        {loading ? <Text style={styles.waitingText}>Verificando...</Text> : (
           <>
             {statusVerificacion === 'SUCCESS' && <Text style={[styles.feedbackText, { color: '#00ffcc' }]}>¡Rostro reconocido!</Text>}
             {statusVerificacion === 'ERROR' && <Text style={[styles.feedbackText, { color: '#ff3333' }]}>{mensajeFeedback}</Text>}
-            {statusVerificacion === 'IDLE' && <Text style={styles.instructions}>Encuadrá tu rostro en el círculo y presioná el botón</Text>}
+            {statusVerificacion === 'IDLE' && <Text style={styles.instructions}>Encuadrá tu rostro y presioná el botón.</Text>}
           </>
         )}
       </View>
+
       <View style={styles.footer}>
-        <TouchableOpacity style={styles.navButton} onPress={() => navigation.goBack()} disabled={loading}><Image source={require('../../assets/volver.png')} style={styles.navIcon} /></TouchableOpacity>
-        <TouchableOpacity style={styles.captureButton} onPress={validarRostro} disabled={loading || statusVerificacion === 'SUCCESS'}><Image source={require('../../assets/verificar.png')} style={styles.verifyIcon} /></TouchableOpacity>
-        <TouchableOpacity style={styles.navButton} onPress={() => BackHandler.exitApp()} disabled={loading}><Image source={require('../../assets/salir.png')} style={styles.navIcon} /></TouchableOpacity>
+        <TouchableOpacity style={styles.navButton} onPress={() => navigation.goBack()}><Image source={require('../../assets/volver.png')} style={styles.navIcon} /></TouchableOpacity>
+        <TouchableOpacity style={styles.captureButton} onPress={validarRostro} disabled={loading}><Image source={require('../../assets/verificar.png')} style={styles.verifyIcon} /></TouchableOpacity>
+        <TouchableOpacity style={styles.navButton} onPress={() => BackHandler.exitApp()}><Image source={require('../../assets/salir.png')} style={styles.navIcon} /></TouchableOpacity>
       </View>
     </View>
   );
@@ -154,24 +151,24 @@ export default function FacialLoginScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#001f3f', alignItems: 'center', justifyContent: 'space-between', paddingVertical: height * 0.04 },
-  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10, width: '100%', paddingHorizontal: 20 },
+  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10, width: '100%' },
   logo: { width: 50, height: 50, resizeMode: 'contain' },
   appName: { width: 120, height: 40, resizeMode: 'contain' },
-  blackTitleBar: { backgroundColor: '#000', paddingVertical: 10, width: '100%', marginVertical: 5 },
-  titleText: { color: '#fff', fontSize: 14, fontWeight: 'bold', textAlign: 'center', letterSpacing: 0.8 },
+  blackTitleBar: { backgroundColor: '#000', paddingVertical: 10, width: '100%' },
+  titleText: { color: '#fff', fontSize: 14, fontWeight: 'bold', textAlign: 'center' },
   cameraContainer: { width: width * 0.85, height: width * 0.85, borderRadius: (width * 0.85) / 2, overflow: 'hidden', borderWidth: 4, borderColor: '#00ffcc', backgroundColor: '#000' },
   camera: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   overlayCircle: { width: '96%', height: '96%', borderRadius: 999, borderWidth: 3, borderColor: '#00ffcc', borderStyle: 'dashed' },
-  overlaySuccessContainer: { backgroundColor: '#002a54', justifyContent: 'center', alignItems: 'center' }, 
+  overlaySuccessContainer: { backgroundColor: '#002a54', justifyContent: 'center', alignItems: 'center' },
   faceOvalSuccess: { width: '96%', height: '96%', borderRadius: 999, borderWidth: 3, borderColor: '#00ffcc', backgroundColor: 'rgba(0, 255, 204, 0.25)', justifyContent: 'center', alignItems: 'center' },
   countdownContainer: { position: 'absolute', left: 0, top: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'center', alignItems: 'center' },
   countdownText: { color: '#00ffcc', fontSize: 72, fontWeight: 'bold' },
-  feedbackContainer: { width: '85%', minHeight: 65, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 10, marginVertical: 5 },
+  feedbackContainer: { width: '85%', height: 70, justifyContent: 'center', alignItems: 'center' },
   feedbackText: { fontSize: 14, fontWeight: 'bold', textAlign: 'center' },
-  waitingText: { color: '#00ffcc', fontSize: 14, fontWeight: 'bold', textAlign: 'center' },
-  instructions: { color: '#aaa', fontSize: 15, textAlign: 'center', lineHeight: 20 },
-  footer: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', width: '100%', paddingHorizontal: 20, paddingBottom: 10 },
-  captureButton: { width: 200, height: 200, justifyContent: 'center', alignItems: 'center' },
+  waitingText: { color: '#00ffcc', fontSize: 14, fontWeight: 'bold' },
+  instructions: { color: '#aaa', fontSize: 15, textAlign: 'center' },
+  footer: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', width: '100%', paddingHorizontal: 20 },
+  captureButton: { width: 200, height: 2000, justifyContent: 'center', alignItems: 'center' },
   verifyIcon: { width: 200, height: 200, resizeMode: 'contain' },
   navButton: { width: 50, height: 50, justifyContent: 'center', alignItems: 'center' },
   navIcon: { width: 42, height: 42, resizeMode: 'contain', tintColor: '#00ffcc' }

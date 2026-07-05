@@ -11,12 +11,13 @@ export default function ScannerScreen({ navigation }) {
   const [loading, setLoading] = useState(false);
 
   if (!permission) return <View style={styles.center} />;
+  
   if (!permission.granted) {
     return (
       <View style={styles.center}>
         <Text style={styles.text}>Necesitamos permiso para la cámara</Text>
         <TouchableOpacity style={styles.btn} onPress={requestPermission}>
-          <Text style={{color: '#001f3f', fontWeight: 'bold'}}>Dar Permiso</Text>
+          <Text style={{ color: '#001f3f', fontWeight: 'bold' }}>Dar Permiso</Text>
         </TouchableOpacity>
       </View>
     );
@@ -29,13 +30,17 @@ export default function ScannerScreen({ navigation }) {
     try {
       const response = await fetch(`${API_URL}/api/users/productos/buscar?ean=${data}`);
       const result = await response.json();
+      
       if (result.status === 'success' && result.data) {
+        // Navegamos al detalle y reseteamos el estado al volver
         navigation.replace('ProductDetail', { product: result.data });
       } else {
-        Alert.alert("No encontrado", "Producto no existe.", [{ text: "Reintentar", onPress: () => setScanned(false) }]);
+        Alert.alert("No encontrado", "Producto no existe.", [
+          { text: "Reintentar", onPress: () => setScanned(false) }
+        ]);
       }
     } catch (error) {
-      Alert.alert("Error", "No se pudo conectar.");
+      Alert.alert("Error", "No se pudo conectar con el servidor.");
       setScanned(false);
     } finally {
       setLoading(false);
@@ -44,11 +49,28 @@ export default function ScannerScreen({ navigation }) {
 
   return (
     <View style={styles.container}>
-      <CameraView style={StyleSheet.absoluteFillObject} facing="back" onBarcodeScanned={scanned ? undefined : handleBarCodeScanned} barcodeScannerSettings={{ barcodeTypes: ["ean13", "ean8", "upc_a", "code128"] }} />
-      {loading && <View style={styles.overlay}><ActivityIndicator size="large" color="#00ffcc" /></View>}
+      <CameraView 
+        style={StyleSheet.absoluteFillObject} 
+        facing="back" 
+        onBarcodeScanned={scanned ? undefined : handleBarCodeScanned} 
+        barcodeScannerSettings={{ 
+          barcodeTypes: ["ean13", "ean8", "upc_a", "code128"] 
+        }} 
+      />
+      
+      {loading && (
+        <View style={[styles.overlay, { backgroundColor: 'rgba(0,0,0,0.5)' }]}>
+          <ActivityIndicator size="large" color="#00ffcc" />
+        </View>
+      )}
+
       <View style={styles.overlay}>
-        <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}><Ionicons name="close" size={30} color="#fff" /></TouchableOpacity>
+        <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
+          <Ionicons name="close" size={30} color="#fff" />
+        </TouchableOpacity>
+        
         <View style={styles.box} />
+        
         <Text style={styles.text}>Centra el código de barras</Text>
       </View>
     </View>
@@ -57,10 +79,43 @@ export default function ScannerScreen({ navigation }) {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  center: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#001f3f' },
-  text: { color: '#fff', fontSize: 18, marginTop: 20, fontWeight: 'bold' },
-  overlay: { ...StyleSheet.absoluteFillObject, justifyContent: 'center', alignItems: 'center' },
-  box: { width: 280, height: 120, borderWidth: 3, borderColor: '#00ffcc', borderRadius: 10 },
-  btn: { padding: 15, backgroundColor: '#00ffcc', borderRadius: 10, marginTop: 20 },
-  backBtn: { position: 'absolute', top: 50, left: 20, zIndex: 10 }
+  center: { 
+    flex: 1, 
+    justifyContent: 'center', 
+    alignItems: 'center', 
+    backgroundColor: '#001f3f' 
+  },
+  text: { 
+    color: '#fff', 
+    fontSize: 18, 
+    marginTop: 20, 
+    fontWeight: 'bold',
+    textShadowColor: 'rgba(0, 0, 0, 0.75)',
+    textShadowOffset: { width: 1, height: 1 },
+    textShadowRadius: 5
+  },
+  overlay: { 
+    ...StyleSheet.absoluteFillObject, 
+    justifyContent: 'center', 
+    alignItems: 'center' 
+  },
+  box: { 
+    width: 280, 
+    height: 120, 
+    borderWidth: 3, 
+    borderColor: '#00ffcc', 
+    borderRadius: 10 
+  },
+  btn: { 
+    padding: 15, 
+    backgroundColor: '#00ffcc', 
+    borderRadius: 10, 
+    marginTop: 20 
+  },
+  backBtn: { 
+    position: 'absolute', 
+    top: 50, 
+    left: 20, 
+    zIndex: 10 
+  }
 });
