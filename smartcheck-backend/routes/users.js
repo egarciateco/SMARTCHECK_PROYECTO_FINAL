@@ -7,94 +7,98 @@ const User = require('../models/User');
 
 const upload = multer({ storage: multer.memoryStorage() });
 
-// Ruta para verificar estado (usada por WelcomeScreen)
-router.head('/usuarios', (req, res) => {
-    res.status(200).send();
-});
+router.head('/usuarios', (req, res) => { res.status(200).send(); });
 
-// 1. RUTA DE REGISTRO
 router.post('/register', upload.single('imageFile'), async (req, res) => {
-    if (!req.file) {
-        return res.status(400).json({ status: 'error', mensaje: 'Imagen requerida' });
-    }
+    if (!req.file) return res.status(400).json({ status: 'error', mensaje: 'Imagen requerida' });
     try {
         const img = await canvas.loadImage(req.file.buffer);
         const detectionOptions = new faceapi.SsdMobilenetv1Options({ minConfidence: 0.5 });
-        const detection = await faceapi.detectSingleFace(img, detectionOptions)
-            .withFaceLandmarks()
-            .withFaceDescriptor();
+        const detection = await faceapi.detectSingleFace(img, detectionOptions).withFaceLandmarks().withFaceDescriptor();
             
-        if (!detection) {
-            return res.status(400).json({ status: 'error', mensaje: 'No se detectó un rostro claro' });
-        }
-        const { nombre, apellido, email, correo, ...datos } = req.body;
+        if (!detection) return res.status(400).json({ status: 'error', mensaje: 'No se detectó un rostro claro' });
+        
+        const { nombre, apellido, email, correo, dia, mes, anio, ...datos } = req.body;
         const usuarioExistente = await User.findOne({ email: email.toLowerCase().trim() });
-        if (usuarioExistente) {
-            return res.status(400).json({ status: 'error', mensaje: 'El email ya se encuentra registrado' });
-        }
+        if (usuarioExistente) return res.status(400).json({ status: 'error', mensaje: 'El email ya existe' });
+        
         const arrayDescriptores = Array.from(detection.descriptor);
-        const maxAncho = 300;
-        const escala = maxAncho / img.width;
-        const altoDestino = img.height * escala;
-        const miCanvas = canvas.createCanvas(maxAncho, altoDestino);
+        const miCanvas = canvas.createCanvas(300, img.height * (300 / img.width));
         const ctx = miCanvas.getContext('2d');
-        ctx.drawImage(img, 0, 0, maxAncho, altoDestino);
-        const fotoBase64 = miCanvas.toDataURL('image/jpeg', 0.7);
+        ctx.drawImage(img, 0, 0, 300, img.height * (300 / img.width));
+        
         const newUser = new User({ 
-            nombre, apellido, email: email.toLowerCase().trim(), 
+            nombre, apellido, email: email.toLowerCase().trim(), dia, mes, anio,
             faceDescriptor: arrayDescriptores, facialDescriptor: arrayDescriptores,
-            foto: fotoBase64, ...datos 
+            foto: miCanvas.toDataURL('image/jpeg', 0.7), ...datos 
         });
         await newUser.save();
         res.status(200).json({ status: 'success', mensaje: 'Usuario registrado correctamente' });
     } catch (error) {
-        console.error('❌ Error crítico en registro:', error);
-        res.status(500).json({ status: 'error', mensaje: 'Error interno en el servidor' });
+        console.error('❌ Error en registro:', error);
+        res.status(500).json({ status: 'error', mensaje: 'Error interno' });
     }
 });
 
-// 2. RUTA DE LOGIN/BIOMETRIA
 router.post('/biometria', upload.single('imageFile'), async (req, res) => {
-    if (!req.file) {
-        return res.status(400).json({ status: 'error', mensaje: 'Imagen requerida para verificación' });
-    }
+    if (!req.file) return res.status(400).json({ status: 'error', mensaje: 'Imagen requerida' });
     try {
         const img = await canvas.loadImage(req.file.buffer);
-        const detectionOptions = new faceapi.SsdMobilenetv1Options({ minConfidence: 0.5 });
-        const loginDetection = await faceapi.detectSingleFace(img, detectionOptions)
-            .withFaceLandmarks()
-            .withFaceDescriptor();
-
-        if (!loginDetection) {
-            return res.status(400).json({ status: 'error', mensaje: 'No se pudo escanear el rostro claramente.' });
-        }
-        const descriptorActual = loginDetection.descriptor;
-        const usuarios = await User.find({
-            $or: [
-                { faceDescriptor: { $exists: true, $not: { $size: 0 } } },
-                { facialDescriptor: { $exists: true, $not: { $size: 0 } } }
-            ]
-        }).lean();
-
+        const detection = await faceapi.detectSingleFace(img, new faceapi.SsdMobilenetv1Options({ minConfidence: 0.5 })).withFaceLandmarks().withFaceDescriptor();
+        if (!detection) return res.status(400).json({ status: 'error', mensaje: 'No se escaneó el rostro' });
+        
+        const usuarios = await User.find({ $or: [{ faceDescriptor: { $exists: true } }, { facialDescriptor: { $exists: true } }] }).lean();
         for (const usuario of usuarios) {
-            const datosBiometricos = (usuario.faceDescriptor && usuario.faceDescriptor.length > 0) 
-                ? usuario.faceDescriptor : usuario.facialDescriptor;
-            if (!datosBiometricos || datosBiometricos.length === 0) continue;
-            const descriptorGuardado = new Float32Array(datosBiometricos);
-            const distancia = faceapi.euclideanDistance(descriptorActual, descriptorGuardado);
-            if (distancia <= 0.50) {
-                const fotoFinal = usuario.foto || usuario.Foto || usuario.image || usuario.imagen || null;
+            const desc = new Float32Array(usuario.faceDescriptor?.length > 0 ? usuario.faceDescriptor : usuario.facialDescriptor);
+            if (faceapi.euclideanDistance(detection.descriptor, desc) <= 0.50) {
                 return res.status(200).json({ 
                     status: 'success', 
-                    mensaje: `¡Bienvenido de vuelta, ${usuario.nombre}!`,
-                    usuario: { id: usuario._id, _id: usuario._id, nombre: usuario.nombre, apellido: usuario.apellido, email: usuario.email, sexo: usuario.sexo || 'M', foto: fotoFinal }
+                    usuario: { 
+                        ...usuario, 
+                        id: usuario._id, 
+                        dia: usuario.dia || "", 
+                        mes: usuario.mes || "", 
+                        anio: usuario.anio || "" 
+                    } 
                 });
             }
         }
         return res.status(401).json({ status: 'error', mensaje: 'Autenticación fallida' });
     } catch (error) {
-        console.error('❌ Error crítico en login:', error);
-        res.status(500).json({ status: 'error', mensaje: 'Error interno durante la autenticación' });
+        res.status(500).json({ status: 'error', mensaje: 'Error en biometría' });
+    }
+});
+
+router.post('/login', async (req, res) => {
+    const { email, password } = req.body;
+    try {
+        const usuario = await User.findOne({ email: email.toLowerCase().trim() }).lean();
+        if (!usuario || usuario.password !== password) return res.status(401).json({ status: 'error', mensaje: 'Credenciales incorrectas' });
+        
+        return res.status(200).json({ 
+            status: 'success', 
+            usuario: { 
+                ...usuario, 
+                id: usuario._id, 
+                dia: usuario.dia || "", 
+                mes: usuario.mes || "", 
+                anio: usuario.anio || "" 
+            } 
+        });
+    } catch (error) {
+        res.status(500).json({ status: 'error', mensaje: 'Error interno' });
+    }
+});
+
+// NUEVO ENDPOINT: Ruta para obtener todos los usuarios en el panel de administrador
+router.get('/admin', async (req, res) => {
+    try {
+        // Obtenemos todos los usuarios usando .lean() para que traiga todos los campos de MongoDB incluyendo dia, mes y anio
+        const usuarios = await User.find({}).lean();
+        res.status(200).json({ status: 'success', usuarios });
+    } catch (error) {
+        console.error('❌ Error obteniendo la lista de administradores:', error);
+        res.status(500).json({ status: 'error', mensaje: 'Error al obtener la telemetría' });
     }
 });
 

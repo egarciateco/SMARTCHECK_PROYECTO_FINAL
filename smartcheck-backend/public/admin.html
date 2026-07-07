@@ -76,8 +76,7 @@
 
         async function cargarDatos() {
             try {
-                // CORREGIDO: Ruta absoluta apuntando a tu endpoint de usuarios en el backend
-                const res = await fetch(`${API_URL}/api/users/users/usuarios`);
+                const res = await fetch(`${API_URL}/api/users/usuarios`);
                 const data = await res.json();
                 
                 if (data.status === 'success') {
@@ -103,19 +102,32 @@
         }
 
         function mostrarTablaBase() {
-            document.getElementById('tabla-body').innerHTML = globalUsers.map(u => `
-                <tr>
-                    <td><img src="${u.foto || '/assets/default-avatar.png'}" class="avatar"></td>
-                    <td>${u.nombre || '-'}</td>
-                    <td>${u.apellido || '-'}</td>
-                    <td>${u.email || '-'}</td>
-                    <td>${u.edad || '-'}</td>
-                    <td>${u.sexo || '-'}</td>
-                    <td>${u.provincia || '-'}</td>
-                    <td>${u.localidad || '-'}</td>
-                    <td>${u.visitas || 0}</td>
-                </tr>
-            `).join('');
+            const hoy = new Date();
+            document.getElementById('tabla-body').innerHTML = globalUsers.map(u => {
+                let edad = '-';
+                if (u.dia && u.mes && u.anio) {
+                    let birthDate = new Date(`${u.anio}-${u.mes}-${u.dia}`);
+                    let calcEdad = hoy.getFullYear() - birthDate.getFullYear();
+                    let m = hoy.getMonth() - birthDate.getMonth();
+                    if (m < 0 || (m === 0 && hoy.getDate() < birthDate.getDate())) {
+                        calcEdad--;
+                    }
+                    edad = calcEdad;
+                }
+                return `
+                    <tr>
+                        <td><img src="${u.foto || '/assets/default-avatar.png'}" class="avatar"></td>
+                        <td>${u.nombre || '-'}</td>
+                        <td>${u.apellido || '-'}</td>
+                        <td>${u.email || '-'}</td>
+                        <td>${edad}</td>
+                        <td>${u.sexo || '-'}</td>
+                        <td>${u.provincia || '-'}</td>
+                        <td>${u.localidad || '-'}</td>
+                        <td>${u.visitas || 0}</td>
+                    </tr>
+                `;
+            }).join('');
         }
 
         window.onload = () => {

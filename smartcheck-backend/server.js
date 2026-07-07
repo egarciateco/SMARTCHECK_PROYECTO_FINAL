@@ -23,7 +23,12 @@ async function startServer() {
     try {
         console.log('🔄 Intentando conectar a MongoDB Atlas...');
         await mongoose.connect(MONGO_URI, { dbName: 'smartcheck' });
+        
+        // --- LOG DE VERIFICACIÓN AGREGADO ---
         console.log('✅ CONEXIÓN CONFIRMADA EN MONGODB');
+        console.log('➡️ BASE DE DATOS ACTIVA:', mongoose.connection.name);
+        console.log('➡️ HOST DE CONEXIÓN:', mongoose.connection.host);
+        // ------------------------------------
 
         // Configuración necesaria para entorno facial en Node
         const { Canvas, Image, ImageData } = canvas;
