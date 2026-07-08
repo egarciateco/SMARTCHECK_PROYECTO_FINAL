@@ -98,13 +98,31 @@ export default function AdminPanelScreen({ navigation }) {
           keyExtractor={(item) => item._id?.toString() || item.id?.toString() || Math.random().toString()}
           contentContainerStyle={{ padding: 15 }}
           ListEmptyComponent={<Text style={styles.empty}>No hay usuarios registrados.</Text>}
-          renderItem={({ item }) => (
-            <View style={styles.cardUsuario}>
-              <Text style={styles.userTitle}>{item.apellido?.toUpperCase()}, {item.nombre}</Text>
-              <Text style={styles.userSub}>{item.email}</Text>
-              <Text style={styles.userSub}>Sexo: {item.sexo || 'N/A'} | Fecha: {item.dia ? `${item.dia}/${item.mes}/${item.anio}` : 'N/A'}</Text>
-            </View>
-          )}
+          renderItem={({ item }) => {
+            // 1. Calculamos la edad dinámicamente para cada usuario de la lista
+            let edadCalculada = 'N/A';
+            if (item.dia && item.mes && item.anio) {
+              const hoy = new Date();
+              let edad = hoy.getFullYear() - parseInt(item.anio);
+              const mesActual = hoy.getMonth() + 1;
+              if (mesActual < parseInt(item.mes) || (mesActual === parseInt(item.mes) && hoy.getDate() < parseInt(item.dia))) {
+                edad--;
+              }
+              edadCalculada = `${edad} años`;
+            }
+
+            // 2. Renderizamos la tarjeta incluyendo la fecha y la edad
+            return (
+              <View style={styles.cardUsuario}>
+                <Text style={styles.userTitle}>{item.apellido?.toUpperCase()}, {item.nombre}</Text>
+                <Text style={styles.userSub}>{item.email}</Text>
+                <Text style={styles.userSub}>Sexo: {item.sexo || 'N/A'}</Text>
+                <Text style={styles.userSub}>
+                  Nacimiento: {item.dia ? `${item.dia}/${item.mes}/${item.anio}` : 'N/A'} | Edad: {edadCalculada}
+                </Text>
+              </View>
+            );
+          }}
         />
       )}
       

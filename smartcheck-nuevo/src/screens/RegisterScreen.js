@@ -27,14 +27,19 @@ export default function RegisterScreen() {
     if (!form.nombre || !form.apellido || !form.email || !form.sexo) return Alert.alert("Error", "Faltan completar datos.");
     if (form.dia.length !== 2 || form.mes.length !== 2 || form.anio.length !== 4) return Alert.alert("Error", "La fecha debe ser DD-MM-AAAA completa.");
     
+    const stringFecha = `${form.dia}/${form.mes}/${form.anio}`;
+
     if (metodo === 'password') {
         if (form.password !== form.confirmPassword) return Alert.alert("Error", "Las contraseñas no coinciden.");
+        // Inyectamos la propiedad unificada también aquí por seguridad
+        const datosCompletosManual = { ...form, fechaNacimiento: stringFecha };
+        console.log("Datos listos para registro manual:", datosCompletosManual);
         Alert.alert("Registro", "Registro exitoso.");
     } else {
-        // Navegación corregida hacia 'Camera' (como está definido en tu App.js)
+        // Navegación corregida hacia 'Camera'
         navigation.navigate('Camera', { 
             tipoOperacion: 'REGISTER', 
-            datosRegistro: { ...form, fechaNacimiento: `${form.dia}/${form.mes}/${form.anio}` } 
+            datosRegistro: { ...form, fechaNacimiento: stringFecha } 
         });
     }
   };
@@ -94,7 +99,6 @@ export default function RegisterScreen() {
           {metodo === 'facial' && (
             <View style={{alignItems: 'center'}}>
               <Text style={styles.aviso}>⚠️ No uses anteojos. Ubica tu cara en el óvalo.</Text>
-              {/* Quitamos el botón viejo de acá, ahora la acción se traslada al centro del footer */}
               <Text style={styles.avisoFacialActivo}>Presione el botón de verificación inferior para continuar.</Text>
             </View>
           )}
@@ -148,11 +152,10 @@ const styles = StyleSheet.create({
   aviso: { color: '#ffa500', textAlign: 'center', marginBottom: 10, fontSize: 12 },
   avisoFacialActivo: { color: '#00ffcc', textAlign: 'center', fontWeight: 'bold', marginTop: 10, fontSize: 13 },
   
-  // Estilos del Footer unificado
   footerArea: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', width: '100%', paddingHorizontal: 35, paddingBottom: 15 },
   navButton: { width: 50, height: 50, justifyContent: 'center', alignItems: 'center' },
   captureButton: { justifyContent: 'center', alignItems: 'center' },
-  spaceFiller: { width: 65 }, // Mantiene el espacio exacto cuando no se usa la biometría
+  spaceFiller: { width: 65 }, 
   verifyIcon: { width: 65, height: 65, resizeMode: 'contain' },
   navIcon: { width: 42, height: 42, resizeMode: 'contain', tintColor: '#00ffcc' }
 });

@@ -17,36 +17,28 @@ export default function LoginScreen() {
   const [loading, setLoading] = useState(false);
   const [geoData, setGeoData] = useState({ localidad: 'N/A', provincia: 'N/A' });
 
-  // Solicitar permisos y obtener la geolocalización al montar la pantalla
   useEffect(() => {
     (async () => {
       try {
         let { status } = await Location.requestForegroundPermissionsAsync();
-        if (status !== 'granted') {
-          console.warn('Permiso de localización denegado.');
-          return;
-        }
+        if (status !== 'granted') return;
         let location = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Low });
         let reverseGeocode = await Location.reverseGeocodeAsync({
           latitude: location.coords.latitude,
           longitude: location.coords.longitude
         });
-
         if (reverseGeocode && reverseGeocode.length > 0) {
           const resultado = reverseGeocode[0];
           setGeoData({
-            localidad: resultado.city || resultado.subregion || resultado.district || 'Desconocida',
+            localidad: resultado.city || resultado.subregion || 'Desconocida',
             provincia: resultado.region || 'Desconocida'
           });
         }
-      } catch (err) {
-        console.error("Error al capturar geolocalización inicial:", err);
-      }
+      } catch (err) { console.error(err); }
     })();
   }, []);
 
-  const ejecutarLogout = async () => {
-    await AsyncStorage.removeItem('usuario_logueado');
+  const ejecutarLogout = () => {
     Alert.alert("Salir", "¿Está seguro que desea cerrar la aplicación?", [
       { text: "No", style: "cancel" },
       { text: "Sí", onPress: () => BackHandler.exitApp() }
@@ -60,35 +52,54 @@ export default function LoginScreen() {
     }
     setLoading(true);
     try {
-      const response = await fetch(`${API_URL}/api/users/biometria`, {
+      const response = await fetch(`${API_URL}/api/users/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password }),
       });
-      
       const data = await response.json();
       setLoading(false);
       
       if (response.ok && data.status === 'success') {
-        const usuarioBase = data.usuario || data;
+        const u = data.usuario || data;
         
-        // Inyectamos la geolocalización resuelta por el celular en el objeto final
-        const usuarioCompleto = {
-          ...usuarioBase,
-          localidad: geoData.localidad,
-          provincia: geoData.provincia
-        };
+        // PARSEO INTELIGENTE DE FECHA: Si viene como 'fechaNacimiento' (DD/MM/AAAA), la desestructuramos
+        let extraDia = "";
+        let extraMes = "";
+        let extraAnio = "";
 
+        if (u.fechaNacimiento && u.fechaNacimiento.includes('/')) {
+          const partes = u.fechaNacimiento.split('/');
+          if (partes.length === 3) {
+            extraDia = partes[0];
+            extraMes = partes[1];
+            extraAnio = partes[2];
+          }
+        }
+
+        const usuarioCompleto = { 
+            ...u, 
+            dia: u.dia || extraDia,
+            mes: u.mes || extraMes,
+            anio: u.anio || extraAnio,
+            localidad: geoData.localidad, 
+            provincia: geoData.provincia 
+        };
+        
         await AsyncStorage.setItem('usuario_logueado', JSON.stringify(usuarioCompleto));
         login(usuarioCompleto);
-        navigation.replace('Home');
+        
+        if (usuarioCompleto.rol === 'admin' || usuarioCompleto.role === 'admin') {
+            navigation.replace('AdminPanel');
+        } else {
+            navigation.replace('Home');
+        }
       } else {
         Alert.alert("Acceso denegado", data.mensaje || "Credenciales incorrectas.");
       }
     } catch (error) {
       setLoading(false);
-      Alert.alert("Sin conexión", "No pudimos conectar con el servidor. Revisa tu internet.");
-      console.error("DETALLE ERROR LOGIN:", error);
+      Alert.alert("Sin conexión", "No pudimos conectar con el servidor.");
     }
   };
 
@@ -98,7 +109,9 @@ export default function LoginScreen() {
         <Image source={require('../../assets/logo.png')} style={styles.logo} />
         <Image source={require('../../assets/nombreapp.png')} style={styles.nombreApp} />
       </View>
+      
       <View style={styles.blackBar}><Text style={styles.titleText}>INICIAR SESIÓN</Text></View>
+      
       <View style={styles.content}>
         <View style={styles.inputContainer}>
           <Text style={styles.emoji}>📧</Text>
@@ -108,42 +121,43 @@ export default function LoginScreen() {
           <Text style={styles.emoji}>🔒</Text>
           <TextInput style={styles.input} placeholder="Contraseña" secureTextEntry={!showPass} value={password} onChangeText={setPassword} />
           <TouchableOpacity onPress={() => setShowPass(!showPass)}>
-            <Ionicons name={showPass ? "eye-off" : "eye"} size={24} color="#001f3f" />
+            <Ionicons name={showPass ? "eye-off" : "eye"} size={20} color="#001f3f" />
           </TouchableOpacity>
         </View>
-        {loading ? <ActivityIndicator size="large" color="#ffcc00" style={{ marginVertical: 20 }} /> : (
-            <View>
-                <TouchableOpacity style={styles.btn} onPress={handleLoginManual}><Text style={styles.btnText}>INGRESAR</Text></TouchableOpacity>
-                <TouchableOpacity 
-                  style={styles.btnFacial} 
-                  onPress={() => navigation.navigate('Camera', { tipoOperacion: 'LOGIN', geoData })}
-                >
-                  <Text style={styles.btnText}>LOGIN FACIAL</Text>
-                </TouchableOpacity>
-            </View>
+
+        {loading ? <ActivityIndicator size="small" color="#ffcc00" /> : (
+          <View>
+            <TouchableOpacity style={styles.btn} onPress={handleLoginManual}><Text style={styles.btnText}>INGRESAR</Text></TouchableOpacity>
+            <TouchableOpacity style={styles.btnFacial} onPress={() => navigation.navigate('Camera', { tipoOperacion: 'LOGIN', geoData })}>
+              <Text style={styles.btnText}>LOGIN FACIAL</Text>
+            </TouchableOpacity>
+          </View>
         )}
+        
         <TouchableOpacity onPress={() => navigation.navigate('Register')}><Text style={styles.link}>¿No tienes cuenta? Regístrate</Text></TouchableOpacity>
       </View>
-      <TouchableOpacity style={styles.footer} onPress={ejecutarLogout}><Text style={styles.footerText}>Salir</Text></TouchableOpacity>
+
+      <TouchableOpacity style={styles.footer} onPress={ejecutarLogout}>
+        <Text style={styles.footerText}>Salir</Text>
+      </TouchableOpacity>
     </KeyboardAvoidingView>
   );
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#001f3f' },
-  headerArea: { alignItems: 'center', marginTop: 30 },
-  logo: { width: 120, height: 120, resizeMode: 'contain' },
-  nombreApp: { width: 200, height: 50, resizeMode: 'contain', marginTop: -10 },
-  blackBar: { backgroundColor: '#000', padding: 10, alignItems: 'center' },
-  titleText: { color: '#fff', fontSize: 18, fontWeight: 'bold' },
-  content: { flex: 1, padding: 20, justifyContent: 'center' },
-  inputContainer: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#fff', padding: 10, borderRadius: 5, marginBottom: 10 },
-  input: { flex: 1, paddingHorizontal: 10 },
-  emoji: { fontSize: 20 },
-  btn: { backgroundColor: '#00ffcc', padding: 15, borderRadius: 5, alignItems: 'center', marginBottom: 10 },
-  btnFacial: { backgroundColor: '#ffcc00', padding: 15, borderRadius: 5, alignItems: 'center', marginBottom: 20 },
-  btnText: { fontWeight: 'bold', fontSize: 16 },
-  link: { color: '#fff', textAlign: 'center', fontSize: 14, textDecorationLine: 'underline' },
-  footer: { alignItems: 'center', paddingBottom: 20 },
-  footerText: { color: '#fff', fontSize: 16 }
+  headerArea: { alignItems: 'center', marginTop: 20 },
+  logo: { width: 80, height: 80, resizeMode: 'contain' },
+  nombreApp: { width: 150, height: 40, resizeMode: 'contain' },
+  blackBar: { backgroundColor: '#000', padding: 8, alignItems: 'center', marginVertical: 10 },
+  titleText: { color: '#fff', fontSize: 16, fontWeight: 'bold' },
+  content: { flex: 1, paddingHorizontal: 20, justifyContent: 'center' },
+  inputContainer: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#fff', padding: 8, borderRadius: 5, marginBottom: 10 },
+  input: { flex: 1, paddingHorizontal: 5, fontSize: 14 },
+  btn: { backgroundColor: '#00ffcc', padding: 12, borderRadius: 5, alignItems: 'center', marginBottom: 8 },
+  btnFacial: { backgroundColor: '#ffcc00', padding: 12, borderRadius: 5, alignItems: 'center', marginBottom: 8 },
+  btnText: { fontWeight: 'bold', fontSize: 14 },
+  link: { color: '#fff', textAlign: 'center', fontSize: 12, textDecorationLine: 'underline' },
+  footer: { alignItems: 'center', paddingBottom: 15 },
+  footerText: { color: '#fff', fontSize: 14, fontWeight: 'bold' }
 });

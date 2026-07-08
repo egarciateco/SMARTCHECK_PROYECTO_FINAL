@@ -16,36 +16,27 @@ export default function FacialLoginScreen() {
   const navigation = useNavigation();
   const route = useRoute();
   const { login } = useAuth();
-
-  const { tipoOperacion, datosRegistro, geoData: initialGeoData } = route.params || { 
-    tipoOperacion: 'LOGIN', 
-    datosRegistro: {}, 
-    geoData: { localidad: 'N/A', provincia: 'N/A' } 
-  };
-
+  const { tipoOperacion, datosRegistro, geoData: initialGeoData } = route.params || { tipoOperacion: 'LOGIN', datosRegistro: {}, geoData: { localidad: 'N/A', provincia: 'N/A' } };
   const [permission, requestPermission] = useCameraPermissions();
   const [loading, setLoading] = useState(false);
   const [countdown, setCountdown] = useState(0);
   const [statusVerificacion, setStatusVerificacion] = useState('IDLE'); 
   const [mensajeFeedback, setMensajeFeedback] = useState('');
   const [geoData, setGeoData] = useState(initialGeoData);
-  const [puntos, setPuntos] = useState('');
-  
   const cameraRef = useRef(null);
   const soundRef = useRef(new Audio.Sound());
 
-  const reproducirVoz = async (tipo, onFinish = null) => {
+  const reproducirVoz = async (tipo) => {
     try {
       await soundRef.current.unloadAsync();
-      const audios = {
-        bienvenida: require('../../assets/vozmasculina.mp3'),
-        verificando: require('../../assets/vozverificando.mp3'),
-        error: require('../../assets/vozerror.mp3'),
-        reconocida: require('../../assets/vozreconocida.mp3')
+      const audios = { 
+        bienvenida: require('../../assets/vozmasculina.mp3'), 
+        verificando: require('../../assets/vozverificando.mp3'), 
+        error: require('../../assets/vozerror.mp3'), 
+        reconocida: require('../../assets/vozreconocida.mp3') 
       };
       if (audios[tipo]) {
         await soundRef.current.loadAsync(audios[tipo]);
-        if (onFinish) soundRef.current.setOnPlaybackStatusUpdate((s) => { if (s.didJustFinish) onFinish(); });
         await soundRef.current.playAsync();
       }
     } catch (e) { console.log("Audio error:", e); }
@@ -78,25 +69,45 @@ export default function FacialLoginScreen() {
       try {
         const photo = await cameraRef.current.takePictureAsync({ quality: 0.3 });
         const p = await ImageManipulator.manipulateAsync(photo.uri, [{ resize: { width: 450 } }], { compress: 0.15, format: 'jpeg' });
-        const fd = new FormData();
-        if (tipoOperacion === 'REGISTER') Object.entries(datosRegistro || {}).forEach(([k, v]) => fd.append(k, String(v)));
-        fd.append('imageFile', { uri: p.uri, name: 'face.jpg', type: 'image/jpeg' });
         
+        // --- INICIO DE ZONA CORREGIDA PARA GEOLOCALIZACIÓN ---
+        const fd = new FormData();
+        if (tipoOperacion === 'REGISTER') {
+          // Adjunta los datos básicos del formulario anterior
+          Object.entries(datosRegistro || {}).forEach(([k, v]) => fd.append(k, String(v)));
+          
+          // Inyecta las variables de geolocalización automática obtenidas por Expo-Location
+          fd.append('localidad', geoData.localidad);
+          fd.append('provincia', geoData.provincia);
+        }
+        // --- FIN DE LA ZONA CORREGIDA ---
+
+        fd.append('imageFile', { uri: p.uri, name: 'face.jpg', type: 'image/jpeg' });
         const res = await fetch(`${(api.defaults.baseURL || 'https://smartcheck-proyecto-final.onrender.com').replace(/\/$/, '')}${tipoOperacion === 'REGISTER' ? '/api/users/register' : '/api/users/biometria'}`, { method: 'POST', body: fd });
         const data = await res.json();
-
         if (data.status === 'success') {
           setStatusVerificacion('SUCCESS');
-          const usuarioConUbicacion = { ...data.usuario || data, localidad: geoData.localidad, provincia: geoData.provincia };
-          if (tipoOperacion === 'REGISTER') {
-            reproducirVoz('reconocida', () => navigation.navigate('Login'));
-          } else {
-            await storage.saveUser(usuarioConUbicacion);
-            login(usuarioConUbicacion);
-            reproducirVoz('reconocida', () => navigation.reset({ index: 0, routes: [{ name: 'Home', params: usuarioConUbicacion }] }));
+          const u = data.usuario || data;
+          const usuarioConUbicacion = { 
+              ...u, 
+              dia: u.dia || "",
+              mes: u.mes || "",
+              anio: u.anio || "",
+              localidad: geoData.localidad, 
+              provincia: geoData.provincia 
+          };
+          
+          reproducirVoz('reconocida');
+          
+          if (tipoOperacion === 'REGISTER') { 
+            navigation.navigate('Login'); 
+          } else { 
+            await storage.saveUser(usuarioConUbicacion); 
+            login(usuarioConUbicacion); 
+            navigation.reset({ index: 0, routes: [{ name: 'Home', params: usuarioConUbicacion }] }); 
           }
         } else throw new Error(data.mensaje || "Error");
-      } catch (e) { setStatusVerificacion('ERROR'); setMensajeFeedback(e.message); reproducirVoz('error'); } finally { setLoading(false); }
+      } catch (e) { setStatusVerificacion('ERROR'); setMensajeFeedback(e.message); reproducirVoz('error'); setLoading(false); }
     }
   };
 
@@ -106,30 +117,17 @@ export default function FacialLoginScreen() {
         <Image source={require('../../assets/logo.png')} style={styles.logo} />
         <Image source={require('../../assets/nombreapp.png')} style={styles.appName} />
       </View>
-      
-      <View style={styles.blackTitleBar}>
-        <Text style={styles.titleText}>{tipoOperacion === 'REGISTER' ? 'REGISTRO FACIAL' : 'AUTENTICACIÓN FACIAL'}</Text>
-      </View>
-      
+      <View style={styles.blackTitleBar}><Text style={styles.titleText}>{tipoOperacion === 'REGISTER' ? 'REGISTRO FACIAL' : 'AUTENTICACIÓN FACIAL'}</Text></View>
       <View style={styles.cameraContainer}>
         {statusVerificacion === 'SUCCESS' ? (
-          <View style={[styles.camera, styles.overlaySuccessContainer]}>
-            <View style={styles.faceOvalSuccess}>
-              <Ionicons name="checkmark-circle" size={80} color="#fff" />
-            </View>
-          </View>
+          <View style={[styles.camera, styles.overlaySuccessContainer]}><View style={styles.faceOvalSuccess}><Ionicons name="checkmark-circle" size={80} color="#fff" /></View></View>
         ) : (
           <CameraView style={styles.camera} facing="front" ref={cameraRef}>
             <View style={styles.overlayCircle} />
-            {countdown > 0 && (
-              <View style={styles.countdownContainer}>
-                <Text style={styles.countdownText}>{countdown}</Text>
-              </View>
-            )}
+            {countdown > 0 && (<View style={styles.countdownContainer}><Text style={styles.countdownText}>{countdown}</Text></View>)}
           </CameraView>
         )}
       </View>
-
       <View style={styles.feedbackContainer}>
         {loading ? <Text style={styles.waitingText}>Verificando...</Text> : (
           <>
@@ -139,7 +137,6 @@ export default function FacialLoginScreen() {
           </>
         )}
       </View>
-
       <View style={styles.footer}>
         <TouchableOpacity style={styles.navButton} onPress={() => navigation.goBack()}><Image source={require('../../assets/volver.png')} style={styles.navIcon} /></TouchableOpacity>
         <TouchableOpacity style={styles.captureButton} onPress={validarRostro} disabled={loading}><Image source={require('../../assets/verificar.png')} style={styles.verifyIcon} /></TouchableOpacity>
@@ -150,26 +147,26 @@ export default function FacialLoginScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#001f3f', alignItems: 'center', justifyContent: 'space-between', paddingVertical: height * 0.04 },
-  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10, width: '100%' },
+  container: { flex: 1, backgroundColor: '#001f3f', alignItems: 'center', justifyContent: 'space-between', paddingVertical: height * 0.02 },
+  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10, width: '100%', marginTop: 20 },
   logo: { width: 50, height: 50, resizeMode: 'contain' },
   appName: { width: 120, height: 40, resizeMode: 'contain' },
   blackTitleBar: { backgroundColor: '#000', paddingVertical: 10, width: '100%' },
   titleText: { color: '#fff', fontSize: 14, fontWeight: 'bold', textAlign: 'center' },
-  cameraContainer: { width: width * 0.85, height: width * 0.85, borderRadius: (width * 0.85) / 2, overflow: 'hidden', borderWidth: 4, borderColor: '#00ffcc', backgroundColor: '#000' },
+  cameraContainer: { width: width * 0.75, height: width * 0.75, borderRadius: (width * 0.75) / 2, overflow: 'hidden', borderWidth: 4, borderColor: '#00ffcc', backgroundColor: '#000' },
   camera: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   overlayCircle: { width: '96%', height: '96%', borderRadius: 999, borderWidth: 3, borderColor: '#00ffcc', borderStyle: 'dashed' },
   overlaySuccessContainer: { backgroundColor: '#002a54', justifyContent: 'center', alignItems: 'center' },
   faceOvalSuccess: { width: '96%', height: '96%', borderRadius: 999, borderWidth: 3, borderColor: '#00ffcc', backgroundColor: 'rgba(0, 255, 204, 0.25)', justifyContent: 'center', alignItems: 'center' },
   countdownContainer: { position: 'absolute', left: 0, top: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'center', alignItems: 'center' },
   countdownText: { color: '#00ffcc', fontSize: 72, fontWeight: 'bold' },
-  feedbackContainer: { width: '85%', height: 70, justifyContent: 'center', alignItems: 'center' },
+  feedbackContainer: { width: '85%', height: 60, justifyContent: 'center', alignItems: 'center' },
   feedbackText: { fontSize: 14, fontWeight: 'bold', textAlign: 'center' },
   waitingText: { color: '#00ffcc', fontSize: 14, fontWeight: 'bold' },
   instructions: { color: '#aaa', fontSize: 15, textAlign: 'center' },
-  footer: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', width: '100%', paddingHorizontal: 20 },
-  captureButton: { width: 200, height: 2000, justifyContent: 'center', alignItems: 'center' },
-  verifyIcon: { width: 200, height: 200, resizeMode: 'contain' },
+  footer: { flexDirection: 'row', justifyContent: 'space-around', alignItems: 'center', width: '100%', paddingBottom: 20 },
+  captureButton: { width: 160, height: 160, justifyContent: 'center', alignItems: 'center' },
+  verifyIcon: { width: 160, height: 160, resizeMode: 'contain' },
   navButton: { width: 50, height: 50, justifyContent: 'center', alignItems: 'center' },
   navIcon: { width: 42, height: 42, resizeMode: 'contain', tintColor: '#00ffcc' }
 });
