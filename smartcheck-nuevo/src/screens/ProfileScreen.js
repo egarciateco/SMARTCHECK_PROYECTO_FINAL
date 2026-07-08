@@ -1,5 +1,6 @@
-import React from 'react';
-import { View, Text, StyleSheet, Image, TouchableOpacity, SafeAreaView } from 'react-native';
+import React, { useState } from 'react';
+import { View, Text, StyleSheet, Image, TouchableOpacity, SafeAreaView, Alert, BackHandler } from 'react-native';
+import { Audio } from 'expo-av';
 import { useAuth } from '../context/AuthContext';
 
 const LOGO = require('../../assets/logo.png');
@@ -7,15 +8,17 @@ const NOMBRE_APP = require('../../assets/nombreapp.png');
 const VOLVER_ICON = require('../../assets/volver.png');
 const SALIR_ICON = require('../../assets/salir.png');
 
-// Iconos en formato PNG
 const EMAIL_ICON = require('../../assets/email.png');
 const FECHANAC_ICON = require('../../assets/fechanac.png');
 const EDAD_ICON = require('../../assets/edad.png');
 const PROVINCIA_ICON = require('../../assets/provincia.png');
 const LOCALIDAD_ICON = require('../../assets/localidad.png');
 
+const AUDIO_DESPEDIDA = require('../../assets/despedida.mp3');
+
 export default function ProfileScreen({ navigation }) {
   const { user } = useAuth();
+  const [isExiting, setIsExiting] = useState(false);
 
   let fechaFormateada = '';
   let edadCalculada = '';
@@ -35,7 +38,7 @@ export default function ProfileScreen({ navigation }) {
     }
     edadCalculada = `${edad} años`;
   } 
-  // ESTRATEGIA B: Por si el servidor la envía completa (ej: "fechaNacimiento": "1995-04-12T00:00:00.000Z")
+  // ESTRATEGIA B: Por si el servidor la envía completa
   else if (user?.fechaNacimiento || user?.birthdate) {
     const fechaISO = new Date(user.fechaNacimiento || user.birthdate);
     if (!isNaN(fechaISO.getTime())) {
@@ -55,6 +58,79 @@ export default function ProfileScreen({ navigation }) {
     }
   }
 
+  // ESTRATEGIA C: Respaldo de emergencia
+  if (!fechaFormateada && user?.fechaNacimiento) {
+    try {
+      const partes = String(user.fechaNacimiento).split('T')[0].split('-');
+      if (partes.length === 3) {
+        fechaFormateada = `${partes[2]}/${partes[1]}/${partes[0]}`;
+        const hoy = new Date();
+        let edad = hoy.getFullYear() - parseInt(partes[0]);
+        const mesActual = hoy.getMonth() + 1;
+        if (mesActual < parseInt(partes[1]) || (mesActual === parseInt(partes[1]) && hoy.getDate() < parseInt(partes[2]))) {
+          edad--;
+        }
+        edadCalculada = `${edad} años`;
+      }
+    } catch (e) {
+      console.log("Error en parseo alternativo de fecha:", e);
+    }
+  }
+
+  // Función de salida controlada por el estado de reproducción del audio
+  const ejecutarSalidaSegura = () => {
+    Alert.alert(
+      "Cerrar Aplicación",
+      "¿Estás seguro de que deseas salir de la aplicación?",
+      [
+        { text: "No", style: "cancel" },
+        { 
+          text: "Sí", 
+          onPress: async () => {
+            try {
+              // Muestra la pantalla de despedida inmediatamente
+              setIsExiting(true);
+
+              // Carga el sonido de forma asíncrona
+              const { sound } = await Audio.Sound.createAsync(
+                AUDIO_DESPEDIDA,
+                { shouldPlay: false }
+              );
+
+              // Escucha los cambios de estado del audio en tiempo real
+              sound.setOnPlaybackStatusUpdate(async (status) => {
+                if (status.didJustFinish) {
+                  // Cuando el audio termina por completo, limpia la memoria y cierra la app
+                  await sound.unloadAsync();
+                  BackHandler.exitApp();
+                }
+              });
+
+              // Inicia la reproducción una vez configurado el listener
+              await sound.playAsync();
+
+            } catch (error) {
+              console.error("Error en la automatización del cierre:", error);
+              // Cierre de emergencia si el sistema de audio falla
+              BackHandler.exitApp();
+            }
+          } 
+        }
+      ]
+    );
+  };
+
+  // Render para la pantalla de despedida automatizada
+  if (isExiting) {
+    return (
+      <View style={styles.exitContainer}>
+        <Image source={LOGO} style={styles.exitLogo} />
+        <Text style={styles.exitTitle}>¡HASTA LUEGO!</Text>
+        <Text style={styles.exitSubtitle}>¡Vuelva pronto!</Text>
+      </View>
+    );
+  }
+
   const InfoBlock = ({ iconSource, label, value }) => (
     <View style={styles.infoRow}>
       <View style={styles.iconGlowContainer}>
@@ -70,20 +146,17 @@ export default function ProfileScreen({ navigation }) {
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* HEADER */}
       <View style={styles.headerApp}>
         <Image source={LOGO} style={styles.logo} />
         <Image source={NOMBRE_APP} style={styles.nombreApp} resizeMode="contain" />
       </View>
 
-      {/* BARRA TÍTULO */}
       <View style={styles.hudBar}>
         <View style={styles.hudDot} />
         <Text style={styles.titleBar}>USUARIO // DATOS_PERFIL</Text>
         <View style={styles.hudDot} />
       </View>
 
-      {/* CONTENIDO PRINCIPAL */}
       <View style={styles.mainContent}>
         <View style={styles.cryptoCard}>
           <View style={styles.avatarRadarWrapper}>
@@ -95,7 +168,6 @@ export default function ProfileScreen({ navigation }) {
           
           <View style={styles.cyberLine} />
 
-          {/* CONTENEDOR DE DATOS REALES */}
           <View style={styles.dataContainer}>
             <InfoBlock iconSource={EMAIL_ICON} label="Email" value={user?.email} />
             <InfoBlock iconSource={FECHANAC_ICON} label="Fecha de Nacimiento" value={fechaFormateada} />
@@ -106,12 +178,11 @@ export default function ProfileScreen({ navigation }) {
         </View>
       </View>
 
-      {/* BOTONES INFERIORES */}
       <View style={styles.footer}>
         <TouchableOpacity style={styles.footerBtn} onPress={() => navigation.goBack()}>
           <Image source={VOLVER_ICON} style={styles.icon} />
         </TouchableOpacity>
-        <TouchableOpacity style={styles.footerBtn} onPress={() => console.log('Salir')}>
+        <TouchableOpacity style={styles.footerBtn} onPress={ejecutarSalidaSegura}>
           <Image source={SALIR_ICON} style={styles.icon} />
         </TouchableOpacity>
       </View>
@@ -144,5 +215,10 @@ const styles = StyleSheet.create({
   futureLed: { width: 3, height: 12, backgroundColor: '#00ffcc', borderRadius: 1.5, opacity: 0.7 },
   footer: { flexDirection: 'row', justifyContent: 'space-between', paddingHorizontal: 30, paddingBottom: 20 },
   footerBtn: { backgroundColor: 'rgba(6, 18, 36, 0.5)', borderWidth: 1, borderColor: 'rgba(0, 255, 204, 0.2)', borderRadius: 12, padding: 6 },
-  icon: { width: 32, height: 32 }
+  icon: { width: 32, height: 32 },
+  
+  exitContainer: { flex: 1, backgroundColor: '#020813', justifyContent: 'center', alignItems: 'center' },
+  exitLogo: { width: 100, height: 100, marginBottom: 20, resizeMode: 'contain' },
+  exitTitle: { color: '#FF8C00', fontSize: 24, fontWeight: '900', letterSpacing: 3, marginBottom: 5 },
+  exitSubtitle: { color: '#00ffcc', fontSize: 16, fontWeight: '600', letterSpacing: 1 }
 });

@@ -2,29 +2,31 @@ import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, Image, TouchableOpacity, BackHandler, ActivityIndicator, Alert, Dimensions } from 'react-native';
 import { useRoute } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
+import { Audio } from 'expo-av';
 import storage from '../utils/storage'; 
 import { useAuth } from '../context/AuthContext';
 
 const { height } = Dimensions.get('window');
+const AUDIO_DESPEDIDA = require('../../assets/despedida.mp3');
 
 export default function HomeScreen({ navigation }) {
   const route = useRoute();
   const { user, login, logout } = useAuth();
   const [cargando, setCargando] = useState(true);
+  const [isExiting, setIsExiting] = useState(false);
 
   useEffect(() => {
     const inicializarHome = async () => {
       try {
         let datos = route.params || await storage.getUser();
         if (datos && (datos.id || datos._id)) {
-          // Si faltan campos críticos, actualizamos el estado con lo que tengamos
           login(datos);
         } else if (!user) {
           navigation.reset({ index: 0, routes: [{ name: 'Login' }] });
         }
       } catch (error) { console.error(error); } finally { setCargando(false); }
     };
-    inicializarHome();
+    initializarHome();
   }, []);
 
   const renderAvatar = () => {
@@ -41,7 +43,54 @@ export default function HomeScreen({ navigation }) {
     ]);
   };
 
+  // Función de salida controlada por el estado de reproducción del audio
+  const ejecutarSalidaSegura = () => {
+    Alert.alert(
+      "Cerrar Aplicación",
+      "¿Estás seguro de que deseas salir de la aplicación?",
+      [
+        { text: "No", style: "cancel" },
+        { 
+          text: "Sí", 
+          onPress: async () => {
+            try {
+              setIsExiting(true);
+
+              const { sound } = await Audio.Sound.createAsync(
+                AUDIO_DESPEDIDA,
+                { shouldPlay: false }
+              );
+
+              sound.setOnPlaybackStatusUpdate(async (status) => {
+                if (status.didJustFinish) {
+                  await sound.unloadAsync();
+                  BackHandler.exitApp();
+                }
+              });
+
+              await sound.playAsync();
+
+            } catch (error) {
+              console.error("Error en la automatización del cierre:", error);
+              BackHandler.exitApp();
+            }
+          } 
+        }
+      ]
+    );
+  };
+
   if (cargando) return <View style={styles.container}><ActivityIndicator size="large" color="#00ffcc" /></View>;
+
+  if (isExiting) {
+    return (
+      <View style={styles.exitContainer}>
+        <Image source={require('../../assets/logo.png')} style={styles.exitLogo} />
+        <Text style={styles.exitTitle}>¡HASTA LUEGO!</Text>
+        <Text style={styles.exitSubtitle}>¡Vuelva pronto!</Text>
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>
@@ -58,7 +107,7 @@ export default function HomeScreen({ navigation }) {
       </View>
       <View style={styles.footerArea}>
         <TouchableOpacity onPress={handleVolverCerrarSesion}><Image source={require('../../assets/volver.png')} style={styles.navIcon} /></TouchableOpacity>
-        <TouchableOpacity onPress={() => BackHandler.exitApp()}><Image source={require('../../assets/salir.png')} style={styles.navIcon} /></TouchableOpacity>
+        <TouchableOpacity onPress={ejecutarSalidaSegura}><Image source={require('../../assets/salir.png')} style={styles.navIcon} /></TouchableOpacity>
       </View>
     </View>
   );
@@ -79,5 +128,10 @@ const styles = StyleSheet.create({
   btnImgAdmin: { width: 38, height: 38, resizeMode: 'contain' }, 
   btnLabel: { color: '#fff', marginLeft: 15, fontWeight: '600', fontSize: 14 },
   footerArea: { flexDirection: 'row', justifyContent: 'space-between', paddingHorizontal: 40, paddingBottom: height * 0.03, paddingTop: 10 },
-  navIcon: { width: 42, height: 42, resizeMode: 'contain' }
+  navIcon: { width: 42, height: 42, resizeMode: 'contain' },
+  
+  exitContainer: { flex: 1, backgroundColor: '#001f3f', justifyContent: 'center', alignItems: 'center' },
+  exitLogo: { width: 100, height: 100, marginBottom: 20, resizeMode: 'contain' },
+  exitTitle: { color: '#00ffcc', fontSize: 24, fontWeight: '900', letterSpacing: 3, marginBottom: 5 },
+  exitSubtitle: { color: '#fff', fontSize: 16, fontWeight: '600', letterSpacing: 1 }
 });

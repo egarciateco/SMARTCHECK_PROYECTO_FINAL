@@ -1,29 +1,28 @@
-// ProductSearchScreen.js
 import React, { useState, useEffect, useRef } from 'react';
 import { View, TextInput, FlatList, TouchableOpacity, Image, Text, StyleSheet, ActivityIndicator, Alert, BackHandler } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import MapView, { Marker } from 'react-native-maps';
+import MapView, { Marker, PROVIDER_GOOGLE } from 'react-native-maps'; // Importamos PROVIDER_GOOGLE para forzar consistencia
 import * as Location from 'expo-location'; 
+import { Audio } from 'expo-av';
 import { useAuth } from '../context/AuthContext';
 
 const API_URL = 'https://smartcheck-proyecto-final.onrender.com';
+const AUDIO_DESPEDIDA = require('../../assets/despedida.mp3');
 
 export default function ProductSearchScreen({ navigation, route }) {
   const { user, updateLocation } = useAuth();
   const params = route?.params || {};
   
-  // Referencia nativa para controlar el mapa sin bloquear el renderizado
   const mapRef = useRef(null);
   
-  // Coordenadas de partida por defecto (Paraná)
   const initialLat = params.latitud ? parseFloat(params.latitud) : -31.7333;
   const initialLng = params.longitud ? parseFloat(params.longitud) : -60.5167;
 
   const [productos, setProductos] = useState([]);
   const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(false);
+  const [isExiting, setIsExiting] = useState(false);
 
-  // Mantenemos la región en un estado para el marcador en vivo
   const [region, setRegion] = useState({
     latitude: initialLat,
     longitude: initialLng,
@@ -33,7 +32,6 @@ export default function ProductSearchScreen({ navigation, route }) {
   const [localidadTexto, setLocalidadTexto] = useState('Localizando...');
   const [provinciaTexto, setProvinciaTexto] = useState('...');
 
-  // Geolocalización limpia mediante animación por Referencia
   useEffect(() => {
     const activarGeolocalizacionEnVivo = async () => {
       try {
@@ -48,7 +46,6 @@ export default function ProductSearchScreen({ navigation, route }) {
           return;
         }
 
-        // Captura de posición con alta precisión
         const posicionActual = await Location.getCurrentPositionAsync({
           accuracy: Location.Accuracy.High,
         });
@@ -61,15 +58,12 @@ export default function ProductSearchScreen({ navigation, route }) {
           longitudeDelta: 0.012
         };
 
-        // 1. Actualizamos el estado del marcador
         setRegion(nuevaRegion);
 
-        // 2. MOVE DESPLAZAMIENTO SUAVE: Viaja a la ubicación real sin congelar la pantalla
         if (mapRef.current) {
           mapRef.current.animateToRegion(nuevaRegion, 1200);
         }
 
-        // Traducir coordenadas a texto
         const direccionTraduccion = await Location.reverseGeocodeAsync({ latitude, longitude });
         if (direccionTraduccion.length > 0) {
           const datosDireccion = direccionTraduccion[0];
@@ -79,7 +73,6 @@ export default function ProductSearchScreen({ navigation, route }) {
           setLocalidadTexto(loc);
           setProvinciaTexto(prov);
           
-          // Actualizamos de forma reactiva el perfil del usuario logueado en el Contexto global
           if (updateLocation) {
             updateLocation(loc, prov);
           }
@@ -100,7 +93,6 @@ export default function ProductSearchScreen({ navigation, route }) {
       return; 
     }
     
-    // CORRECCIÓN: Se utiliza la función modificadora de estado correcta
     setLoading(true);
     
     try {
@@ -119,12 +111,60 @@ export default function ProductSearchScreen({ navigation, route }) {
     }
   };
 
+  const ejecutarSalidaSegura = () => {
+    Alert.alert(
+      "Cerrar Aplicación",
+      "¿Estás seguro de que deseas salir de la aplicación?",
+      [
+        { text: "No", style: "cancel" },
+        { 
+          text: "Sí", 
+          onPress: async () => {
+            try {
+              setIsExiting(true);
+
+              const { sound } = await Audio.Sound.createAsync(
+                AUDIO_DESPEDIDA,
+                { shouldPlay: false }
+              );
+
+              sound.setOnPlaybackStatusUpdate(async (status) => {
+                if (status.didJustFinish) {
+                  await sound.unloadAsync();
+                  BackHandler.exitApp();
+                }
+              });
+
+              await sound.playAsync();
+
+            } catch (error) {
+              console.error("Error en la automatización del cierre:", error);
+              BackHandler.exitApp();
+            }
+          } 
+        }
+      ]
+    );
+  };
+
+  if (isExiting) {
+    return (
+      <View style={styles.exitContainer}>
+        <Image source={require('../../assets/logo.png')} style={styles.exitLogo} />
+        <Text style={styles.exitTitle}>¡HASTA LUEGO!</Text>
+        <Text style={styles.exitSubtitle}>¡Vuelva pronto!</Text>
+      </View>
+    );
+  }
+
   return (
     <View style={styles.container}>
       <View style={styles.header}>
         <Image source={require('../../assets/logo.png')} style={styles.logoGrande} />
         <Image source={require('../../assets/nombreapp.png')} style={styles.nombreAppGrande} />
-        {user?.foto ? <Image source={{ uri: user.foto }} style={styles.userAvatar} /> : <Ionicons name="person-circle" size={50} color="#fff" />}
+        <TouchableOpacity onPress={() => navigation.navigate('Profile')}>
+          {user?.foto ? <Image source={{ uri: user.foto }} style={styles.userAvatar} /> : <Ionicons name="person-circle" size={50} color="#fff" />}
+        </TouchableOpacity>
       </View>
       <View style={styles.franjaNegra}>
         <Text style={styles.tituloFranja}>¡BIENVENID@, {user?.nombre?.toUpperCase() || 'USUARIO'}!</Text>
@@ -156,14 +196,11 @@ export default function ProductSearchScreen({ navigation, route }) {
         <View style={styles.mapCanvasWrapper}>
           <MapView 
             ref={mapRef}
+            provider={PROVIDER_GOOGLE} // Forzamos el uso del motor nativo SDK
             style={styles.mapCanvas} 
-            initialRegion={{
-              latitude: initialLat,
-              longitude: initialLng,
-              latitudeDelta: 0.015,
-              longitudeDelta: 0.012
-            }}
+            region={region}
             showsUserLocation={true}
+            // Eliminamos 'loadingEnabled' para evitar que la animación nativa bloquee los gráficos
           >
             <Marker coordinate={{ latitude: region.latitude, longitude: region.longitude }} pinColor="#00ffcc" />
           </MapView>
@@ -190,7 +227,7 @@ export default function ProductSearchScreen({ navigation, route }) {
         <TouchableOpacity onPress={() => navigation.goBack()}>
           <Image source={require('../../assets/volver.png')} style={styles.iconosFooter} />
         </TouchableOpacity>
-        <TouchableOpacity onPress={() => BackHandler.exitApp()}>
+        <TouchableOpacity onPress={ejecutarSalidaSegura}>
           <Image source={require('../../assets/salir.png')} style={styles.iconosFooter} />
         </TouchableOpacity>
       </View>
@@ -211,16 +248,24 @@ const styles = StyleSheet.create({
   btnBuscar: { backgroundColor: '#00ffcc', padding: 12, borderRadius: 10, marginLeft: 10 },
   btnScanner: { alignItems: 'center', marginVertical: 10 },
   scannerImg: { width: 220, height: 60, resizeMode: 'contain' },
-  mapSection: { marginHorizontal: 20, height: 250, marginTop: 10 },
-  locationRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 5 },
+  
+  // Ajuste preciso de dimensiones fijas para evitar colapsos nativos de Google Maps
+  mapSection: { marginHorizontal: 20, height: 210, marginTop: 10 },
+  locationRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 5, height: 20 },
   locationIcon: { width: 16, height: 16, resizeMode: 'contain', marginRight: 5 },
   locationText: { color: '#fff', fontSize: 13, fontWeight: 'bold' },
-  mapCanvasWrapper: { flex: 1, borderRadius: 10, overflow: 'hidden', borderWidth: 2, borderColor: '#00ffcc' },
-  mapCanvas: { ...StyleSheet.absoluteFillObject },
+  mapCanvasWrapper: { height: 185, borderRadius: 10, overflow: 'hidden', borderWidth: 2, borderColor: '#00ffcc' },
+  mapCanvas: { ...StyleSheet.absoluteFillObject }, // Forzamos a ocupar el 100% real de su contenedor estricto
+  
   listArea: { flex: 1, paddingHorizontal: 20, marginTop: 10 },
   itemRow: { backgroundColor: '#002a54', padding: 15, borderRadius: 10, marginBottom: 5 },
   itemText: { color: '#fff' },
   emptyText: { color: '#555', textAlign: 'center', marginTop: 10, fontSize: 12 },
   footer: { flexDirection: 'row', justifyContent: 'space-between', paddingHorizontal: 40, paddingBottom: 25 },
-  iconosFooter: { width: 45, height: 45, resizeMode: 'contain' }
+  iconosFooter: { width: 45, height: 45, resizeMode: 'contain' },
+  
+  exitContainer: { flex: 1, backgroundColor: '#001f3f', justifyContent: 'center', alignItems: 'center' },
+  exitLogo: { width: 100, height: 100, marginBottom: 20, resizeMode: 'contain' },
+  exitTitle: { color: '#ffcc00', fontSize: 24, fontWeight: '900', letterSpacing: 3, marginBottom: 5 },
+  exitSubtitle: { color: '#00ffcc', fontSize: 16, fontWeight: '600', letterSpacing: 1 }
 });

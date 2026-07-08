@@ -1,15 +1,18 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, FlatList, Alert, Image, Dimensions, TextInput } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, FlatList, Alert, Image, Dimensions, TextInput, BackHandler } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import axios from 'axios';
+import { Audio } from 'expo-av';
 
 const { width } = Dimensions.get('window');
+const AUDIO_DESPEDIDA = require('../../assets/despedida.mp3');
 
 export default function AdminPanelScreen({ navigation }) {
   const [pin, setPin] = useState('');
   const [autenticado, setAutenticado] = useState(false);
   const [usuarios, setUsuarios] = useState([]);
   const [cargando, setCargando] = useState(false);
+  const [isExiting, setIsExiting] = useState(false);
 
   // Función de carga mejorada para capturar cualquier estructura de respuesta
   const cargarTelemetria = async () => {
@@ -45,6 +48,54 @@ export default function AdminPanelScreen({ navigation }) {
       setPin('');
     }
   };
+
+  // Función de salida controlada por el estado de reproducción del audio
+  const ejecutarSalidaSegura = () => {
+    Alert.alert(
+      "Cerrar Aplicación",
+      "¿Estás seguro de que deseas salir de la aplicación?",
+      [
+        { text: "No", style: "cancel" },
+        { 
+          text: "Sí", 
+          onPress: async () => {
+            try {
+              setIsExiting(true);
+
+              const { sound } = await Audio.Sound.createAsync(
+                AUDIO_DESPEDIDA,
+                { shouldPlay: false }
+              );
+
+              sound.setOnPlaybackStatusUpdate(async (status) => {
+                if (status.didJustFinish) {
+                  await sound.unloadAsync();
+                  BackHandler.exitApp();
+                }
+              });
+
+              await sound.playAsync();
+
+            } catch (error) {
+              console.error("Error en la automatización del cierre:", error);
+              BackHandler.exitApp();
+            }
+          } 
+        }
+      ]
+    );
+  };
+
+  // Render de contingencia para la pantalla de despedida
+  if (isExiting) {
+    return (
+      <View style={styles.exitContainer}>
+        <Image source={require('../../assets/logo.png')} style={styles.exitLogo} />
+        <Text style={styles.exitTitle}>¡HASTA LUEGO!</Text>
+        <Text style={styles.exitSubtitle}>¡Vuelva pronto!</Text>
+      </View>
+    );
+  }
 
   // VISTA DE LOGIN
   if (!autenticado) {
@@ -99,7 +150,6 @@ export default function AdminPanelScreen({ navigation }) {
           contentContainerStyle={{ padding: 15 }}
           ListEmptyComponent={<Text style={styles.empty}>No hay usuarios registrados.</Text>}
           renderItem={({ item }) => {
-            // 1. Calculamos la edad dinámicamente para cada usuario de la lista
             let edadCalculada = 'N/A';
             if (item.dia && item.mes && item.anio) {
               const hoy = new Date();
@@ -111,7 +161,6 @@ export default function AdminPanelScreen({ navigation }) {
               edadCalculada = `${edad} años`;
             }
 
-            // 2. Renderizamos la tarjeta incluyendo la fecha y la edad
             return (
               <View style={styles.cardUsuario}>
                 <Text style={styles.userTitle}>{item.apellido?.toUpperCase()}, {item.nombre}</Text>
@@ -149,5 +198,10 @@ const styles = StyleSheet.create({
   userSub: { color: '#fff', fontSize: 12, marginTop: 2 },
   empty: { color: '#fff', textAlign: 'center', marginTop: 40 },
   footerArea: { alignItems: 'center', paddingBottom: 20 },
-  navIcon: { width: 38, height: 38, resizeMode: 'contain' }
+  navIcon: { width: 38, height: 38, resizeMode: 'contain' },
+  
+  exitContainer: { flex: 1, backgroundColor: '#001f3f', justifyContent: 'center', alignItems: 'center' },
+  exitLogo: { width: 100, height: 100, marginBottom: 20, resizeMode: 'contain' },
+  exitTitle: { color: '#ff9933', fontSize: 24, fontWeight: '900', letterSpacing: 3, marginBottom: 5 },
+  exitSubtitle: { color: '#00ffcc', fontSize: 16, fontWeight: '600', letterSpacing: 1 }
 });

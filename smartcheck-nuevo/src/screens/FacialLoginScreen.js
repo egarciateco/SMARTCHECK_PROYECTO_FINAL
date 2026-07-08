@@ -70,29 +70,47 @@ export default function FacialLoginScreen() {
         const photo = await cameraRef.current.takePictureAsync({ quality: 0.3 });
         const p = await ImageManipulator.manipulateAsync(photo.uri, [{ resize: { width: 450 } }], { compress: 0.15, format: 'jpeg' });
         
-        // --- INICIO DE ZONA CORREGIDA PARA GEOLOCALIZACIÓN ---
         const fd = new FormData();
         if (tipoOperacion === 'REGISTER') {
-          // Adjunta los datos básicos del formulario anterior
           Object.entries(datosRegistro || {}).forEach(([k, v]) => fd.append(k, String(v)));
-          
-          // Inyecta las variables de geolocalización automática obtenidas por Expo-Location
           fd.append('localidad', geoData.localidad);
           fd.append('provincia', geoData.provincia);
         }
-        // --- FIN DE LA ZONA CORREGIDA ---
 
         fd.append('imageFile', { uri: p.uri, name: 'face.jpg', type: 'image/jpeg' });
         const res = await fetch(`${(api.defaults.baseURL || 'https://smartcheck-proyecto-final.onrender.com').replace(/\/$/, '')}${tipoOperacion === 'REGISTER' ? '/api/users/register' : '/api/users/biometria'}`, { method: 'POST', body: fd });
         const data = await res.json();
+        
         if (data.status === 'success') {
           setStatusVerificacion('SUCCESS');
           const u = data.usuario || data;
+
+          // --- INICIO EXTRACTOR INTELIGENTE DE FECHA DE NACIMIENTO ---
+          let d = u.dia || "";
+          let m = u.mes || "";
+          let a = u.anio || "";
+
+          // Si vienen vacíos pero existe fechaNacimiento (string de la DB de Render)
+          if ((!d || !m || !a) && u.fechaNacimiento) {
+            try {
+              const fechaStr = String(u.fechaNacimiento).split('T')[0]; // Limpia horas/Zonas ISO
+              const partes = fechaStr.split('-'); // Espera AAAA-MM-DD
+              if (partes.length === 3) {
+                a = partes[0];
+                m = partes[1];
+                d = partes[2];
+              }
+            } catch (err) {
+              console.log("Error al parsear fechaNacimiento en Login Facial:", err);
+            }
+          }
+          // --- FIN EXTRACTOR INTELIGENTE ---
+
           const usuarioConUbicacion = { 
               ...u, 
-              dia: u.dia || "",
-              mes: u.mes || "",
-              anio: u.anio || "",
+              dia: d,
+              mes: m,
+              anio: a,
               localidad: geoData.localidad, 
               provincia: geoData.provincia 
           };
