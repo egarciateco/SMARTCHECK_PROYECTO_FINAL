@@ -18,8 +18,13 @@ router.post('/register', upload.single('imageFile'), async (req, res) => {
             
         if (!detection) return res.status(400).json({ status: 'error', mensaje: 'No se detectó un rostro claro' });
         
-        const { nombre, apellido, email, correo, dia, mes, anio, ...datos } = req.body;
-        const usuarioExistente = await User.findOne({ email: email.toLowerCase().trim() });
+        // CORRECCIÓN: Extraemos de forma segura los valores del body
+        const { nombre, apellido, email, correo, dia, mes, anio, fechaNacimiento, ...datos } = req.body;
+        
+        const emailFinal = (email || correo || '').toLowerCase().trim();
+        if (!emailFinal) return res.status(400).json({ status: 'error', mensaje: 'Email o Correo es requerido' });
+
+        const usuarioExistente = await User.findOne({ email: emailFinal });
         if (usuarioExistente) return res.status(400).json({ status: 'error', mensaje: 'El email ya existe' });
         
         const arrayDescriptores = Array.from(detection.descriptor);
@@ -27,11 +32,22 @@ router.post('/register', upload.single('imageFile'), async (req, res) => {
         const ctx = miCanvas.getContext('2d');
         ctx.drawImage(img, 0, 0, 300, img.height * (300 / img.width));
         
+        // Creamos el usuario asegurando la persistencia de las fechas
         const newUser = new User({ 
-            nombre, apellido, email: email.toLowerCase().trim(), dia, mes, anio,
-            faceDescriptor: arrayDescriptores, facialDescriptor: arrayDescriptores,
-            foto: miCanvas.toDataURL('image/jpeg', 0.7), ...datos 
+            nombre, 
+            apellido, 
+            email: emailFinal, 
+            correo: emailFinal,
+            dia, 
+            mes, 
+            anio,
+            fechaNacimiento: fechaNacimiento || (dia && mes && anio ? `${dia}/${mes}/${anio}` : null),
+            faceDescriptor: arrayDescriptores, 
+            facialDescriptor: arrayDescriptores,
+            foto: miCanvas.toDataURL('image/jpeg', 0.7), 
+            ...datos 
         });
+
         await newUser.save();
         res.status(200).json({ status: 'success', mensaje: 'Usuario registrado correctamente' });
     } catch (error) {
@@ -51,14 +67,14 @@ router.post('/biometria', upload.single('imageFile'), async (req, res) => {
         for (const usuario of usuarios) {
             const desc = new Float32Array(usuario.faceDescriptor?.length > 0 ? usuario.faceDescriptor : usuario.facialDescriptor);
             if (faceapi.euclideanDistance(detection.descriptor, desc) <= 0.50) {
+                // CORRECCIÓN: Garantizamos que viajen mapeados tanto email como correo para no romper la sesión de la app
                 return res.status(200).json({ 
                     status: 'success', 
                     usuario: { 
                         ...usuario, 
-                        id: usuario._id, 
-                        dia: usuario.dia || "", 
-                        mes: usuario.mes || "", 
-                        anio: usuario.anio || "" 
+                        id: usuario._id,
+                        email: usuario.email || usuario.correo,
+                        correo: usuario.correo || usuario.email
                     } 
                 });
             }
@@ -72,17 +88,17 @@ router.post('/biometria', upload.single('imageFile'), async (req, res) => {
 router.post('/login', async (req, res) => {
     const { email, password } = req.body;
     try {
-        const usuario = await User.findOne({ email: email.toLowerCase().trim() }).lean();
+        const emailFinal = (email || '').toLowerCase().trim();
+        const usuario = await User.findOne({ email: emailFinal }).lean();
         if (!usuario || usuario.password !== password) return res.status(401).json({ status: 'error', mensaje: 'Credenciales incorrectas' });
         
         return res.status(200).json({ 
             status: 'success', 
             usuario: { 
                 ...usuario, 
-                id: usuario._id, 
-                dia: usuario.dia || "", 
-                mes: usuario.mes || "", 
-                anio: usuario.anio || "" 
+                id: usuario._id,
+                email: usuario.email || usuario.correo,
+                correo: usuario.correo || usuario.email
             } 
         });
     } catch (error) {
@@ -90,10 +106,8 @@ router.post('/login', async (req, res) => {
     }
 });
 
-// NUEVO ENDPOINT: Ruta para obtener todos los usuarios en el panel de administrador
 router.get('/admin', async (req, res) => {
     try {
-        // Obtenemos todos los usuarios usando .lean() para que traiga todos los campos de MongoDB incluyendo dia, mes y anio
         const usuarios = await User.find({}).lean();
         res.status(200).json({ status: 'success', usuarios });
     } catch (error) {

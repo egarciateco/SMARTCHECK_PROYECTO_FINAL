@@ -27,11 +27,25 @@ const userSchema = new mongoose.Schema({
 });
 
 userSchema.pre('save', function(next) {
-  if (this.email) {
-    this.correo = this.email.toLowerCase().trim();
-    this.email = this.email.toLowerCase().trim();
+  // Sincronización de correos
+  const emailLimpio = this.email || this.correo;
+  if (emailLimpio) {
+    this.email = emailLimpio.toLowerCase().trim();
+    this.correo = emailLimpio.toLowerCase().trim();
   }
   
+  // Sincronización automática de componentes de fecha si falta alguno
+  if (this.dia && this.mes && this.anio && !this.fechaNacimiento) {
+    this.fechaNacimiento = `${String(this.dia).padStart(2, '0')}/${String(this.mes).padStart(2, '0')}/${this.anio}`;
+  } else if (this.fechaNacimiento && (!this.dia || !this.mes || !this.anio)) {
+    const partes = this.fechaNacimiento.split('/');
+    if (partes.length === 3) {
+      this.dia = partes[0];
+      this.mes = partes[1];
+      this.anio = partes[2];
+    }
+  }
+
   // Sincronización de fotos
   let fotoValida = this.foto || this.image;
   if (fotoValida && (typeof fotoValida !== 'string' || !fotoValida.startsWith('data:image'))) {
@@ -52,6 +66,5 @@ userSchema.pre('save', function(next) {
   next();
 });
 
-// Exportación robusta
 const User = mongoose.models.User || mongoose.model('User', userSchema, 'users');
 module.exports = User;
