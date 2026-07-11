@@ -1,5 +1,6 @@
 import React, { createContext, useState, useContext, useEffect } from 'react';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { onAuthStateChanged } from 'firebase/auth';
+import { auth } from '../services/firebaseConfig'; 
 
 const AuthContext = createContext();
 
@@ -8,52 +9,45 @@ export const AuthProvider = ({ children }) => {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    const checkSession = async () => {
-      try {
-        const storedUser = await AsyncStorage.getItem('usuario_logueado');
-        if (storedUser) {
-          const parsedUser = JSON.parse(storedUser);
-          // Si los datos guardados venían envueltos en la propiedad 'usuario', los normalizamos
-          const cleanUser = parsedUser?.usuario ? parsedUser.usuario : parsedUser;
-          setUser(cleanUser);
-          console.log("Sesión recuperada:", cleanUser);
-        }
-      } catch (error) { 
-        console.error(error); 
-      } finally { 
-        setIsLoading(false); 
+    // Escuchar cambios de autenticación de Firebase
+    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+      console.log("🔄 Firebase Auth State Changed:", currentUser ? "Usuario conectado" : "Usuario desconectado");
+      // Solo actualizamos si Firebase realmente detecta un cambio, 
+      // esto ayuda a no sobreescribir el login manual del reconocimiento facial
+      if (currentUser) {
+        setUser(currentUser);
       }
-    };
-    checkSession();
+      setIsLoading(false);
+    });
+
+    return () => unsubscribe();
   }, []);
 
-  const login = async (userData) => {
-    // Normalizamos el objeto para asegurar que guardamos la raíz del usuario con sus campos dia, mes, anio
-    const cleanUserData = userData?.usuario ? userData.usuario : userData;
-    console.log("Guardando usuario en Context:", cleanUserData);
-    setUser(cleanUserData);
-    await AsyncStorage.setItem('usuario_logueado', JSON.stringify(cleanUserData));
+  // --- CORRECCIÓN: Definimos la función login que faltaba ---
+  const login = (userData) => {
+    console.log("🔑 Ejecutando login manual en Context:", userData);
+    setUser(userData);
   };
 
   const logout = async () => {
-    setUser(null);
-    await AsyncStorage.removeItem('usuario_logueado');
-  };
-
-  // Nueva función para inyectar la localidad y provincia obtenidas por geolocalización
-  const updateLocation = async (localidad, provincia) => {
     try {
-      if (user) {
-        const updatedUser = { ...user, localidad, provincia };
-        setUser(updatedUser);
-        await AsyncStorage.setItem('usuario_logueado', JSON.stringify(updatedUser));
-        console.log("Ubicación actualizada en Context y Storage:", localidad, provincia);
-      }
+      await auth.signOut();
+      setUser(null);
+      console.log("🚪 Sesión cerrada");
     } catch (error) {
-      console.error("Error actualizando la ubicación en el contexto:", error);
+      console.error("Error al cerrar sesión:", error);
     }
   };
 
+  const updateLocation = (localidad, provincia) => {
+    if (user) {
+      const updatedUser = { ...user, localidad, provincia };
+      setUser(updatedUser);
+      console.log("📍 Ubicación actualizada en Context:", localidad, provincia);
+    }
+  };
+
+  // --- CORRECCIÓN: Agregamos 'login' al valor que provee el contexto ---
   return (
     <AuthContext.Provider value={{ user, login, logout, isLoading, updateLocation }}>
       {children}

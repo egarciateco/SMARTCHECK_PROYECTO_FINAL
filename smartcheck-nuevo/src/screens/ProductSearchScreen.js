@@ -8,10 +8,10 @@ import { useAuth } from '../context/AuthContext';
 
 const API_URL = 'https://smartcheck-proyecto-final.onrender.com';
 const AUDIO_DESPEDIDA = require('../../assets/despedida.mp3');
-const AUDIO_BEEP = require('../../assets/beepscanner.mp3'); // Actualizado a .mp3
+const AUDIO_BEEP = require('../../assets/beepscanner.mp3'); 
 
 export default function ProductSearchScreen({ navigation, route }) {
-  const { user, updateLocation } = useAuth();
+  const { user } = useAuth(); 
   const params = route?.params || {};
   
   const mapRef = useRef(null);
@@ -33,6 +33,7 @@ export default function ProductSearchScreen({ navigation, route }) {
   const [localidadTexto, setLocalidadTexto] = useState('Localizando...');
   const [provinciaTexto, setProvinciaTexto] = useState('...');
 
+  // EFECTO 1: Geolocalización inicial al abrir la app
   useEffect(() => {
     const activarGeolocalizacionEnVivo = async () => {
       try {
@@ -73,10 +74,6 @@ export default function ProductSearchScreen({ navigation, route }) {
           
           setLocalidadTexto(loc);
           setProvinciaTexto(prov);
-          
-          if (updateLocation) {
-            updateLocation(loc, prov);
-          }
         }
       } catch (error) {
         console.error("❌ Error de telemetría GPS:", error);
@@ -85,8 +82,42 @@ export default function ProductSearchScreen({ navigation, route }) {
       }
     };
 
-    activarGeolocalizacionEnVivo();
+    // Solo activamos el GPS automático si el escáner no mandó una ubicación preferente por parámetros
+    if (!params.latitud && !params.longitud) {
+      activarGeolocalizacionEnVivo();
+    } else {
+      setLocalidadTexto("Ubicación del Producto");
+      setProvinciaTexto("Comercio");
+    }
   }, []);
+
+  //  NUEVO EFECTO 2: Escucha cambios cuando volvés del Escáner
+  useEffect(() => {
+    if (params.latitud && params.longitud) {
+      const nuevaLat = parseFloat(params.latitud);
+      const nuevaLng = parseFloat(params.longitud);
+
+      const regionActualizada = {
+        latitude: nuevaLat,
+        longitude: nuevaLng,
+        latitudeDelta: 0.008, // Un poco más de zoom para ver el local
+        longitudeDelta: 0.006
+      };
+
+      setRegion(regionActualizada);
+
+      // Animamos el mapa directo hacia las coordenadas del producto escaneado
+      if (mapRef.current) {
+        mapRef.current.animateToRegion(regionActualizada, 1000);
+      }
+
+      // Si nos pasaron el objeto del producto, lo agregamos a la lista para que se renderice abajo
+      if (params.productoEncontrado) {
+        setProductos([params.productoEncontrado]);
+        setSearch(params.productoEncontrado.nombre);
+      }
+    }
+  }, [params.latitud, params.longitud, params.productoEncontrado]);
 
   const realizarBusqueda = async () => {
     if (!search.trim()) { 
@@ -101,6 +132,19 @@ export default function ProductSearchScreen({ navigation, route }) {
       const result = await response.json();
       if (result.status === 'success') { 
         setProductos(result.data || []); 
+        
+        // Si la búsqueda manual devuelve un producto con mapa, movemos el mapa ahí
+        if (result.data && result.data.length > 0 && result.data[0].latitud) {
+          const proxyRegion = {
+            latitude: parseFloat(result.data[0].latitud),
+            longitude: parseFloat(result.data[0].longitud),
+            latitudeDelta: 0.008,
+            longitudeDelta: 0.006
+          };
+          setRegion(proxyRegion);
+          if (mapRef.current) mapRef.current.animateToRegion(proxyRegion, 1000);
+        }
+
         if (result.data.length === 0) Alert.alert("Sin resultados", "No se encontraron productos."); 
       } else { 
         Alert.alert("Error", "No se pudo realizar la búsqueda."); 
@@ -123,7 +167,6 @@ export default function ProductSearchScreen({ navigation, route }) {
           onPress: async () => {
             try {
               setIsExiting(true);
-
               const { sound } = await Audio.Sound.createAsync(
                 AUDIO_DESPEDIDA,
                 { shouldPlay: false }
@@ -137,7 +180,6 @@ export default function ProductSearchScreen({ navigation, route }) {
               });
 
               await sound.playAsync();
-
             } catch (error) {
               console.error("Error en la automatización del cierre:", error);
               BackHandler.exitApp();
@@ -235,6 +277,7 @@ export default function ProductSearchScreen({ navigation, route }) {
   );
 }
 
+// Mantenemos tus mismos estilos intactos
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#001f3f' },
   header: { flexDirection: 'row', justifyContent: 'space-between', padding: 20, paddingTop: 40, alignItems: 'center' },

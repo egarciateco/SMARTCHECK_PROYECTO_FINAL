@@ -1,80 +1,162 @@
 ﻿import React, { useState, useEffect } from 'react';
-import { View, Image, StyleSheet, TouchableOpacity, Text, SafeAreaView } from 'react-native';
+import { 
+  StyleSheet, 
+  Text, 
+  View, 
+  Image, 
+  TouchableOpacity 
+} from 'react-native';
+import { useNavigation } from '@react-navigation/native';
+import { Audio } from 'expo-av';
 
-const API_URL = 'https://smartcheck-proyecto-final.onrender.com';
+export default function WelcomeScreen() {
+  const navigation = useNavigation();
+  const [loading, setLoading] = useState(true);
+  const [dots, setDots] = useState('.');
 
-const WelcomeScreen = ({ navigation }) => {
-  const [progreso, setProgreso] = useState(0);
-  const [verificando, setVerificando] = useState(true);
-
+  // Efecto para la animación de los puntos suspensivos
   useEffect(() => {
-    const verificarServidor = async () => {
+    if (loading) {
+      const interval = setInterval(() => {
+        setDots(prev => {
+          if (prev === '.') return '..';
+          if (prev === '..') return '...';
+          return '.';
+        });
+      }, 500);
+      return () => clearInterval(interval);
+    }
+  }, [loading]);
+
+  // Efecto para simular la carga y disparar el sonido
+  useEffect(() => {
+    const timer = setTimeout(async () => {
+      setLoading(false);
+      
+      // Reproducir sonido de éxito
       try {
-        await fetch(`${API_URL}/api/users/usuarios`, { method: 'HEAD' });
+        const { sound } = await Audio.Sound.createAsync(require('../../assets/exito.mp3'));
+        await sound.playAsync();
+        // Liberar memoria al terminar
+        sound.setOnPlaybackStatusUpdate(status => {
+          if (status.didJustFinish) sound.unloadAsync();
+        });
       } catch (error) {
-        console.log("Error de conexión:", error.message);
-      } finally {
-        setVerificando(false);
+        console.log("Error al reproducir audio:", error);
       }
-    };
-
-    verificarServidor();
-
-    const intervalo = setInterval(() => {
-      setProgreso(prev => {
-        if (prev >= 100) {
-          clearInterval(intervalo);
-          return 100;
-        }
-        return prev + 2;
-      });
-    }, 60);
-
-    return () => clearInterval(intervalo);
+    }, 3000);
+    
+    return () => clearTimeout(timer);
   }, []);
 
-  const handleComenzar = () => {
-    navigation.replace('Login');
-  };
-
   return (
-    <SafeAreaView style={styles.container}>
-      <View style={styles.contentContainer}>
-        <View style={styles.imageContainer}>
-          <Image source={require('../../assets/splash.png')} style={styles.backgroundImage} resizeMode="contain" />
-        </View>
-        <View style={styles.progressWrapper}>
-          <View style={[styles.progressBar, { width: `${progreso}%` }]} />
-        </View>
-        <Text style={styles.loadingText}>{verificando ? "Verificando conexión..." : "Sistema Listo"}</Text>
-        <View style={styles.footerContainer}>
-          <Text style={styles.title}>SmartCheck</Text>
-          <TouchableOpacity 
-            style={[styles.button, progreso < 100 && { opacity: 0.5 }]} 
-            onPress={handleComenzar}
-            disabled={progreso < 100}
-            activeOpacity={0.8}
-          >
-            <Text style={styles.buttonText}>COMENZAR</Text>
-          </TouchableOpacity>
-        </View>
+    <View style={styles.container}>
+      {/* Encabezado fijo */}
+      <View style={styles.header}>
+        <Image source={require('../../assets/logo.png')} style={styles.logo} />
+        <Image source={require('../../assets/nombreapp.png')} style={styles.nombreApp} />
       </View>
-    </SafeAreaView>
+
+      {/* Sección central dinámica */}
+      <View style={styles.middleSection}>
+        {loading ? (
+          <View style={styles.containerCarga}>
+            <Image source={require('../../assets/espera.gif')} style={styles.gifStyle} />
+            <Text style={styles.loadingText}>
+              Verificando conexión{dots} Espere por favor...
+            </Text>
+          </View>
+        ) : (
+          <View style={styles.containerListo}>
+            <Text style={styles.readyText}>¡SISTEMA LISTO!</Text>
+            <TouchableOpacity 
+              style={styles.accessButton} 
+              onPress={() => navigation.navigate('Login')}
+            >
+              <Text style={styles.btnText}>ACCEDER</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+      </View>
+
+      {/* Pie de página */}
+      <View style={styles.footer}>
+        <Text style={styles.footerText}>SmartCheck v1.0</Text>
+      </View>
+    </View>
   );
-};
+}
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#001f3f' },
-  contentContainer: { flex: 1, justifyContent: 'space-between', alignItems: 'center', paddingVertical: 40 },
-  imageContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', width: '100%' },
-  backgroundImage: { width: '80%', height: '80%' },
-  progressWrapper: { width: '80%', height: 6, backgroundColor: '#002a54', borderRadius: 3, marginBottom: 5 },
-  progressBar: { height: '100%', backgroundColor: '#00ffcc', borderRadius: 3 },
-  loadingText: { color: '#fff', fontSize: 12, marginBottom: 20 },
-  footerContainer: { alignItems: 'center', width: '100%' },
-  title: { fontSize: 40, fontWeight: 'bold', color: '#ffcc00', marginBottom: 40 },
-  button: { backgroundColor: '#00ffcc', paddingHorizontal: 70, paddingVertical: 18, borderRadius: 30, elevation: 8 },
-  buttonText: { fontSize: 18, fontWeight: 'bold', color: '#001f3f' },
+  container: { 
+    flex: 1, 
+    backgroundColor: '#001f3f', 
+    alignItems: 'center', 
+    justifyContent: 'space-between',
+    paddingVertical: 30 
+  },
+  header: { 
+    alignItems: 'center', 
+    marginTop: 40 
+  },
+  logo: { 
+    width: 100, 
+    height: 100, 
+    resizeMode: 'contain' 
+  },
+  nombreApp: { 
+    width: 200, 
+    height: 60, 
+    resizeMode: 'contain', 
+    marginTop: 10 
+  },
+  middleSection: { 
+    flex: 1, 
+    justifyContent: 'center', 
+    alignItems: 'center',
+    width: '100%' 
+  },
+  containerCarga: { 
+    alignItems: 'center',
+    justifyContent: 'center' 
+  },
+  gifStyle: { 
+    width: 150, 
+    height: 150, 
+    resizeMode: 'contain' 
+  },
+  loadingText: { 
+    marginTop: 20, 
+    fontSize: 16, 
+    color: '#00ffcc', 
+    fontWeight: 'bold',
+    textAlign: 'center' 
+  },
+  containerListo: { 
+    alignItems: 'center' 
+  },
+  readyText: { 
+    color: '#fff', 
+    fontSize: 24, 
+    fontWeight: 'bold', 
+    marginBottom: 30 
+  },
+  accessButton: { 
+    backgroundColor: '#00ffcc', 
+    paddingVertical: 15, 
+    paddingHorizontal: 40, 
+    borderRadius: 25 
+  },
+  btnText: { 
+    color: '#001f3f', 
+    fontWeight: '900', 
+    fontSize: 18 
+  },
+  footer: { 
+    marginBottom: 20 
+  },
+  footerText: { 
+    color: '#888', 
+    fontSize: 12 
+  }
 });
-
-export default WelcomeScreen;

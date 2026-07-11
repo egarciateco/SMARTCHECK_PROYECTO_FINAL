@@ -1,163 +1,181 @@
-import React, { useState, useEffect } from 'react';
-import { StyleSheet, View, TextInput, TouchableOpacity, Text, Image, KeyboardAvoidingView, Platform, Alert, ActivityIndicator, BackHandler } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import { useNavigation } from '@react-navigation/native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useAuth } from '../context/AuthContext';
-import * as Location from 'expo-location';
+import React, { useState, useLayoutEffect } from 'react';
+import { 
+  View, 
+  Text, 
+  StyleSheet, 
+  Image, 
+  TextInput, 
+  TouchableOpacity, 
+  Alert,
+  ScrollView,
+  KeyboardAvoidingView,
+  Platform
+} from 'react-native';
 
-const API_URL = 'https://smartcheck-proyecto-final.onrender.com';
+import { auth } from '../services/firebaseConfig'; 
+import { signInWithEmailAndPassword, sendPasswordResetEmail } from 'firebase/auth'; 
 
-export default function LoginScreen() {
-  const navigation = useNavigation();
-  const { login } = useAuth();
+export default function LoginScreen({ navigation }) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [showPass, setShowPass] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const [geoData, setGeoData] = useState({ localidad: 'N/A', provincia: 'N/A' });
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [isTyping, setIsTyping] = useState(false);
 
-  useEffect(() => {
-    (async () => {
-      try {
-        let { status } = await Location.requestForegroundPermissionsAsync();
-        if (status !== 'granted') return;
-        let location = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Low });
-        let reverseGeocode = await Location.reverseGeocodeAsync({
-          latitude: location.coords.latitude,
-          longitude: location.coords.longitude
-        });
-        if (reverseGeocode && reverseGeocode.length > 0) {
-          const resultado = reverseGeocode[0];
-          setGeoData({
-            localidad: resultado.city || resultado.subregion || 'Desconocida',
-            provincia: resultado.region || 'Desconocida'
-          });
-        }
-      } catch (err) { console.error(err); }
-    })();
-  }, []);
+  useLayoutEffect(() => {
+    navigation.setOptions({ headerShown: false });
+  }, [navigation]);
 
-  const ejecutarLogout = () => {
-    Alert.alert("Salir", "¿Está seguro que desea cerrar la aplicación?", [
-      { text: "No", style: "cancel" },
-      { text: "Sí", onPress: () => BackHandler.exitApp() }
-    ]);
+  // Manejador: Cuando escribes la contraseña, aparece "Confirmar" y el botón de Ingreso
+  const handlePasswordInput = (text) => {
+    setPassword(text);
+    setIsTyping(text.length > 0);
   };
 
-  const handleLoginManual = async () => {
-    if (!email || !password) {
-      Alert.alert("Campos incompletos", "Por favor, ingresa tu email y contraseña.");
+  const handleLogin = async () => {
+    if (password !== confirmPassword) {
+      Alert.alert("Error", "Las contraseñas no coinciden.");
       return;
     }
-    setLoading(true);
     try {
-      const response = await fetch(`${API_URL}/api/users/login`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password }),
-      });
-      const data = await response.json();
-      setLoading(false);
-      
-      if (response.ok && data.status === 'success') {
-        const u = data.usuario || data;
-        
-        // PARSEO INTELIGENTE DE FECHA: Si viene como 'fechaNacimiento' (DD/MM/AAAA), la desestructuramos
-        let extraDia = "";
-        let extraMes = "";
-        let extraAnio = "";
-
-        if (u.fechaNacimiento && u.fechaNacimiento.includes('/')) {
-          const partes = u.fechaNacimiento.split('/');
-          if (partes.length === 3) {
-            extraDia = partes[0];
-            extraMes = partes[1];
-            extraAnio = partes[2];
-          }
-        }
-
-        const usuarioCompleto = { 
-            ...u, 
-            dia: u.dia || extraDia,
-            mes: u.mes || extraMes,
-            anio: u.anio || extraAnio,
-            localidad: geoData.localidad, 
-            provincia: geoData.provincia 
-        };
-        
-        await AsyncStorage.setItem('usuario_logueado', JSON.stringify(usuarioCompleto));
-        login(usuarioCompleto);
-        
-        if (usuarioCompleto.rol === 'admin' || usuarioCompleto.role === 'admin') {
-            navigation.replace('AdminPanel');
-        } else {
-            navigation.replace('Home');
-        }
-      } else {
-        Alert.alert("Acceso denegado", data.mensaje || "Credenciales incorrectas.");
-      }
+      await signInWithEmailAndPassword(auth, email.trim(), password);
+      // Firebase y tu AuthContext (en App.js) detectarán esto y cambiarán a HomeScreen automáticamente
     } catch (error) {
-      setLoading(false);
-      Alert.alert("Sin conexión", "No pudimos conectar con el servidor.");
+      Alert.alert("Error", "No se pudo iniciar sesión. Verifique sus datos.");
+    }
+  };
+
+  // Función conectada al botón verificar.png
+  const handleVerify = () => {
+    // ¡CORREGIDO! Ahora coincide con el nombre en tu App.js
+    navigation.navigate('Camera'); 
+  };
+
+  const handleForgotPassword = async () => {
+    if (email.trim() === '') {
+      Alert.alert("Atención", "Por favor, escribe tu email en el campo superior para poder verificar si existe en la base de datos.");
+      return;
+    }
+
+    try {
+      await sendPasswordResetEmail(auth, email.trim());
+      Alert.alert("Éxito", "Se ha enviado un enlace a tu correo para restablecer la contraseña (revisa también la carpeta de Spam).");
+    } catch (error) {
+      Alert.alert("Error", "No se encontró el email en la base de datos o hubo un problema al enviar el correo.");
     }
   };
 
   return (
-    <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.container}>
-      <View style={styles.headerArea}>
-        <Image source={require('../../assets/logo.png')} style={styles.logo} />
-        <Image source={require('../../assets/nombreapp.png')} style={styles.nombreApp} />
-      </View>
+    <View style={styles.mainContainer}>
       
-      <View style={styles.blackBar}><Text style={styles.titleText}>INICIAR SESIÓN</Text></View>
-      
-      <View style={styles.content}>
-        <View style={styles.inputContainer}>
-          <Text style={styles.emoji}>📧</Text>
-          <TextInput style={styles.input} placeholder="Email" value={email} onChangeText={setEmail} autoCapitalize="none" keyboardType="email-address" />
-        </View>
-        <View style={styles.inputContainer}>
-          <Text style={styles.emoji}>🔒</Text>
-          <TextInput style={styles.input} placeholder="Contraseña" secureTextEntry={!showPass} value={password} onChangeText={setPassword} />
-          <TouchableOpacity onPress={() => setShowPass(!showPass)}>
-            <Ionicons name={showPass ? "eye-off" : "eye"} size={20} color="#001f3f" />
-          </TouchableOpacity>
-        </View>
+      {/* BOTÓN SALIR */}
+      <TouchableOpacity style={styles.exitButton} onPress={() => navigation.navigate('Goodbye')}>
+        <Image source={require('../../assets/salir.png')} style={styles.exitIcon} />
+      </TouchableOpacity>
 
-        {loading ? <ActivityIndicator size="small" color="#ffcc00" /> : (
-          <View>
-            <TouchableOpacity style={styles.btn} onPress={handleLoginManual}><Text style={styles.btnText}>INGRESAR</Text></TouchableOpacity>
-            <TouchableOpacity style={styles.btnFacial} onPress={() => navigation.navigate('Camera', { tipoOperacion: 'LOGIN', geoData })}>
-              <Text style={styles.btnText}>LOGIN FACIAL</Text>
+      {/* Evita que el teclado tape los botones */}
+      <KeyboardAvoidingView 
+        style={{ flex: 1 }} 
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      >
+        <ScrollView 
+          contentContainerStyle={styles.scrollContent}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+        >
+          {/* HEADER */}
+          <View style={styles.headerSection}>
+            <Image source={require('../../assets/logo.png')} style={styles.logo} />
+            <Image source={require('../../assets/nombreapp.png')} style={styles.appName} />
+            <View style={styles.fullWidthTitleStrip}>
+              <Text style={styles.titleStripText}>INICIO DE SESIÓN</Text>
+            </View>
+          </View>
+
+          {/* FORMULARIO */}
+          <View style={styles.formSection}>
+            <View style={styles.inputRow}>
+              <Image source={require('../../assets/email.png')} style={styles.inputIcon} />
+              <TextInput 
+                style={styles.input} 
+                placeholder="Email" 
+                placeholderTextColor="#555" 
+                value={email} 
+                onChangeText={setEmail}
+                autoCapitalize="none"
+                keyboardType="email-address"
+              />
+            </View>
+
+            <View style={styles.inputRow}>
+              <Image source={require('../../assets/candado.png')} style={styles.inputIcon} />
+              <TextInput 
+                style={styles.input} 
+                placeholder="Contraseña" 
+                placeholderTextColor="#555" 
+                secureTextEntry 
+                value={password} 
+                onChangeText={handlePasswordInput} 
+              />
+            </View>
+
+            {/* LÓGICA DINÁMICA: Si escribes, muestra btningreso. Si no, muestra verificar. */}
+            {isTyping ? (
+              <>
+                <View style={styles.inputRow}>
+                  <Image source={require('../../assets/candado2.png')} style={styles.inputIcon} />
+                  <TextInput 
+                    style={styles.input} 
+                    placeholder="Confirmar Contraseña" 
+                    placeholderTextColor="#555" 
+                    secureTextEntry 
+                    value={confirmPassword} 
+                    onChangeText={setConfirmPassword} 
+                  />
+                </View>
+                <TouchableOpacity onPress={handleLogin} style={styles.buttonWrapper}>
+                  <Image source={require('../../assets/btningreso.png')} style={styles.uniformImageButton} />
+                </TouchableOpacity>
+              </>
+            ) : (
+              <TouchableOpacity onPress={handleVerify} style={styles.buttonWrapper}>
+                <Image source={require('../../assets/verificar.png')} style={styles.uniformImageButton} />
+              </TouchableOpacity>
+            )}
+          </View>
+
+          {/* FOOTER */}
+          <View style={styles.footerSection}>
+            <TouchableOpacity style={styles.navButton} onPress={() => navigation.navigate('Register')}>
+              <Image source={require('../../assets/registrarse.png')} style={styles.footerRectButton} />
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.navButton} onPress={handleForgotPassword}>
+              <Image source={require('../../assets/recucontra.png')} style={styles.footerRectButton} />
             </TouchableOpacity>
           </View>
-        )}
         
-        <TouchableOpacity onPress={() => navigation.navigate('Register')}><Text style={styles.link}>¿No tienes cuenta? Regístrate</Text></TouchableOpacity>
-      </View>
-
-      <TouchableOpacity style={styles.footer} onPress={ejecutarLogout}>
-        <Text style={styles.footerText}>Salir</Text>
-      </TouchableOpacity>
-    </KeyboardAvoidingView>
+        </ScrollView>
+      </KeyboardAvoidingView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#001f3f' },
-  headerArea: { alignItems: 'center', marginTop: 20 },
-  logo: { width: 80, height: 80, resizeMode: 'contain' },
-  nombreApp: { width: 150, height: 40, resizeMode: 'contain' },
-  blackBar: { backgroundColor: '#000', padding: 8, alignItems: 'center', marginVertical: 10 },
-  titleText: { color: '#fff', fontSize: 16, fontWeight: 'bold' },
-  content: { flex: 1, paddingHorizontal: 20, justifyContent: 'center' },
-  inputContainer: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#fff', padding: 8, borderRadius: 5, marginBottom: 10 },
-  input: { flex: 1, paddingHorizontal: 5, fontSize: 14 },
-  btn: { backgroundColor: '#00ffcc', padding: 12, borderRadius: 5, alignItems: 'center', marginBottom: 8 },
-  btnFacial: { backgroundColor: '#ffcc00', padding: 12, borderRadius: 5, alignItems: 'center', marginBottom: 8 },
-  btnText: { fontWeight: 'bold', fontSize: 14 },
-  link: { color: '#fff', textAlign: 'center', fontSize: 12, textDecorationLine: 'underline' },
-  footer: { alignItems: 'center', paddingBottom: 15 },
-  footerText: { color: '#fff', fontSize: 14, fontWeight: 'bold' }
+  mainContainer: { flex: 1, backgroundColor: '#001f3f' },
+  scrollContent: { flexGrow: 1, paddingHorizontal: 15, paddingTop: 10, paddingBottom: 15, justifyContent: 'space-between' },
+  exitButton: { position: 'absolute', top: 35, right: 15, zIndex: 10 },
+  exitIcon: { width: 40, height: 40, resizeMode: 'contain' },
+  headerSection: { alignItems: 'center', marginTop: 45 },
+  logo: { width: 110, height: 110, resizeMode: 'contain' },
+  appName: { width: 200, height: 50, resizeMode: 'contain' },
+  fullWidthTitleStrip: { backgroundColor: '#000', width: '120%', paddingVertical: 8, alignItems: 'center', marginTop: 10 },
+  titleStripText: { color: '#ffcc00', fontSize: 16, fontWeight: 'bold' },
+  formSection: { marginVertical: 20, padding: 15, borderWidth: 1, borderColor: '#FFD700', borderRadius: 15 },
+  inputRow: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#d3d3d3', borderRadius: 10, marginBottom: 12, paddingHorizontal: 10, height: 55 },
+  inputIcon: { width: 35, height: 35, resizeMode: 'contain', marginRight: 10 },
+  input: { flex: 1, color: '#000', fontSize: 15 },
+  buttonWrapper: { width: '100%', alignItems: 'center', marginTop: 5 },
+  uniformImageButton: { width: '100%', height: 70, resizeMode: 'contain' },
+  footerSection: { flexDirection: 'row', justifyContent: 'space-between', gap: 10, marginTop: 'auto' },
+  navButton: { flex: 1 },
+  footerRectButton: { width: '100%', height: 65, resizeMode: 'contain' } 
 });

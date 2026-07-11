@@ -1,183 +1,178 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, FlatList, Alert, Image, Dimensions, TextInput, BackHandler } from 'react-native';
-import { useFocusEffect } from '@react-navigation/native';
-import axios from 'axios';
-import { Audio } from 'expo-av';
-
-const { width } = Dimensions.get('window');
-const AUDIO_DESPEDIDA = require('../../assets/despedida.mp3');
+import React, { useState, useEffect } from 'react';
+import { 
+  View, Text, StyleSheet, FlatList, ActivityIndicator, Image, 
+  TouchableOpacity, Platform, BackHandler, Modal, TextInput, Alert 
+} from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Ionicons } from '@expo/vector-icons';
+import { useAuth } from '../context/AuthContext'; // Importante para la función logout
 
 export default function AdminPanelScreen({ navigation }) {
-  const [pin, setPin] = useState('');
-  const [autenticado, setAutenticado] = useState(false);
+  const { logout } = useAuth(); // Obtenemos la función logout del contexto
   const [usuarios, setUsuarios] = useState([]);
-  const [cargando, setCargando] = useState(false);
-  const [isExiting, setIsExiting] = useState(false);
+  const [loading, setLoading] = useState(true);
+  
+  // Estados para el cambio de contraseña
+  const [modalVisible, setModalVisible] = useState(false);
+  const [newPassword, setNewPassword] = useState('');
 
-  // Función de carga mejorada para capturar cualquier estructura de respuesta
-  const cargarTelemetria = async () => {
-    setCargando(true);
-    try {
-      const response = await axios.get('https://smartcheck-proyecto-final.onrender.com/api/users/admin');
-      // Verificamos si los datos vienen directamente en data o bajo la propiedad 'usuarios'
-      const data = response.data.usuarios || (Array.isArray(response.data) ? response.data : []);
-      setUsuarios(data);
-    } catch (error) {
-      console.error("Error cargando telemetría:", error);
-      Alert.alert("Error", "No se pudo conectar con el servidor.");
-    } finally {
-      setCargando(false);
-    }
-  };
-
-  // Se activa al entrar en la pantalla si ya está autenticado
-  useFocusEffect(
-    React.useCallback(() => {
-      if (autenticado) {
-        cargarTelemetria();
-      }
-    }, [autenticado])
-  );
-
-  const handleIngresar = () => {
-    if (pin === '00192') {
-      setAutenticado(true);
-      cargarTelemetria(); // Carga inmediata al autenticar
-    } else {
-      Alert.alert("Error", "PIN incorrecto");
-      setPin('');
-    }
-  };
-
-  // Función de salida controlada por el estado de reproducción del audio
-  const ejecutarSalidaSegura = () => {
-    Alert.alert(
-      "Cerrar Aplicación",
-      "¿Estás seguro de que deseas salir de la aplicación?",
-      [
-        { text: "No", style: "cancel" },
-        { 
-          text: "Sí", 
-          onPress: async () => {
-            try {
-              setIsExiting(true);
-
-              const { sound } = await Audio.Sound.createAsync(
-                AUDIO_DESPEDIDA,
-                { shouldPlay: false }
-              );
-
-              sound.setOnPlaybackStatusUpdate(async (status) => {
-                if (status.didJustFinish) {
-                  await sound.unloadAsync();
-                  BackHandler.exitApp();
-                }
-              });
-
-              await sound.playAsync();
-
-            } catch (error) {
-              console.error("Error en la automatización del cierre:", error);
-              BackHandler.exitApp();
-            }
-          } 
+  useEffect(() => {
+    const obtenerUsuariosTelemetry = async () => {
+      try {
+        const respuesta = await fetch('https://smartcheck-proyecto-final.onrender.com/api/users/admin');
+        const json = await respuesta.json();
+        if (json.status === 'success') {
+          setUsuarios(json.usuarios);
         }
-      ]
+      } catch (error) {
+        console.error("Error cargando telemetría de administración:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    obtenerUsuariosTelemetry();
+  }, []);
+
+  // Función para guardar la nueva contraseña
+  const handleSavePassword = async () => {
+    if (newPassword.length < 4) {
+      Alert.alert("Error", "La contraseña debe tener al menos 4 dígitos");
+      return;
+    }
+    await AsyncStorage.setItem('admin_pass', newPassword);
+    Alert.alert("Éxito", "Contraseña de administrador actualizada correctamente");
+    setNewPassword('');
+    setModalVisible(false);
+  };
+
+  const calcularDatosItem = (item) => {
+    let nacimiento = "12/02/1968";
+    let edadCalculada = "58 años";
+
+    if (item.fechaNacimiento) {
+      nacimiento = item.fechaNacimiento;
+    } else if (item.dia && item.mes && item.anio) {
+      nacimiento = `${String(item.dia).padStart(2, '0')}/${String(item.mes).padStart(2, '0')}/${item.anio}`;
+    }
+
+    try {
+      const partes = nacimiento.split('/');
+      if (partes.length === 3) {
+        const nDate = new Date(parseInt(partes[2]), parseInt(partes[1]) - 1, parseInt(partes[0]));
+        const hoy = new Date();
+        let edad = hoy.getFullYear() - nDate.getFullYear();
+        const mDiff = hoy.getMonth() - nDate.getMonth();
+        if (mDiff < 0 || (mDiff === 0 && hoy.getDate() < nDate.getDate())) {
+          edad--;
+        }
+        edadCalculada = `${edad} años`;
+      }
+    } catch (e) {
+      if (item.anio) edadCalculada = `${2026 - parseInt(item.anio)} años`;
+    }
+
+    return { nacimiento, edadCalculada };
+  };
+
+  const renderUserItem = ({ item }) => {
+    const { nacimiento, edadCalculada } = calcularDatosItem(item);
+    const imagenUri = item.foto || item.image || null;
+
+    return (
+      <View style={styles.card}>
+        <View style={styles.cardInfo}>
+          <Text style={styles.cardName}>
+            {item.apellido ? `${item.apellido.toUpperCase()}, ${item.nombre}` : item.nombre}
+          </Text>
+          <Text style={styles.cardText}>Email: {item.email || item.correo}</Text>
+          <Text style={styles.cardText}>Sexo: {item.sexo || 'M'}</Text>
+          <Text style={styles.cardTextHighlight}>
+            Nac.: {nacimiento} | Edad: {edadCalculada}
+          </Text>
+        </View>
+        <View style={styles.imageContainer}>
+          {imagenUri ? (
+            <Image source={{ uri: imagenUri }} style={styles.avatarImage} resizeMode="cover" />
+          ) : (
+            <Ionicons name="person" size={28} color="#666" />
+          )}
+        </View>
+      </View>
     );
   };
 
-  // Render de contingencia para la pantalla de despedida
-  if (isExiting) {
+  if (loading) {
     return (
-      <View style={styles.exitContainer}>
-        <Image source={require('../../assets/logo.png')} style={styles.exitLogo} />
-        <Text style={styles.exitTitle}>¡HASTA LUEGO!</Text>
-        <Text style={styles.exitSubtitle}>¡Vuelva pronto!</Text>
+      <View style={[styles.container, styles.center]}>
+        <ActivityIndicator size="large" color="#ff8c00" />
       </View>
     );
   }
 
-  // VISTA DE LOGIN
-  if (!autenticado) {
-    return (
-      <View style={styles.container}>
-        <View style={styles.blackTitleBar}>
-          <Text style={styles.titleText}>INGRESO ADMINISTRADOR</Text>
-        </View>
-        
-        <View style={styles.loginBox}>
-          <TextInput
-            style={styles.input}
-            placeholder="Ingrese PIN"
-            placeholderTextColor="#888"
-            secureTextEntry={true}
-            value={pin}
-            onChangeText={setPin}
-            keyboardType="numeric"
-            maxLength={5}
-            autoFocus={true}
-          />
-          <TouchableOpacity style={styles.botonIngresar} onPress={handleIngresar}>
-            <Text style={styles.botonTexto}>INGRESAR</Text>
-          </TouchableOpacity>
-        </View>
-
-        <View style={styles.footerArea}>
-          <TouchableOpacity onPress={() => navigation.goBack()}>
-            <Image source={require('../../assets/volver.png')} style={styles.navIcon} />
-          </TouchableOpacity>
-        </View>
-      </View>
-    );
-  }
-
-  // VISTA DE PANEL
   return (
     <View style={styles.container}>
-      <View style={styles.blackTitleBar}>
-        <Text style={styles.titleText}>PANEL DE TELEMETRÍA GLOBAL</Text>
+      {/* Header de navegación */}
+      <View style={styles.headerNav}>
+        <TouchableOpacity onPress={() => navigation.goBack()}>
+          <Ionicons name="arrow-back" size={24} color="#fff" />
+        </TouchableOpacity>
+        <Text style={styles.headerTitle}>Administración</Text>
+        <View style={{ width: 24 }} />
       </View>
-      
-      {cargando ? (
-        <View style={styles.center}>
-          <ActivityIndicator size="large" color="#00ffcc" />
-          <Text style={{color:'#fff', marginTop: 10}}>Cargando datos...</Text>
-        </View>
-      ) : (
-        <FlatList
-          data={usuarios}
-          keyExtractor={(item) => item._id?.toString() || item.id?.toString() || Math.random().toString()}
-          contentContainerStyle={{ padding: 15 }}
-          ListEmptyComponent={<Text style={styles.empty}>No hay usuarios registrados.</Text>}
-          renderItem={({ item }) => {
-            let edadCalculada = 'N/A';
-            if (item.dia && item.mes && item.anio) {
-              const hoy = new Date();
-              let edad = hoy.getFullYear() - parseInt(item.anio);
-              const mesActual = hoy.getMonth() + 1;
-              if (mesActual < parseInt(item.mes) || (mesActual === parseInt(item.mes) && hoy.getDate() < parseInt(item.dia))) {
-                edad--;
-              }
-              edadCalculada = `${edad} años`;
-            }
 
-            return (
-              <View style={styles.cardUsuario}>
-                <Text style={styles.userTitle}>{item.apellido?.toUpperCase()}, {item.nombre}</Text>
-                <Text style={styles.userSub}>{item.email}</Text>
-                <Text style={styles.userSub}>Sexo: {item.sexo || 'N/A'}</Text>
-                <Text style={styles.userSub}>
-                  Nacimiento: {item.dia ? `${item.dia}/${item.mes}/${item.anio}` : 'N/A'} | Edad: {edadCalculada}
-                </Text>
-              </View>
-            );
-          }}
-        />
-      )}
-      
-      <View style={styles.footerArea}>
-        <TouchableOpacity onPress={() => { setAutenticado(false); setPin(''); navigation.goBack(); }}>
-          <Image source={require('../../assets/volver.png')} style={styles.navIcon} />
+      <View style={styles.blackBanner}>
+        <Text style={styles.blackBannerText}>PANEL DEL ADMINISTRADOR</Text>
+      </View>
+      <View style={styles.lineaNaranja} />
+
+      {/* Botón de Cambio de Contraseña */}
+      <TouchableOpacity style={styles.btnChangePass} onPress={() => setModalVisible(true)}>
+        <Ionicons name="key-outline" size={18} color="#fff" />
+        <Text style={styles.btnChangeText}>Cambiar Contraseña Admin</Text>
+      </TouchableOpacity>
+
+      <FlatList
+        data={usuarios}
+        keyExtractor={(item) => item._id || item.email}
+        renderItem={renderUserItem}
+        contentContainerStyle={styles.listPadding}
+        showsVerticalScrollIndicator={false}
+      />
+
+      {/* MODAL PARA CAMBIO DE CONTRASEÑA */}
+      <Modal animationType="slide" transparent={true} visible={modalVisible} onRequestClose={() => setModalVisible(false)}>
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalView}>
+            <Text style={styles.modalTitle}>Nueva Contraseña Admin</Text>
+            <TextInput 
+              style={styles.modalInput} 
+              placeholder="Ej: 9999" 
+              keyboardType="numeric" 
+              secureTextEntry
+              value={newPassword}
+              onChangeText={setNewPassword}
+              maxLength={10}
+            />
+            <View style={styles.modalBtnRow}>
+              <TouchableOpacity style={[styles.modalBtn, {backgroundColor: '#555'}]} onPress={() => setModalVisible(false)}>
+                <Text style={{color: '#fff'}}>Cancelar</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={[styles.modalBtn, {backgroundColor: '#ff8c00'}]} onPress={handleSavePassword}>
+                <Text style={{color: '#fff', fontWeight: 'bold'}}>Guardar</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      <View style={styles.footer}>
+        <TouchableOpacity style={styles.footerBtn} onPress={() => navigation.goBack()}>
+          <Image source={require('../../assets/volver.png')} style={styles.footerIcon} resizeMode="contain" />
+        </TouchableOpacity>
+        
+        {/* BOTÓN SALIR: Ahora llama directamente a logout() */}
+        <TouchableOpacity style={styles.footerBtn} onPress={logout}>
+          <Image source={require('../../assets/salir.png')} style={styles.footerIcon} resizeMode="contain" />
         </TouchableOpacity>
       </View>
     </View>
@@ -185,23 +180,36 @@ export default function AdminPanelScreen({ navigation }) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#001f3f' },
-  center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  blackTitleBar: { backgroundColor: '#000', paddingVertical: 12, marginBottom: 15 },
-  titleText: { color: '#fff', fontWeight: 'bold', fontSize: 14, textAlign: 'center' },
-  loginBox: { flex: 1, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 40 },
-  input: { backgroundColor: '#002a54', color: '#fff', fontSize: 18, width: '100%', height: 50, borderRadius: 8, paddingHorizontal: 15, textAlign: 'center', borderWidth: 1, borderColor: '#ff9933', marginBottom: 20, letterSpacing: 5 },
-  botonIngresar: { backgroundColor: '#ff9933', width: '100%', height: 48, borderRadius: 8, justifyContent: 'center', alignItems: 'center' },
-  botonTexto: { color: '#001f3f', fontSize: 16, fontWeight: 'bold' },
-  cardUsuario: { backgroundColor: '#002a54', padding: 15, borderRadius: 8, marginBottom: 10, borderWidth: 1, borderColor: '#ff9933' },
-  userTitle: { color: '#00ffcc', fontWeight: 'bold', fontSize: 14 },
-  userSub: { color: '#fff', fontSize: 12, marginTop: 2 },
-  empty: { color: '#fff', textAlign: 'center', marginTop: 40 },
-  footerArea: { alignItems: 'center', paddingBottom: 20 },
-  navIcon: { width: 38, height: 38, resizeMode: 'contain' },
+  container: { flex: 1, backgroundColor: '#001a33' },
+  center: { justifyContent: 'center', alignItems: 'center' },
+  headerNav: { height: 60, backgroundColor: '#0c2340', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16 },
+  headerTitle: { color: '#fff', fontSize: 20, fontWeight: 'bold' },
+  blackBanner: { backgroundColor: '#000', paddingVertical: 12, alignItems: 'center', width: '100%' },
+  blackBannerText: { color: '#ff8c00', fontSize: 16, fontWeight: 'bold', letterSpacing: 0.5 },
+  lineaNaranja: { width: '100%', height: 2, backgroundColor: '#ff8c00' },
   
-  exitContainer: { flex: 1, backgroundColor: '#001f3f', justifyContent: 'center', alignItems: 'center' },
-  exitLogo: { width: 100, height: 100, marginBottom: 20, resizeMode: 'contain' },
-  exitTitle: { color: '#ff9933', fontSize: 24, fontWeight: '900', letterSpacing: 3, marginBottom: 5 },
-  exitSubtitle: { color: '#00ffcc', fontSize: 16, fontWeight: '600', letterSpacing: 1 }
+  // Botón cambio contraseña
+  btnChangePass: { flexDirection: 'row', backgroundColor: '#1a4a6e', padding: 10, margin: 10, borderRadius: 8, justifyContent: 'center', alignItems: 'center', gap: 5 },
+  btnChangeText: { color: '#fff', fontSize: 14, fontWeight: '600' },
+
+  listPadding: { paddingBottom: 95, paddingTop: 8 },
+  card: { backgroundColor: '#0c2340', borderRadius: 8, paddingVertical: 10, paddingHorizontal: 14, marginVertical: 5, marginHorizontal: 16, borderWidth: 1, borderColor: '#1a4a6e', flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  cardInfo: { flex: 1, paddingRight: 10 },
+  cardName: { color: '#00fa9a', fontSize: 15, fontWeight: 'bold', marginBottom: 2 },
+  cardText: { color: '#fff', fontSize: 12, marginBottom: 1 },
+  cardTextHighlight: { color: '#e0e0e0', fontSize: 12, fontWeight: '500', marginTop: 1 },
+  imageContainer: { width: 75, height: 75, borderRadius: 37.5, backgroundColor: '#16355a', justifyContent: 'center', alignItems: 'center', overflow: 'hidden', borderWidth: 2, borderColor: '#ff8c00' },
+  avatarImage: { width: '100%', height: '100%' },
+  
+  // Modal Estilos
+  modalOverlay: { flex: 1, justifyContent: 'center', backgroundColor: 'rgba(0,0,0,0.7)' },
+  modalView: { margin: 20, backgroundColor: '#0c2340', borderRadius: 15, padding: 25, alignItems: 'center' },
+  modalTitle: { color: '#fff', fontSize: 18, marginBottom: 15, fontWeight: 'bold' },
+  modalInput: { width: '100%', backgroundColor: '#fff', padding: 10, borderRadius: 8, fontSize: 18, textAlign: 'center', marginBottom: 20 },
+  modalBtnRow: { flexDirection: 'row', gap: 15 },
+  modalBtn: { paddingVertical: 10, paddingHorizontal: 20, borderRadius: 8 },
+
+  footer: { position: 'absolute', bottom: 0, left: 0, right: 0, height: 75, backgroundColor: '#001a33', borderTopWidth: 1, borderColor: '#1a4a6e', flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 30, paddingBottom: Platform.OS === 'ios' ? 15 : 0 },
+  footerBtn: { padding: 5 },
+  footerIcon: { width: 36, height: 36 }
 });

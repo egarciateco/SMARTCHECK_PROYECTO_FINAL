@@ -1,224 +1,147 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, Image, TouchableOpacity, SafeAreaView, Alert, BackHandler } from 'react-native';
-import { Audio } from 'expo-av';
+import React, { useLayoutEffect, useState, useEffect } from 'react';
+import { 
+  View, 
+  Text, 
+  StyleSheet, 
+  Image, 
+  TouchableOpacity, 
+  Dimensions, 
+  Platform,
+  Alert
+} from 'react-native';
 import { useAuth } from '../context/AuthContext';
 
-const LOGO = require('../../assets/logo.png');
-const NOMBRE_APP = require('../../assets/nombreapp.png');
-const VOLVER_ICON = require('../../assets/volver.png');
-const SALIR_ICON = require('../../assets/salir.png');
-
-const EMAIL_ICON = require('../../assets/email.png');
-const FECHANAC_ICON = require('../../assets/fechanac.png');
-const EDAD_ICON = require('../../assets/edad.png');
-const PROVINCIA_ICON = require('../../assets/provincia.png');
-const LOCALIDAD_ICON = require('../../assets/localidad.png');
-
-const AUDIO_DESPEDIDA = require('../../assets/despedida.mp3');
+const { width, height } = Dimensions.get('window');
 
 export default function ProfileScreen({ navigation }) {
   const { user } = useAuth();
-  const [isExiting, setIsExiting] = useState(false);
 
-  let fechaFormateada = '';
-  let edadCalculada = '';
+  useLayoutEffect(() => {
+    navigation.setOptions({ headerShown: false });
+  }, [navigation]);
 
-  // ESTRATEGIA A: Si los datos vienen separados como en el AdminPanel
-  const d = user?.dia;
-  const m = user?.mes;
-  const a = user?.anio;
-
-  if (d && m && a) {
-    fechaFormateada = `${String(d).padStart(2, '0')}/${String(m).padStart(2, '0')}/${a}`;
-    const hoy = new Date();
-    let edad = hoy.getFullYear() - parseInt(a);
-    const mesActual = hoy.getMonth() + 1;
-    if (mesActual < parseInt(m) || (mesActual === parseInt(m) && hoy.getDate() < parseInt(d))) {
-      edad--;
-    }
-    edadCalculada = `${edad} años`;
-  } 
-  // ESTRATEGIA B: Por si el servidor la envía completa
-  else if (user?.fechaNacimiento || user?.birthdate) {
-    const fechaISO = new Date(user.fechaNacimiento || user.birthdate);
-    if (!isNaN(fechaISO.getTime())) {
-      const diaISO = fechaISO.getDate();
-      const mesISO = fechaISO.getMonth() + 1;
-      const anioISO = fechaISO.getFullYear();
-      
-      fechaFormateada = `${String(diaISO).padStart(2, '0')}/${String(mesISO).padStart(2, '0')}/${anioISO}`;
-      
-      const hoy = new Date();
-      let edad = hoy.getFullYear() - anioISO;
-      const mesActual = hoy.getMonth() + 1;
-      if (mesActual < mesISO || (mesActual === mesISO && hoy.getDate() < diaISO)) {
-        edad--;
-      }
-      edadCalculada = `${edad} años`;
-    }
-  }
-
-  // ESTRATEGIA C: Respaldo de emergencia
-  if (!fechaFormateada && user?.fechaNacimiento) {
-    try {
-      const partes = String(user.fechaNacimiento).split('T')[0].split('-');
-      if (partes.length === 3) {
-        fechaFormateada = `${partes[2]}/${partes[1]}/${partes[0]}`;
-        const hoy = new Date();
-        let edad = hoy.getFullYear() - parseInt(partes[0]);
-        const mesActual = hoy.getMonth() + 1;
-        if (mesActual < parseInt(partes[1]) || (mesActual === parseInt(partes[1]) && hoy.getDate() < parseInt(partes[2]))) {
-          edad--;
-        }
-        edadCalculada = `${edad} años`;
-      }
-    } catch (e) {
-      console.log("Error en parseo alternativo de fecha:", e);
-    }
-  }
-
-  // Función de salida controlada por el estado de reproducción del audio
-  const ejecutarSalidaSegura = () => {
+  const handleExitProfile = () => {
     Alert.alert(
-      "Cerrar Aplicación",
-      "¿Estás seguro de que deseas salir de la aplicación?",
+      "Cerrar Sesión",
+      "¿Estás seguro de que deseas salir de tu perfil?",
       [
-        { text: "No", style: "cancel" },
-        { 
-          text: "Sí", 
-          onPress: async () => {
-            try {
-              // Muestra la pantalla de despedida inmediatamente
-              setIsExiting(true);
-
-              // Carga el sonido de forma asíncrona
-              const { sound } = await Audio.Sound.createAsync(
-                AUDIO_DESPEDIDA,
-                { shouldPlay: false }
-              );
-
-              // Escucha los cambios de estado del audio en tiempo real
-              sound.setOnPlaybackStatusUpdate(async (status) => {
-                if (status.didJustFinish) {
-                  // Cuando el audio termina por completo, limpia la memoria y cierra la app
-                  await sound.unloadAsync();
-                  BackHandler.exitApp();
-                }
-              });
-
-              // Inicia la reproducción una vez configurado el listener
-              await sound.playAsync();
-
-            } catch (error) {
-              console.error("Error en la automatización del cierre:", error);
-              // Cierre de emergencia si el sistema de audio falla
-              BackHandler.exitApp();
-            }
-          } 
-        }
+        { text: "Cancelar", style: "cancel" },
+        { text: "Salir", onPress: () => navigation.navigate('Goodbye') }
       ]
     );
   };
 
-  // Render para la pantalla de despedida automatizada
-  if (isExiting) {
-    return (
-      <View style={styles.exitContainer}>
-        <Image source={LOGO} style={styles.exitLogo} />
-        <Text style={styles.exitTitle}>¡HASTA LUEGO!</Text>
-        <Text style={styles.exitSubtitle}>¡Vuelva pronto!</Text>
-      </View>
-    );
-  }
+  // Mapeo flexible para datos del usuario
+  const emailFinal = user?.email || user?.correo || 'No registrado';
+  const fechaFinal = user?.fechaNacimiento || user?.fecha_nacimiento || user?.fechaNac || 'No registrada';
+  const edadFinal = user?.edad || user?.age || 'No registrada';
+  const sexoFinal = user?.sexo || user?.genero || user?.gender || 'No registrado';
+  const provinciaFinal = user?.provincia || user?.province || 'No registrada';
+  const localidadFinal = user?.localidad || user?.city || 'No registrada';
 
-  const InfoBlock = ({ iconSource, label, value }) => (
-    <View style={styles.infoRow}>
-      <View style={styles.iconGlowContainer}>
-        <Image source={iconSource} style={styles.infoIcon} />
-      </View>
-      <View style={styles.textContainer}>
-        <Text style={styles.infoLabel}>{label.toUpperCase()}</Text>
-        <Text style={styles.infoValue}>{value || 'Cargando...'}</Text>
-      </View>
-      <View style={styles.futureLed} />
-    </View>
-  );
+  // Lógica de iconos 3D
+  const getSexoAsset = (sexo) => {
+    const s = String(sexo).toLowerCase().trim();
+    if (s.startsWith('m') || s === 'masculino' || s === 'male') return require('../../assets/sexmascu.png');
+    if (s.startsWith('f') || s === 'femenino' || s === 'female') return require('../../assets/sexfeme.png');
+    return require('../../assets/sexindef.png');
+  };
 
   return (
-    <SafeAreaView style={styles.container}>
-      <View style={styles.headerApp}>
-        <Image source={LOGO} style={styles.logo} />
-        <Image source={NOMBRE_APP} style={styles.nombreApp} resizeMode="contain" />
+    <View style={styles.container}>
+      
+      {/* HEADER */}
+      <View style={styles.appHeaderZone}>
+        <Image source={require('../../assets/logo.png')} style={styles.logoTopImage} />
+        <Image source={require('../../assets/nombreapp.png')} style={styles.appNameTopImage} />
+        <View style={styles.blackSectionStrip}>
+          <Text style={styles.yellowStripTitleText}>MI PERFIL</Text>
+        </View>
       </View>
 
-      <View style={styles.hudBar}>
-        <View style={styles.hudDot} />
-        <Text style={styles.titleBar}>USUARIO // DATOS_PERFIL</Text>
-        <View style={styles.hudDot} />
-      </View>
-
-      <View style={styles.mainContent}>
-        <View style={styles.cryptoCard}>
-          <View style={styles.avatarRadarWrapper}>
-            <Image source={{ uri: user?.foto || user?.image || 'https://via.placeholder.com/150' }} style={styles.avatar} />
+      {/* CUERPO CENTRAL */}
+      <View style={styles.middleSection}>
+        <View style={styles.goldenContainer}>
+          <View style={styles.avatarPhotoFrame}>
+            {user?.foto ? (
+              <Image source={{ uri: user.foto }} style={styles.avatarUserImage} />
+            ) : (
+              <View style={[styles.avatarUserImage, styles.avatarFallbackBackground]}>
+                <Text style={styles.avatarFallbackText}>SIN FOTO</Text>
+              </View>
+            )}
           </View>
-          
-          <Text style={styles.userName}>{user?.nombre || 'Usuario'} {user?.apellido || ''}</Text>
-          <Text style={styles.userStatus}>● USUARIO EN LÍNEA (SEXO: {user?.sexo || 'N/A'})</Text>
-          
-          <View style={styles.cyberLine} />
 
-          <View style={styles.dataContainer}>
-            <InfoBlock iconSource={EMAIL_ICON} label="Email" value={user?.email} />
-            <InfoBlock iconSource={FECHANAC_ICON} label="Fecha de Nacimiento" value={fechaFormateada} />
-            <InfoBlock iconSource={EDAD_ICON} label="Edad" value={edadCalculada} />
-            <InfoBlock iconSource={PROVINCIA_ICON} label="Provincia" value={user?.provincia} />
-            <InfoBlock iconSource={LOCALIDAD_ICON} label="Localidad" value={user?.localidad} />
+          <Text style={styles.userNameHeader}>{user?.nombre ? `${user.nombre} ${user?.apellido || ''}`.trim() : 'Usuario'}</Text>
+
+          {/* DATOS */}
+          <View style={styles.dataRow}>
+            <Image source={require('../../assets/email.png')} style={styles.giantAssetIcon} />
+            <Text style={styles.dataFieldValueText} numberOfLines={1}>{emailFinal}</Text>
+          </View>
+
+          <View style={styles.dataRow}>
+            <Image source={require('../../assets/fechanac.png')} style={styles.giantAssetIcon} />
+            <Text style={styles.dataFieldValueText}>{fechaFinal}</Text>
+          </View>
+
+          <View style={styles.combinedDataRow}>
+            <View style={styles.halfDataBlock}>
+              <Image source={require('../../assets/edad.png')} style={styles.giantAssetIcon} />
+              <Text style={styles.dataFieldValueText}>{edadFinal} años</Text>
+            </View>
+            <View style={styles.halfDataBlock}>
+              <Image source={getSexoAsset(sexoFinal)} style={styles.sexAssetIcon} />
+              <Text style={styles.dataFieldValueText}>{sexoFinal}</Text>
+            </View>
+          </View>
+
+          <View style={styles.dataRow}>
+            <Image source={require('../../assets/provincia.png')} style={styles.giantAssetIcon} />
+            <Text style={styles.dataFieldValueText}>{provinciaFinal}</Text>
+          </View>
+
+          <View style={styles.dataRow}>
+            <Image source={require('../../assets/localidad.png')} style={styles.giantAssetIcon} />
+            <Text style={styles.dataFieldValueText}>{localidadFinal}</Text>
           </View>
         </View>
       </View>
 
-      <View style={styles.footer}>
-        <TouchableOpacity style={styles.footerBtn} onPress={() => navigation.goBack()}>
-          <Image source={VOLVER_ICON} style={styles.icon} />
+      {/* FOOTER */}
+      <View style={styles.footerNavigationRow}>
+        <TouchableOpacity onPress={() => navigation.goBack()} activeOpacity={0.6}>
+          <Image source={require('../../assets/volver.png')} style={styles.footerImageButton} />
         </TouchableOpacity>
-        <TouchableOpacity style={styles.footerBtn} onPress={ejecutarSalidaSegura}>
-          <Image source={SALIR_ICON} style={styles.icon} />
+        <TouchableOpacity onPress={handleExitProfile} activeOpacity={0.6}>
+          <Image source={require('../../assets/salir.png')} style={styles.footerImageButton} />
         </TouchableOpacity>
       </View>
-    </SafeAreaView>
+
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#020813' }, 
-  headerApp: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 20, paddingVertical: 10 },
-  logo: { width: 35, height: 35, marginRight: 10 },
-  nombreApp: { width: 130, height: 35 },
-  hudBar: { flexDirection: 'row', backgroundColor: '#FF8C00', paddingVertical: 6, alignItems: 'center', justifyContent: 'center' },
-  hudDot: { width: 4, height: 4, backgroundColor: '#000000', borderRadius: 2, marginHorizontal: 10 },
-  titleBar: { color: '#000000', fontSize: 11, fontWeight: '900', letterSpacing: 2 },
-  mainContent: { flex: 1, paddingHorizontal: 25, justifyContent: 'center' },
-  cryptoCard: { borderWidth: 1, borderColor: 'rgba(0, 255, 204, 0.3)', borderRadius: 20, padding: 16, alignItems: 'center', backgroundColor: 'rgba(6, 18, 36, 0.75)' },
-  avatarRadarWrapper: { padding: 3, borderRadius: 50, borderWidth: 1, borderColor: '#00ffcc', borderStyle: 'dashed' },
-  avatar: { width: 70, height: 70, borderRadius: 35, backgroundColor: '#020813' },
-  userName: { color: '#fff', fontSize: 16, fontWeight: 'bold', marginTop: 8, letterSpacing: 0.5 },
-  userStatus: { color: '#00ffcc', fontSize: 9, fontWeight: '700', marginTop: 2, letterSpacing: 1 },
-  cyberLine: { height: 1, width: '100%', backgroundColor: 'rgba(255, 140, 0, 0.4)', marginVertical: 12 },
-  dataContainer: { width: '100%' },
-  infoRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 5, paddingHorizontal: 10, marginVertical: 3, borderWidth: 1, borderColor: 'rgba(255, 140, 0, 0.25)', borderRadius: 6, backgroundColor: 'rgba(255, 140, 0, 0.02)' },
-  iconGlowContainer: { width: 40, height: 40, borderRadius: 6, backgroundColor: 'rgba(0, 255, 204, 0.06)', alignItems: 'center', justifyContent: 'center', marginRight: 12 },
-  infoIcon: { width: 32, height: 32, resizeMode: 'contain' },
-  textContainer: { flex: 1 },
-  infoLabel: { fontSize: 8, color: '#FF8C00', fontWeight: 'bold', letterSpacing: 1 },
-  infoValue: { fontSize: 12, color: '#e0e6ed', marginTop: 1, fontWeight: '500' },
-  futureLed: { width: 3, height: 12, backgroundColor: '#00ffcc', borderRadius: 1.5, opacity: 0.7 },
-  footer: { flexDirection: 'row', justifyContent: 'space-between', paddingHorizontal: 30, paddingBottom: 20 },
-  footerBtn: { backgroundColor: 'rgba(6, 18, 36, 0.5)', borderWidth: 1, borderColor: 'rgba(0, 255, 204, 0.2)', borderRadius: 12, padding: 6 },
-  icon: { width: 32, height: 32 },
-  
-  exitContainer: { flex: 1, backgroundColor: '#020813', justifyContent: 'center', alignItems: 'center' },
-  exitLogo: { width: 100, height: 100, marginBottom: 20, resizeMode: 'contain' },
-  exitTitle: { color: '#FF8C00', fontSize: 24, fontWeight: '900', letterSpacing: 3, marginBottom: 5 },
-  exitSubtitle: { color: '#00ffcc', fontSize: 16, fontWeight: '600', letterSpacing: 1 }
+  container: { flex: 1, backgroundColor: '#001f3f', paddingTop: Platform.OS === 'ios' ? 40 : 10, justifyContent: 'space-between', paddingBottom: 20 },
+  appHeaderZone: { alignItems: 'center', width: '100%' },
+  logoTopImage: { width: 75, height: 75, resizeMode: 'contain' },
+  appNameTopImage: { width: 140, height: 32, resizeMode: 'contain', marginTop: 6 },
+  blackSectionStrip: { backgroundColor: '#000', width: '100%', paddingVertical: 6, marginTop: 6 },
+  yellowStripTitleText: { color: '#ffcc00', textAlign: 'center', fontWeight: 'bold', fontSize: 15, letterSpacing: 1.5 },
+  middleSection: { flex: 1, justifyContent: 'center', paddingHorizontal: 16, marginVertical: 4 },
+  goldenContainer: { width: '100%', borderWidth: 1, borderColor: '#ffcc00', borderRadius: 14, backgroundColor: '#003366', paddingVertical: 10, paddingHorizontal: 14, alignItems: 'center' },
+  avatarPhotoFrame: { width: 80, height: 80, borderRadius: 40, borderWidth: 2, borderColor: '#00ffcc', overflow: 'hidden', marginBottom: 4, backgroundColor: '#001f3f' },
+  avatarUserImage: { width: '100%', height: '100%', resizeMode: 'cover' },
+  avatarFallbackBackground: { justifyContent: 'center', alignItems: 'center' },
+  avatarFallbackText: { color: '#fff', fontSize: 9, fontWeight: 'bold' },
+  userNameHeader: { color: '#fff', fontSize: 16, fontWeight: 'bold', marginBottom: 6, textAlign: 'center' },
+  dataRow: { flexDirection: 'row', alignItems: 'center', marginVertical: 2, width: '100%' },
+  combinedDataRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginVertical: 2, width: '100%' },
+  halfDataBlock: { flexDirection: 'row', alignItems: 'center', flex: 0.49 },
+  giantAssetIcon: { width: 60, height: 60, resizeMode: 'contain', marginRight: 8 },
+  sexAssetIcon: { width: 54, height: 54, resizeMode: 'contain', marginRight: 14 },
+  dataFieldValueText: { color: '#fff', fontSize: 14, fontWeight: 'bold', flex: 1 },
+  footerNavigationRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 25, width: '100%' },
+  footerImageButton: { width: 44, height: 44, resizeMode: 'contain' }
 });

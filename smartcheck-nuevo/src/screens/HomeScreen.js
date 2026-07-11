@@ -1,21 +1,25 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, Image, TouchableOpacity, BackHandler, ActivityIndicator, Alert, Dimensions } from 'react-native';
+import { View, Text, StyleSheet, Image, TouchableOpacity, ActivityIndicator, Alert, Dimensions, Modal, TextInput } from 'react-native';
 import { useRoute } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
-import { Audio } from 'expo-av';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import storage from '../utils/storage'; 
 import { useAuth } from '../context/AuthContext';
 
 const { height } = Dimensions.get('window');
-const AUDIO_DESPEDIDA = require('../../assets/despedida.mp3');
 
 export default function HomeScreen({ navigation }) {
   const route = useRoute();
   const { user, login, logout } = useAuth();
   const [cargando, setCargando] = useState(true);
   const [isExiting, setIsExiting] = useState(false);
+  
+  const [modalVisible, setModalVisible] = useState(false);
+  const [adminInput, setAdminInput] = useState('');
 
   useEffect(() => {
+    fetch('https://smartcheck-proyecto-final.onrender.com/api/ping').catch(() => {});
+
     const inicializarHome = async () => {
       try {
         let datos = route.params || await storage.getUser();
@@ -24,10 +28,27 @@ export default function HomeScreen({ navigation }) {
         } else if (!user) {
           navigation.reset({ index: 0, routes: [{ name: 'Login' }] });
         }
-      } catch (error) { console.error(error); } finally { setCargando(false); }
+      } catch (error) { 
+        console.error("Error al inicializar Home:", error); 
+      } finally { 
+        setCargando(false); 
+      }
     };
-    initializarHome();
+    inicializarHome();
   }, []);
+
+  const handleAdminAccess = async () => {
+    const savedPass = await AsyncStorage.getItem('admin_pass') || '00192';
+    
+    if (adminInput === savedPass) {
+      setAdminInput('');
+      setModalVisible(false);
+      navigation.navigate('AdminPanel');
+    } else {
+      Alert.alert("Error", "Contraseña incorrecta.");
+      setAdminInput('');
+    }
+  };
 
   const renderAvatar = () => {
     const fotoBase64 = user?.foto || user?.image;
@@ -43,68 +64,46 @@ export default function HomeScreen({ navigation }) {
     ]);
   };
 
-  // Función de salida controlada por el estado de reproducción del audio
   const ejecutarSalidaSegura = () => {
-    Alert.alert(
-      "Cerrar Aplicación",
-      "¿Estás seguro de que deseas salir de la aplicación?",
-      [
-        { text: "No", style: "cancel" },
-        { 
-          text: "Sí", 
-          onPress: async () => {
-            try {
-              setIsExiting(true);
-
-              const { sound } = await Audio.Sound.createAsync(
-                AUDIO_DESPEDIDA,
-                { shouldPlay: false }
-              );
-
-              sound.setOnPlaybackStatusUpdate(async (status) => {
-                if (status.didJustFinish) {
-                  await sound.unloadAsync();
-                  BackHandler.exitApp();
-                }
-              });
-
-              await sound.playAsync();
-
-            } catch (error) {
-              console.error("Error en la automatización del cierre:", error);
-              BackHandler.exitApp();
-            }
-          } 
-        }
-      ]
-    );
+    Alert.alert("Cerrar Aplicación", "¿Estás seguro de que deseas salir?", [
+      { text: "No", style: "cancel" },
+      { text: "Sí", onPress: () => { setIsExiting(true); navigation.navigate('Goodbye'); } }
+    ]);
   };
 
   if (cargando) return <View style={styles.container}><ActivityIndicator size="large" color="#00ffcc" /></View>;
-
-  if (isExiting) {
-    return (
-      <View style={styles.exitContainer}>
-        <Image source={require('../../assets/logo.png')} style={styles.exitLogo} />
-        <Text style={styles.exitTitle}>¡HASTA LUEGO!</Text>
-        <Text style={styles.exitSubtitle}>¡Vuelva pronto!</Text>
-      </View>
-    );
-  }
+  if (isExiting) return null; 
 
   return (
     <View style={styles.container}>
-      <View style={styles.header}>
-        <Image source={require('../../assets/logo.png')} style={styles.logoGrande} />
-        <Image source={require('../../assets/nombreapp.png')} style={styles.nombreAppGrande} />
-        {renderAvatar()}
-      </View>
+      <View style={styles.header}><View style={{ flex: 1 }} />{renderAvatar()}</View>
       <View style={styles.blackBar}><Text style={styles.welcomeText}>¡BIENVENID@, {user?.nombre?.toUpperCase() || 'USUARIO'}!</Text></View>
+
       <View style={styles.menuGrid}>
         <TouchableOpacity style={styles.menuBox} onPress={() => navigation.navigate('Perfil')}><Image source={require('../../assets/perfil.png')} style={styles.btnImg} /><Text style={styles.btnLabel}>Mi Perfil</Text></TouchableOpacity>
         <TouchableOpacity style={styles.menuBox} onPress={() => navigation.navigate('Busqueda')}><Image source={require('../../assets/lupa.png')} style={styles.btnImg} /><Text style={styles.btnLabel}>Buscar Productos</Text></TouchableOpacity>
-        <TouchableOpacity style={[styles.menuBox, styles.adminBox]} onPress={() => navigation.navigate('AdminPanel')}><Image source={require('../../assets/admin.png')} style={styles.btnImgAdmin} /><Text style={styles.btnLabel}>Panel Admin</Text></TouchableOpacity>
+        <TouchableOpacity style={styles.menuBox} onPress={() => navigation.navigate('FaceLogin')}><Ionicons name="scan-outline" size={38} color="#fff" /><Text style={styles.btnLabel}>Verificar (Biometría)</Text></TouchableOpacity>
+        <TouchableOpacity style={[styles.menuBox, styles.adminBox]} onPress={() => setModalVisible(true)}><Image source={require('../../assets/admin.png')} style={styles.btnImgAdmin} /><Text style={styles.btnLabel}>Panel Admin</Text></TouchableOpacity>
       </View>
+
+      <Modal animationType="slide" transparent={true} visible={modalVisible} onRequestClose={() => setModalVisible(false)}>
+        <View style={styles.modalView}>
+          <Text style={styles.modalTitle}>Acceso Administrador</Text>
+          <TextInput 
+            style={styles.modalInput} 
+            placeholder="Contraseña" 
+            secureTextEntry 
+            value={adminInput} 
+            onChangeText={setAdminInput} 
+            keyboardType="numeric"
+          />
+          <View style={{flexDirection: 'row', gap: 10}}>
+            <TouchableOpacity style={[styles.btnAction, {backgroundColor: '#ff4444'}]} onPress={() => setModalVisible(false)}><Text style={{color: '#fff'}}>Cancelar</Text></TouchableOpacity>
+            <TouchableOpacity style={[styles.btnAction, {backgroundColor: '#00ffcc'}]} onPress={handleAdminAccess}><Text style={{color: '#000'}}>Ingresar</Text></TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
       <View style={styles.footerArea}>
         <TouchableOpacity onPress={handleVolverCerrarSesion}><Image source={require('../../assets/volver.png')} style={styles.navIcon} /></TouchableOpacity>
         <TouchableOpacity onPress={ejecutarSalidaSegura}><Image source={require('../../assets/salir.png')} style={styles.navIcon} /></TouchableOpacity>
@@ -115,9 +114,7 @@ export default function HomeScreen({ navigation }) {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#001f3f' },
-  header: { flexDirection: 'row', justifyContent: 'space-between', paddingHorizontal: 15, paddingTop: height * 0.05, alignItems: 'center', marginBottom: 10 },
-  logoGrande: { width: 60, height: 60, resizeMode: 'contain' },
-  nombreAppGrande: { width: 130, height: 50, resizeMode: 'contain' },
+  header: { flexDirection: 'row', justifyContent: 'flex-end', paddingHorizontal: 15, paddingTop: height * 0.05, alignItems: 'center', marginBottom: 10 },
   userAvatar: { width: 45, height: 45, borderRadius: 22.5, borderWidth: 2, borderColor: '#00ffcc' },
   blackBar: { backgroundColor: '#000', paddingVertical: 8, marginBottom: 15 },
   welcomeText: { color: '#fff', textAlign: 'center', fontWeight: 'bold', fontSize: 14 },
@@ -129,9 +126,8 @@ const styles = StyleSheet.create({
   btnLabel: { color: '#fff', marginLeft: 15, fontWeight: '600', fontSize: 14 },
   footerArea: { flexDirection: 'row', justifyContent: 'space-between', paddingHorizontal: 40, paddingBottom: height * 0.03, paddingTop: 10 },
   navIcon: { width: 42, height: 42, resizeMode: 'contain' },
-  
-  exitContainer: { flex: 1, backgroundColor: '#001f3f', justifyContent: 'center', alignItems: 'center' },
-  exitLogo: { width: 100, height: 100, marginBottom: 20, resizeMode: 'contain' },
-  exitTitle: { color: '#00ffcc', fontSize: 24, fontWeight: '900', letterSpacing: 3, marginBottom: 5 },
-  exitSubtitle: { color: '#fff', fontSize: 16, fontWeight: '600', letterSpacing: 1 }
+  modalView: { margin: 20, marginTop: 100, backgroundColor: '#002a54', borderRadius: 20, padding: 35, alignItems: 'center', borderWidth: 1, borderColor: '#ffcc00' },
+  modalTitle: { color: '#fff', fontSize: 18, marginBottom: 15, fontWeight: 'bold' },
+  modalInput: { backgroundColor: '#fff', width: '100%', padding: 10, borderRadius: 8, marginBottom: 15, fontSize: 18, textAlign: 'center' },
+  btnAction: { padding: 10, borderRadius: 8, paddingHorizontal: 20 }
 });
