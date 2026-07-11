@@ -30,6 +30,18 @@
         td { padding: 10px; border-bottom: 1px solid #003b75; text-align: center; }
         .avatar { width: 45px; height: 45px; border-radius: 50%; border: 2px solid #00ffcc; }
         .footer-line { border-top: 2px solid #00ffcc; text-align: center; font-size: 14px; color: #888; padding-top: 15px; flex-shrink: 0; }
+
+        /* Estilos Responsive para Celular */
+        @media (max-width: 768px) {
+            .admin-header { height: auto; flex-direction: column; padding: 10px; }
+            .logo-admin { width: 100px; height: 50px; }
+            .nombre-admin { width: 200px; height: 50px; margin-left: 0; }
+            .stats-container { flex-direction: column; height: auto; }
+            .main-layout { flex-direction: column; }
+            .sidebar { width: 100%; }
+            .viewer-box { width: 100%; }
+            .panel-titulo { font-size: 18px; margin: 10px 0; }
+        }
     </style>
 </head>
 <body>

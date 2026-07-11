@@ -1,12 +1,33 @@
 ﻿const express = require('express');
-const mongoose = require('mongoose');
+const admin = require("firebase-admin"); 
 const cors = require('cors');
 const path = require('path');
+const http = require('http'); // Necesario para Socket.io
+const socketIo = require('socket.io'); // Necesario para la comunicación en tiempo real
 
 const faceapi = require('face-api.js');
 const canvas = require('canvas');
 
+// Inicialización de Firebase Admin
+const serviceAccount = require("./serviceAccountKey.json");
+admin.initializeApp({
+    credential: admin.credential.cert(serviceAccount)
+});
+const db = admin.firestore(); 
+
 const app = express();
+const server = http.createServer(app); // Creamos el servidor HTTP envolviendo a app
+
+// Configuración de Socket.io
+const io = socketIo(server, {
+    cors: {
+        origin: "*", // Permite conexiones de cualquier origen para el desarrollo
+        methods: ["GET", "POST"]
+    }
+});
+
+// Pasamos la instancia de io a la aplicación para usarla en los routes
+app.set('io', io);
 
 app.use(cors());
 app.use(express.json({ limit: '50mb' }));
@@ -14,48 +35,41 @@ app.use(express.urlencoded({ limit: '50mb', extended: true }));
 app.use(express.static(path.join(__dirname, 'public')));
 
 app.get('/', (req, res) => {
-    res.status(200).send('Servidor SmartCheck Online - API Activa');
+    res.status(200).send('Servidor SmartCheck Online - API Activa (Firebase Mode)');
 });
-
-const MONGO_URI = process.env.MONGO_URI || 'mongodb://admin-smartcheck:SmartCheck--2026@ac-vf18ump-shard-00-00.cejn9x9.mongodb.net:27017,ac-vf18ump-shard-00-01.cejn9x9.mongodb.net:27017,ac-vf18ump-shard-00-02.cejn9x9.mongodb.net:27017/smartcheck?replicaSet=atlas-30o117-shard-0&authSource=admin&ssl=true';
 
 async function startServer() {
     try {
-        console.log('🔄 Intentando conectar a MongoDB Atlas...');
-        await mongoose.connect(MONGO_URI, { dbName: 'smartcheck' });
+        console.log('🔄 Inicializando servicios de Firebase...');
         
-        // --- LOG DE VERIFICACIÓN AGREGADO ---
-        console.log('✅ CONEXIÓN CONFIRMADA EN MONGODB');
-        console.log('➡️ BASE DE DATOS ACTIVA:', mongoose.connection.name);
-        console.log('➡️ HOST DE CONEXIÓN:', mongoose.connection.host);
-        // ------------------------------------
+        console.log('✅ CONEXIÓN CONFIRMADA CON FIREBASE ADMIN');
+        console.log('➡️ PROYECTO:', admin.app().options.credential.projectId);
 
-        // Configuración necesaria para entorno facial en Node
         const { Canvas, Image, ImageData } = canvas;
         faceapi.env.monkeyPatch({ Canvas, Image, ImageData });
         
-        // Carga de modelos de IA desde la carpeta 'weights'
         const MODEL_PATH = path.join(__dirname, 'weights'); 
         console.log('🔍 Cargando modelos desde:', MODEL_PATH);
         
-        // CARGA ÚNICAMENTE DE SSD MOBILENET (Modelo pesado pero estable)
         await faceapi.nets.ssdMobilenetv1.loadFromDisk(MODEL_PATH);
         await faceapi.nets.faceLandmark68Net.loadFromDisk(MODEL_PATH);
         await faceapi.nets.faceRecognitionNet.loadFromDisk(MODEL_PATH);
         
         console.log('✅ Modelos de IA cargados correctamente');
 
+        // Rutas
         const userRoutes = require('./routes/users');
         app.use('/api/users', userRoutes);
         
         const PORT = process.env.PORT || 10000;
         
         // --- CONFIGURACIÓN DE TIMEOUTS ---
-        const server = app.listen(PORT, '0.0.0.0', () => {
+        // Ahora escuchamos en 'server' en lugar de 'app'
+        server.listen(PORT, '0.0.0.0', () => {
             console.log(`🚀 SERVIDOR ONLINE EN EL PUERTO ${PORT}`);
         });
         
-        server.keepAliveTimeout = 120000; // 2 minutos
+        server.keepAliveTimeout = 120000; 
         server.headersTimeout = 120000;
 
     } catch (err) {
