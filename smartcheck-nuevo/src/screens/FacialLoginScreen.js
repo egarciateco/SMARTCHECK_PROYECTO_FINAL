@@ -55,7 +55,6 @@ export default function FacialLoginScreen() {
     return () => { soundRef.current.unloadAsync(); };
   }, []);
 
-  // Modificado: Ahora redirige a Goodbye para despedida formal
   const handleSalir = async () => {
     await reproducirVoz('despedida');
     navigation.navigate('Goodbye');
@@ -79,16 +78,29 @@ export default function FacialLoginScreen() {
       try {
         const photo = await cameraRef.current.takePictureAsync({ quality: 0.2, skipProcessing: true });
         reproducirVoz('verificando');
-        const p = await ImageManipulator.manipulateAsync(photo.uri, [{ resize: { width: 300 } }], { compress: 0.15, format: 'jpeg' });
+        
+        // Compresión de imagen
+        const p = await ImageManipulator.manipulateAsync(
+            photo.uri, 
+            [{ resize: { width: 300 } }], 
+            { compress: 0.15, format: 'jpeg' }
+        );
+        
         const fd = new FormData();
-        fd.append('imageFile', { uri: p.uri, name: 'face.jpg', type: 'image/jpeg' });
+        fd.append('imageFile', { 
+            uri: p.uri, 
+            name: 'face.jpg', 
+            type: 'image/jpeg' 
+        });
         
         if (tipoOperacion === 'REGISTER' && datosRegistro) {
             Object.keys(datosRegistro).forEach(k => datosRegistro[k] !== null && fd.append(k, String(datosRegistro[k])));
         }
         
         const endpoint = tipoOperacion === 'REGISTER' ? '/api/users/register' : '/api/users/biometria';
-        const response = await api.post(endpoint, fd, { headers: { 'Content-Type': 'multipart/form-data' } });
+        
+        // LA CORRECCIÓN: Axios detectará el FormData y agregará el multipart/form-data automáticamente con el boundary correcto.
+        const response = await api.post(endpoint, fd);
         
         if (response.data.status === 'success') {
           reproducirVoz('reconocida');
@@ -109,6 +121,7 @@ export default function FacialLoginScreen() {
             Alert.alert("Error", response.data.mensaje || "Error en validación");
         }
       } catch (e) { 
+        console.error("Error en validación facial:", e);
         reproducirVoz('error'); 
         Alert.alert("Error", "No se pudo procesar la biometría.");
       } finally { setLoading(false); }

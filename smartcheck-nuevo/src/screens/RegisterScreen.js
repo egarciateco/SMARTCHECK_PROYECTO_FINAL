@@ -13,7 +13,7 @@ import {
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { Picker } from '@react-native-picker/picker';
-import api from '../../services/api'; 
+import api from '../config/api'; 
 
 export default function RegisterScreen() {
   const navigation = useNavigation();

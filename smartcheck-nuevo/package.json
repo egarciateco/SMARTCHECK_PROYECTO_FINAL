@@ -20,6 +20,7 @@
     "@tensorflow/tfjs-backend-cpu": "^4.22.0",
     "@tensorflow/tfjs-node": "^4.22.0",
     "axios": "^1.18.1",
+    "axios-retry": "^4.5.0",
     "cors": "^2.8.6",
     "expo": "~51.0.0",
     "expo-asset": "~10.0.0",

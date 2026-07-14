@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { StatusBar, StyleSheet, LogBox, ActivityIndicator, View, Text, TouchableOpacity } from 'react-native';
+import { StatusBar, StyleSheet, LogBox, ActivityIndicator, View } from 'react-native';
 import { NavigationContainer, useNavigationContainerRef } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
@@ -8,7 +8,7 @@ import * as ExpoSplashScreen from 'expo-splash-screen';
 
 import { AuthProvider, useAuth } from './src/context/AuthContext';
 import { loadBeepSound, unloadSounds } from './src/utils/share'; 
-import api from './services/api'; 
+import api from './src/config/api'; 
 
 import WelcomeScreen from './src/screens/WelcomeScreen';
 import LoginScreen from './src/screens/LoginScreen';
@@ -29,7 +29,7 @@ ExpoSplashScreen.preventAutoHideAsync().catch(() => {});
 const Stack = createNativeStackNavigator();
 
 function AppNavigator() {
-  const { user, isLoading: authLoading, logout } = useAuth();
+  const { user, isLoading: authLoading } = useAuth();
   const [isReady, setIsReady] = useState(false);
   const navigationRef = useNavigationContainerRef();
 
@@ -37,10 +37,13 @@ function AppNavigator() {
     const init = async () => {
       try {
         await loadBeepSound(); 
+        
+        // Hacemos un "ping" inicial para despertar el servidor y esperamos respuesta
         try {
-          await api.get('/usuarios');
+          await api.get('/'); 
+          console.log("✅ Servidor despertado con éxito");
         } catch (err) {
-          console.warn("⚠️ [App.js] Servidor offline");
+          console.log("⚠️ El servidor tardó en despertar, pero la app está lista.");
         }
       } catch (e) {
         console.error("Error al cargar sonidos:", e);
@@ -83,11 +86,7 @@ function AppNavigator() {
           </>
         ) : (
           <>
-            <Stack.Screen 
-              name="HomeScreen" 
-              component={HomeScreen} 
-              options={{ headerShown: false }} 
-            />
+            <Stack.Screen name="HomeScreen" component={HomeScreen} options={{ headerShown: false }} />
             <Stack.Screen name="Busqueda" component={ProductSearchScreen} options={{ title: 'Buscar Productos' }} />
             <Stack.Screen name="Scanner" component={ScannerScreen} options={{ title: 'Escanear' }} />
             <Stack.Screen name="ProductList" component={ProductListScreen} options={{ title: 'Resultados' }} />
