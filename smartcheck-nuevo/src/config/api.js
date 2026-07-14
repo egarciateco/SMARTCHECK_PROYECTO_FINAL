@@ -1,7 +1,8 @@
 import axios from 'axios';
 
+// Asegúrate de usar 'http' (sin s) si no tienes certificados SSL configurados localmente
 const api = axios.create({
-  baseURL: 'https://smartcheck-proyecto-final.onrender.com', 
+  baseURL: 'http://192.168.1.7:10000', 
   timeout: 30000,
 });
 

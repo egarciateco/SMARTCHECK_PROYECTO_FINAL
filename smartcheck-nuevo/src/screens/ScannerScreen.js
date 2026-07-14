@@ -2,23 +2,31 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { StyleSheet, Text, View, TouchableOpacity, Image, Alert, ActivityIndicator } from 'react-native';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import { Audio } from 'expo-av';
-import { useFocusEffect } from '@react-navigation/native'; // Importante para resetear al volver
+import { useFocusEffect } from '@react-navigation/native';
+import { useAuth } from '../context/AuthContext';
 
 const API_URL = 'https://smartcheck-proyecto-final.onrender.com';
 const AUDIO_BEEP = require('../../assets/beepscanner.mp3');
 
 export default function ScannerScreen({ navigation }) {
+  const { logout } = useAuth();
   const [hasPermission, requestPermission] = useCameraPermissions();
   const [scanned, setScanned] = useState(false);
   const [loading, setLoading] = useState(false);
 
-  // Resetea el estado de escaneo cada vez que la pantalla obtiene el foco
   useFocusEffect(
     useCallback(() => {
       setScanned(false);
       setLoading(false);
     }, [])
   );
+
+  const handleLogoutFlow = () => {
+    navigation.navigate('Goodbye');
+    setTimeout(() => {
+      logout();
+    }, 1000);
+  };
 
   const playBeep = async () => {
     try {
@@ -33,7 +41,7 @@ export default function ScannerScreen({ navigation }) {
   const handleBarcodeScanned = async ({ data }) => {
     if (scanned || loading) return;
     
-    setScanned(true); // Bloqueo inmediato
+    setScanned(true);
     setLoading(true);
     await playBeep();
 
@@ -90,7 +98,12 @@ export default function ScannerScreen({ navigation }) {
       </View>
 
       <View style={styles.footer}>
-        <TouchableOpacity onPress={() => navigation.goBack()}><Image source={require('../../assets/volver.png')} style={styles.navIcon} /></TouchableOpacity>
+        <TouchableOpacity onPress={() => navigation.goBack()}>
+          <Image source={require('../../assets/volver.png')} style={styles.navIcon} />
+        </TouchableOpacity>
+        <TouchableOpacity onPress={handleLogoutFlow}>
+          <Image source={require('../../assets/salir.png')} style={styles.navIcon} />
+        </TouchableOpacity>
       </View>
     </View>
   );
@@ -110,5 +123,5 @@ const styles = StyleSheet.create({
   feedbackContainer: { height: 60, justifyContent: 'center' },
   instructions: { color: '#aaa', fontSize: 14 },
   navIcon: { width: 45, height: 45, resizeMode: 'contain' },
-  footer: { width: '100%', alignItems: 'center', paddingBottom: 30 }
+  footer: { flexDirection: 'row', width: '100%', justifyContent: 'space-between', paddingHorizontal: 40, paddingBottom: 30 }
 });

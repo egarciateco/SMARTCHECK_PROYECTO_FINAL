@@ -8,6 +8,7 @@ import * as ExpoSplashScreen from 'expo-splash-screen';
 
 import { AuthProvider, useAuth } from './src/context/AuthContext';
 import { loadBeepSound, unloadSounds } from './src/utils/share'; 
+import api from './services/api'; 
 
 import WelcomeScreen from './src/screens/WelcomeScreen';
 import LoginScreen from './src/screens/LoginScreen';
@@ -35,28 +36,24 @@ function AppNavigator() {
   useEffect(() => {
     const init = async () => {
       try {
-        await loadBeepSound();
-      } catch (e) {
-        console.error("Error secundario al cargar sonidos en inicio:", e);
-      } finally {
-        if (!authLoading) {
-          await ExpoSplashScreen.hideAsync().catch(() => {});
-          setIsReady(true);
+        await loadBeepSound(); 
+        try {
+          await api.get('/usuarios');
+        } catch (err) {
+          console.warn("⚠️ [App.js] Servidor offline");
         }
+      } catch (e) {
+        console.error("Error al cargar sonidos:", e);
+      } finally {
+        await ExpoSplashScreen.hideAsync().catch(() => {});
+        setIsReady(true);
       }
     };
-
     init();
-    return () => {
-      unloadSounds().catch(() => {});
-    };
-  }, [authLoading]);
+    return () => { unloadSounds().catch(() => {}); };
+  }, []);
 
-  const handleLogoutPress = () => {
-    logout();
-  };
-
-  if (!isReady) {
+  if (!isReady || authLoading) {
     return (
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color="#00ffcc" />
@@ -68,6 +65,7 @@ function AppNavigator() {
     <NavigationContainer ref={navigationRef}>
       <StatusBar barStyle="light-content" backgroundColor="#003366" />
       <Stack.Navigator 
+        initialRouteName={user ? "HomeScreen" : "Welcome"}
         screenOptions={{ 
           headerShown: true, 
           headerStyle: { backgroundColor: '#003366' }, 
@@ -81,30 +79,24 @@ function AppNavigator() {
             <Stack.Screen name="Register" component={RegisterScreen} options={{ title: 'Crear Cuenta' }} />
             <Stack.Screen name="Camera" component={FacialLoginScreen} options={{ headerShown: false }} />
             <Stack.Screen name="FaceLogin" component={FacialLoginScreen} options={{ headerShown: false }} />
+            <Stack.Screen name="Goodbye" component={GoodbyeScreen} options={{ headerShown: false }} />
           </>
         ) : (
           <>
             <Stack.Screen 
               name="HomeScreen" 
               component={HomeScreen} 
-              options={{ 
-                title: 'SmartCheck', 
-                headerRight: () => (
-                  <TouchableOpacity onPress={handleLogoutPress} style={{ marginRight: 15 }}>
-                    <Text style={{ color: '#fff', fontWeight: 'bold' }}>Salir</Text>
-                  </TouchableOpacity>
-                )
-              }} 
+              options={{ headerShown: false }} 
             />
             <Stack.Screen name="Busqueda" component={ProductSearchScreen} options={{ title: 'Buscar Productos' }} />
             <Stack.Screen name="Scanner" component={ScannerScreen} options={{ title: 'Escanear' }} />
             <Stack.Screen name="ProductList" component={ProductListScreen} options={{ title: 'Resultados' }} />
             <Stack.Screen name="ProductDetail" component={ProductDetailScreen} options={{ title: 'Detalle' }} />
-            <Stack.Screen name="Perfil" component={ProfileScreen} options={{ title: 'Mi Perfil' }} />
+            <Stack.Screen name="Perfil" component={ProfileScreen} options={{ title: 'Mi Perfil', headerShown: true }} />
             <Stack.Screen name="AdminPanel" component={AdminPanelScreen} options={{ title: 'Administración' }} />
+            <Stack.Screen name="Goodbye" component={GoodbyeScreen} options={{ headerShown: false }} />
           </>
         )}
-        <Stack.Screen name="Goodbye" component={GoodbyeScreen} options={{ headerShown: false }} />
       </Stack.Navigator>
     </NavigationContainer>
   );
@@ -123,10 +115,5 @@ export default function App() {
 }
 
 const styles = StyleSheet.create({
-  loadingContainer: { 
-    flex: 1, 
-    justifyContent: 'center', 
-    alignItems: 'center', 
-    backgroundColor: '#001f3f' 
-  }
+  loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#001f3f' }
 });

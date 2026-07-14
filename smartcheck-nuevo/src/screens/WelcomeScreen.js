@@ -14,7 +14,6 @@ export default function WelcomeScreen() {
   const [loading, setLoading] = useState(true);
   const [dots, setDots] = useState('.');
 
-  // Efecto para la animación de los puntos suspensivos
   useEffect(() => {
     if (loading) {
       const interval = setInterval(() => {
@@ -28,16 +27,12 @@ export default function WelcomeScreen() {
     }
   }, [loading]);
 
-  // Efecto para simular la carga y disparar el sonido
   useEffect(() => {
     const timer = setTimeout(async () => {
       setLoading(false);
-      
-      // Reproducir sonido de éxito
       try {
         const { sound } = await Audio.Sound.createAsync(require('../../assets/exito.mp3'));
         await sound.playAsync();
-        // Liberar memoria al terminar
         sound.setOnPlaybackStatusUpdate(status => {
           if (status.didJustFinish) sound.unloadAsync();
         });
@@ -70,10 +65,13 @@ export default function WelcomeScreen() {
           <View style={styles.containerListo}>
             <Text style={styles.readyText}>¡SISTEMA LISTO!</Text>
             <TouchableOpacity 
-              style={styles.accessButton} 
+              style={styles.buttonContainer} 
               onPress={() => navigation.navigate('Login')}
             >
-              <Text style={styles.btnText}>ACCEDER</Text>
+              <Image 
+                source={require('../../assets/btningreso.png')} 
+                style={styles.btnIngresoImage} 
+              />
             </TouchableOpacity>
           </View>
         )}
@@ -93,20 +91,25 @@ const styles = StyleSheet.create({
     backgroundColor: '#001f3f', 
     alignItems: 'center', 
     justifyContent: 'space-between',
-    paddingVertical: 30 
+    paddingVertical: 30,
+    // Marco dorado
+    borderWidth: 1,
+    borderColor: '#FFD700',
+    margin: 10,
+    borderRadius: 15
   },
   header: { 
     alignItems: 'center', 
     marginTop: 40 
   },
   logo: { 
-    width: 100, 
-    height: 100, 
+    width: 140, // Agrandado
+    height: 140, // Agrandado
     resizeMode: 'contain' 
   },
   nombreApp: { 
-    width: 200, 
-    height: 60, 
+    width: 260, // Agrandado
+    height: 80, // Agrandado
     resizeMode: 'contain', 
     marginTop: 10 
   },
@@ -133,7 +136,9 @@ const styles = StyleSheet.create({
     textAlign: 'center' 
   },
   containerListo: { 
-    alignItems: 'center' 
+    alignItems: 'center',
+    width: '100%',
+    paddingHorizontal: 20
   },
   readyText: { 
     color: '#fff', 
@@ -141,16 +146,15 @@ const styles = StyleSheet.create({
     fontWeight: 'bold', 
     marginBottom: 30 
   },
-  accessButton: { 
-    backgroundColor: '#00ffcc', 
-    paddingVertical: 15, 
-    paddingHorizontal: 40, 
-    borderRadius: 25 
+  buttonContainer: {
+    width: '100%',
+    alignItems: 'center',
+    justifyContent: 'center'
   },
-  btnText: { 
-    color: '#001f3f', 
-    fontWeight: '900', 
-    fontSize: 18 
+  btnIngresoImage: { 
+    width: 280, 
+    height: 70, 
+    resizeMode: 'contain' 
   },
   footer: { 
     marginBottom: 20 

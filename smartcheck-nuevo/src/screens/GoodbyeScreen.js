@@ -1,24 +1,14 @@
 import React, { useEffect } from 'react';
 import { View, Text, Image, StyleSheet, BackHandler, Platform } from 'react-native';
 import { Audio } from 'expo-av';
-import { useAuth } from '../context/AuthContext';
 
 export default function GoodbyeScreen({ navigation }) {
-  const { user, logout } = useAuth();
 
   useEffect(() => {
     let soundObject = null;
     let timeoutId = null;
 
     const iniciarDespedida = async () => {
-      if (user) {
-        try {
-          await logout();
-        } catch (error) {
-          console.log("Error al procesar el cierre de sesión:", error);
-        }
-      }
-
       try {
         const { sound } = await Audio.Sound.createAsync(
           require('../../assets/despedida.mp3')
@@ -32,7 +22,8 @@ export default function GoodbyeScreen({ navigation }) {
           }
         });
       } catch (audioError) {
-        console.log("Error con el audio de despedida o ruta de archivo:", audioError);
+        console.log("Error con el audio de despedida:", audioError);
+        // Fallback: si el audio falla, esperar 2 segundos y cerrar
         timeoutId = setTimeout(cerrarAplicacion, 2000);
       }
     };
@@ -41,12 +32,15 @@ export default function GoodbyeScreen({ navigation }) {
       if (Platform.OS === 'android') {
         BackHandler.exitApp();
       } else {
+        // En iOS, en lugar de 'reset' (que causaba el error), 
+        // simplemente navegamos a la pantalla de bienvenida.
         navigation.navigate('Welcome');
       }
     };
 
     iniciarDespedida();
 
+    // Limpieza al desmontar
     return () => {
       if (soundObject) {
         soundObject.unloadAsync().catch(() => {});
@@ -55,21 +49,15 @@ export default function GoodbyeScreen({ navigation }) {
         clearTimeout(timeoutId);
       }
     };
-  }, [user]);
+  }, []);
 
   return (
     <View style={styles.container}>
-      {/* Recuadro con línea fina dorada */}
       <View style={styles.goldBorderContainer}>
         <Image source={require('../../assets/logo.png')} style={styles.exitLogo} />
-        
-        {/* Nueva imagen añadida abajo del logo */}
         <Image source={require('../../assets/nombreapp.png')} style={styles.appName} />
-        
         <Text style={styles.exitTitle}>¡HASTA LUEGO!</Text>
         <Text style={styles.exitSubtitle}>¡Vuelva pronto!</Text>
-
-        {/* Lema abajo a la derecha */}
         <Text style={styles.footerText}>Nuestro objetivo: Su ahorro</Text>
       </View>
     </View>
@@ -80,16 +68,16 @@ const styles = StyleSheet.create({
   container: { 
     flex: 1, 
     backgroundColor: '#001f3f', 
-    padding: 20 // Espacio para que el recuadro no toque los bordes de la pantalla
+    padding: 20 
   },
   goldBorderContainer: {
     flex: 1,
     borderWidth: 1,
-    borderColor: '#ffd700', // Color Dorado
+    borderColor: '#ffd700',
     borderRadius: 15,
     justifyContent: 'center',
     alignItems: 'center',
-    position: 'relative' // Necesario para posicionar el texto abajo
+    position: 'relative'
   },
   exitLogo: { 
     width: 120, 

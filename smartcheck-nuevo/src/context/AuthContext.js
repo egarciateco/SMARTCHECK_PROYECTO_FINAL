@@ -1,55 +1,52 @@
 import React, { createContext, useState, useContext, useEffect } from 'react';
-import { onAuthStateChanged } from 'firebase/auth';
-import { auth } from '../services/firebaseConfig'; 
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
-const AuthContext = createContext();
+const AuthContext = createContext({});
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // Escuchar cambios de autenticación de Firebase
-    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
-      console.log("🔄 Firebase Auth State Changed:", currentUser ? "Usuario conectado" : "Usuario desconectado");
-      // Solo actualizamos si Firebase realmente detecta un cambio, 
-      // esto ayuda a no sobreescribir el login manual del reconocimiento facial
-      if (currentUser) {
-        setUser(currentUser);
+    // Función para cargar el usuario al iniciar la app
+    const loadUser = async () => {
+      try {
+        const storedUser = await AsyncStorage.getItem('@user');
+        if (storedUser) {
+          setUser(JSON.parse(storedUser));
+        }
+      } catch (error) {
+        console.error("Error al cargar usuario del storage:", error);
+      } finally {
+        setIsLoading(false); // Una vez verificado, quitamos el loading
       }
-      setIsLoading(false);
-    });
+    };
 
-    return () => unsubscribe();
+    loadUser();
   }, []);
 
-  // --- CORRECCIÓN: Definimos la función login que faltaba ---
-  const login = (userData) => {
-    console.log("🔑 Ejecutando login manual en Context:", userData);
-    setUser(userData);
+  const login = async (userData) => {
+    try {
+      await AsyncStorage.setItem('@user', JSON.stringify(userData));
+      setUser(userData);
+      console.log("✅ [AuthContext] Usuario logueado y guardado");
+    } catch (error) {
+      console.error("Error al guardar usuario:", error);
+    }
   };
 
   const logout = async () => {
     try {
-      await auth.signOut();
+      await AsyncStorage.removeItem('@user');
       setUser(null);
-      console.log("🚪 Sesión cerrada");
+      console.log("✅ [AuthContext] Sesión cerrada");
     } catch (error) {
       console.error("Error al cerrar sesión:", error);
     }
   };
 
-  const updateLocation = (localidad, provincia) => {
-    if (user) {
-      const updatedUser = { ...user, localidad, provincia };
-      setUser(updatedUser);
-      console.log("📍 Ubicación actualizada en Context:", localidad, provincia);
-    }
-  };
-
-  // --- CORRECCIÓN: Agregamos 'login' al valor que provee el contexto ---
   return (
-    <AuthContext.Provider value={{ user, login, logout, isLoading, updateLocation }}>
+    <AuthContext.Provider value={{ user, login, logout, isLoading }}>
       {children}
     </AuthContext.Provider>
   );

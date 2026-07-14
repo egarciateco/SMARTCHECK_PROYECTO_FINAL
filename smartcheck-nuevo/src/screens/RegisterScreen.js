@@ -6,7 +6,6 @@ import {
   TextInput, 
   TouchableOpacity, 
   Image, 
-  BackHandler, 
   KeyboardAvoidingView, 
   Platform, 
   Alert,
@@ -14,10 +13,7 @@ import {
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { Picker } from '@react-native-picker/picker';
-
-import { auth, db } from '../services/firebaseConfig';
-import { createUserWithEmailAndPassword } from 'firebase/auth';
-import { doc, setDoc } from 'firebase/firestore'; 
+import api from '../../services/api'; 
 
 export default function RegisterScreen() {
   const navigation = useNavigation();
@@ -63,6 +59,11 @@ export default function RegisterScreen() {
     if (field === 'mes' && numericValue.length === 2 && anioRef.current) anioRef.current.focus();
   };
 
+  const handleSalir = () => {
+    // Flujo unificado hacia Goodbye
+    navigation.navigate('Goodbye');
+  };
+
   const validarYRegistrar = async () => {
     if (!form.nombre || !form.apellido || !form.email || !form.sexo) return Alert.alert("Error", "Faltan completar datos.");
     if (form.dia.length !== 2 || form.mes.length !== 2 || form.anio.length !== 4) return Alert.alert("Error", "La fecha debe ser DD-MM-AAAA completa.");
@@ -73,25 +74,27 @@ export default function RegisterScreen() {
         if (form.password !== form.confirmPassword) return Alert.alert("Error", "Las contraseñas no coinciden.");
         
         try {
-            const userCredential = await createUserWithEmailAndPassword(auth, form.email, form.password);
+            const formData = new FormData();
+            formData.append('nombre', form.nombre);
+            formData.append('apellido', form.apellido);
+            formData.append('email', form.email);
+            formData.append('password', form.password);
+            formData.append('sexo', form.sexo);
+            formData.append('dia', form.dia);
+            formData.append('mes', form.mes);
+            formData.append('anio', form.anio);
+            formData.append('fechaNacimiento', stringFecha);
             
-            await setDoc(doc(db, "users", userCredential.user.uid), {
-                nombre: form.nombre,
-                apellido: form.apellido,
-                email: form.email,
-                sexo: form.sexo,
-                fechaNacimiento: stringFecha,
-                createdAt: new Date().toISOString()
+            const response = await api.post('/register', formData, {
+              headers: { 'Content-Type': 'multipart/form-data' },
             });
 
             Alert.alert("Éxito", "Usuario registrado correctamente.");
             navigation.navigate('Login');
         } catch (error) {
             console.log(error); 
-            if (error.code === 'auth/email-already-in-use') Alert.alert("Error", "El email ya está registrado.");
-            else if (error.code === 'auth/invalid-credential') Alert.alert("Error", "Credenciales inválidas.");
-            else if (error.code === 'auth/weak-password') Alert.alert("Error", "La contraseña es muy débil.");
-            else Alert.alert("Error", "Ocurrió un error al registrar.");
+            const errorMsg = error.response?.data?.mensaje || "Ocurrió un error al registrar.";
+            Alert.alert("Error", errorMsg);
         }
     } else {
         navigation.navigate('Camera', { 
@@ -104,7 +107,6 @@ export default function RegisterScreen() {
   return (
     <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.container}>
       
-      {/* Solo mostramos el header si el teclado NO está visible */}
       {!isKeyboardVisible && (
         <View style={styles.header}>
           <Image source={require('../../assets/logo.png')} style={styles.logo} />
@@ -164,7 +166,7 @@ export default function RegisterScreen() {
               <TouchableOpacity 
                 style={styles.metalBtn} 
                 onPress={() => {
-                  Keyboard.dismiss(); // Cierra el teclado y hace que el footer reaparezca
+                  Keyboard.dismiss(); 
                   setMetodo('facial');
                 }}
               >
@@ -201,7 +203,6 @@ export default function RegisterScreen() {
         </View>
       </View>
 
-      {/* Solo mostramos el footer si el teclado NO está visible */}
       {!isKeyboardVisible && (
         <View style={styles.footerArea}>
             <TouchableOpacity style={styles.navButton} onPress={() => navigation.goBack()}>
@@ -216,7 +217,7 @@ export default function RegisterScreen() {
               <View style={styles.placeholderButton} />
             )}
             
-            <TouchableOpacity style={styles.navButton} onPress={() => BackHandler.exitApp()}>
+            <TouchableOpacity style={styles.navButton} onPress={handleSalir}>
               <Image source={require('../../assets/salir.png')} style={styles.navIcon} />
             </TouchableOpacity>
         </View>

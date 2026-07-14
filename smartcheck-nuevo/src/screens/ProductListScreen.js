@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, TextInput, ActivityIndicator, RefreshControl, Alert, Keyboard } from 'react-native';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, TextInput, ActivityIndicator, RefreshControl, Alert, Keyboard, Image } from 'react-native';
 import Header from '../components/Header';
 import ProductCard from '../components/ProductCard';
 import { searchProducts, getProducts } from '../config/api';
+import { useAuth } from '../context/AuthContext';
 
 const ProductListScreen = ({ navigation, route }) => {
+  const { logout } = useAuth();
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -13,6 +15,13 @@ const ProductListScreen = ({ navigation, route }) => {
   const { category } = route?.params || {};
 
   useEffect(() => { fetchProducts(); }, [category]);
+
+  const handleLogoutFlow = () => {
+    navigation.navigate('Goodbye');
+    setTimeout(() => {
+      logout();
+    }, 1000);
+  };
 
   const fetchProducts = async () => {
     try {
@@ -28,7 +37,7 @@ const ProductListScreen = ({ navigation, route }) => {
   };
 
   const handleSearch = async () => {
-    Keyboard.dismiss(); // Cierra el teclado al buscar
+    Keyboard.dismiss(); 
     if (!searchQuery.trim()) { fetchProducts(); return; }
     try {
       setLoading(true);
@@ -57,11 +66,20 @@ const ProductListScreen = ({ navigation, route }) => {
 
   return (
     <View style={styles.container}>
-      <Header title={category || 'Productos'} onBackPress={() => navigation.goBack()} />
+      <View style={styles.headerWrapper}>
+        <View style={{ flex: 1 }}>
+          <Header title={category || 'Productos'} onBackPress={() => navigation.goBack()} />
+        </View>
+        <TouchableOpacity style={styles.logoutButton} onPress={handleLogoutFlow}>
+          <Image source={require('../../assets/salir.png')} style={styles.logoutIcon} />
+        </TouchableOpacity>
+      </View>
+
       <View style={styles.searchContainer}>
         <TextInput 
             style={styles.searchInput} 
             placeholder="Buscar por nombre o EAN..." 
+            placeholderTextColor="#666"
             value={searchQuery} 
             onChangeText={setSearchQuery} 
             onSubmitEditing={handleSearch} 
@@ -92,6 +110,9 @@ const ProductListScreen = ({ navigation, route }) => {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#001f3f' },
+  headerWrapper: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#001f3f' },
+  logoutButton: { padding: 10, marginRight: 10 },
+  logoutIcon: { width: 30, height: 30, resizeMode: 'contain', tintColor: '#fff' },
   centerContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 20 },
   loadingText: { marginTop: 10, color: '#fff' },
   searchContainer: { flexDirection: 'row', padding: 12, backgroundColor: '#000' },

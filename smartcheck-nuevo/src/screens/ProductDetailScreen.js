@@ -1,11 +1,18 @@
 import React from 'react';
 import { View, Text, StyleSheet, Image, ScrollView, TouchableOpacity } from 'react-native';
+import { useAuth } from '../context/AuthContext';
 
 export default function ProductDetailScreen({ route, navigation }) {
-  // Obtenemos el producto de forma segura
   const { product } = route?.params || {};
+  const { logout } = useAuth();
 
-  // Validacion: Si no hay producto, mostramos un aviso amable
+  const handleLogoutFlow = () => {
+    navigation.navigate('Goodbye');
+    setTimeout(() => {
+      logout();
+    }, 1000);
+  };
+
   if (!product) {
     return (
       <View style={styles.containerCenter}>
@@ -35,7 +42,6 @@ export default function ProductDetailScreen({ route, navigation }) {
         
         <Text style={styles.subTitle}>COMPARATIVA DE PRECIOS:</Text>
         
-        {/* Validamos que comparisons exista y tenga datos */}
         {product.comparisons && product.comparisons.length > 0 ? (
           product.comparisons.map((c, i) => (
             <View key={i} style={styles.compCard}>
@@ -48,9 +54,15 @@ export default function ProductDetailScreen({ route, navigation }) {
         )}
       </ScrollView>
 
-      <TouchableOpacity onPress={() => navigation.goBack()} style={styles.footerBtn}>
-        <Image source={require('../../assets/volver.png')} style={styles.btnIcon} />
-      </TouchableOpacity>
+      <View style={styles.footerContainer}>
+        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.footerBtn}>
+          <Image source={require('../../assets/volver.png')} style={styles.btnIcon} />
+        </TouchableOpacity>
+        
+        <TouchableOpacity onPress={handleLogoutFlow} style={styles.footerBtn}>
+          <Image source={require('../../assets/salir.png')} style={styles.btnIcon} />
+        </TouchableOpacity>
+      </View>
     </View>
   );
 }
@@ -71,7 +83,8 @@ const styles = StyleSheet.create({
   priceText: { color: '#00ffcc', fontSize: 18, fontWeight: 'bold' },
   text: { color: '#fff', fontSize: 16 },
   btnText: { color: '#001f3f', fontWeight: 'bold' },
-  footerBtn: { marginBottom: 30 },
-  btnIcon: { width: 50, height: 50, alignSelf: 'center', resizeMode: 'contain' },
+  footerContainer: { flexDirection: 'row', justifyContent: 'space-around', alignItems: 'center', paddingVertical: 20 },
+  footerBtn: { padding: 5 },
+  btnIcon: { width: 50, height: 50, resizeMode: 'contain' },
   btnRetry: { marginTop: 20, padding: 12, backgroundColor: '#00ffcc', borderRadius: 8 }
 });

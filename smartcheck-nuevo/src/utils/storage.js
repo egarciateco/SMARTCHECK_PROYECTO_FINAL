@@ -6,8 +6,6 @@ const STORAGE_KEY = '@smartcheck_user';
 export const storage = {
   /**
    * Guarda los datos del usuario en almacenamiento local
-   * @param {Object} userData - Datos del usuario a guardar
-   * @returns {Promise<boolean>} - true si se guardó correctamente
    */
   saveUser: async (userData) => {
     try {
@@ -16,17 +14,23 @@ export const storage = {
         return false;
       }
       
-      // Limpiar datos sensibles antes de guardar e incluir campos de imagen
+      // FIX: Agregamos los campos faltantes a este objeto para que no se borren
       const safeUserData = {
         id: userData.id || userData._id,
         email: userData.email.toLowerCase().trim(),
         nombre: userData.nombre,
         apellido: userData.apellido,
         sexo: userData.sexo,
+        // Campos nuevos agregados para que se guarden correctamente
+        fechaNacimiento: userData.fechaNacimiento || null,
+        dia: userData.dia || null,
+        mes: userData.mes || null,
+        anio: userData.anio || null,
+        // ----------------------------------------------------
         authMethod: userData.authMethod || 'password',
         faceData: userData.faceData || null,
-        foto: userData.foto || null,     // <-- CORRECCIÓN: Guardamos la foto base64
-        image: userData.image || null,   // <-- CORRECCIÓN: Guardamos la imagen de respaldo
+        foto: userData.foto || null,
+        image: userData.image || null,
         createdAt: userData.createdAt || new Date().toISOString(),
         updatedAt: new Date().toISOString()
       };
@@ -42,7 +46,6 @@ export const storage = {
 
   /**
    * Obtiene los datos del usuario almacenado
-   * @returns {Promise<Object|null>} - Datos del usuario o null
    */
   getUser: async () => {
     try {
@@ -61,7 +64,6 @@ export const storage = {
 
   /**
    * Elimina los datos del usuario del almacenamiento local
-   * @returns {Promise<boolean>} - true si se eliminó correctamente
    */
   clearUser: async () => {
     try {
@@ -76,8 +78,6 @@ export const storage = {
 
   /**
    * Actualiza parcialmente los datos del usuario
-   * @param {Object} updates - Campos a actualizar
-   * @returns {Promise<boolean>} - true si se actualizó correctamente
    */
   updateUser: async (updates) => {
     try {
@@ -99,7 +99,6 @@ export const storage = {
 
   /**
    * Verifica si hay un usuario autenticado
-   * @returns {Promise<boolean>} - true si hay usuario logueado
    */
   isAuthenticated: async () => {
     try {

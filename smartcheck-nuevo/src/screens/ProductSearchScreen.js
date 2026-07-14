@@ -1,17 +1,14 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { View, TextInput, FlatList, TouchableOpacity, Image, Text, StyleSheet, ActivityIndicator, Alert, BackHandler } from 'react-native';
+import { View, TextInput, FlatList, TouchableOpacity, Image, Text, StyleSheet, ActivityIndicator, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import MapView, { Marker, PROVIDER_GOOGLE } from 'react-native-maps'; 
 import * as Location from 'expo-location'; 
-import { Audio } from 'expo-av';
 import { useAuth } from '../context/AuthContext';
 
 const API_URL = 'https://smartcheck-proyecto-final.onrender.com';
-const AUDIO_DESPEDIDA = require('../../assets/despedida.mp3');
-const AUDIO_BEEP = require('../../assets/beepscanner.mp3'); 
 
 export default function ProductSearchScreen({ navigation, route }) {
-  const { user } = useAuth(); 
+  const { user, logout } = useAuth(); 
   const params = route?.params || {};
   
   const mapRef = useRef(null);
@@ -22,7 +19,6 @@ export default function ProductSearchScreen({ navigation, route }) {
   const [productos, setProductos] = useState([]);
   const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(false);
-  const [isExiting, setIsExiting] = useState(false);
 
   const [region, setRegion] = useState({
     latitude: initialLat,
@@ -82,7 +78,6 @@ export default function ProductSearchScreen({ navigation, route }) {
       }
     };
 
-    // Solo activamos el GPS automático si el escáner no mandó una ubicación preferente por parámetros
     if (!params.latitud && !params.longitud) {
       activarGeolocalizacionEnVivo();
     } else {
@@ -91,7 +86,7 @@ export default function ProductSearchScreen({ navigation, route }) {
     }
   }, []);
 
-  //  NUEVO EFECTO 2: Escucha cambios cuando volvés del Escáner
+  // NUEVO EFECTO 2: Escucha cambios cuando volvés del Escáner
   useEffect(() => {
     if (params.latitud && params.longitud) {
       const nuevaLat = parseFloat(params.latitud);
@@ -100,24 +95,29 @@ export default function ProductSearchScreen({ navigation, route }) {
       const regionActualizada = {
         latitude: nuevaLat,
         longitude: nuevaLng,
-        latitudeDelta: 0.008, // Un poco más de zoom para ver el local
+        latitudeDelta: 0.008,
         longitudeDelta: 0.006
       };
 
       setRegion(regionActualizada);
 
-      // Animamos el mapa directo hacia las coordenadas del producto escaneado
       if (mapRef.current) {
         mapRef.current.animateToRegion(regionActualizada, 1000);
       }
 
-      // Si nos pasaron el objeto del producto, lo agregamos a la lista para que se renderice abajo
       if (params.productoEncontrado) {
         setProductos([params.productoEncontrado]);
         setSearch(params.productoEncontrado.nombre);
       }
     }
   }, [params.latitud, params.longitud, params.productoEncontrado]);
+
+  const handleLogoutFlow = () => {
+    navigation.navigate('Goodbye');
+    setTimeout(() => {
+      logout();
+    }, 1000);
+  };
 
   const realizarBusqueda = async () => {
     if (!search.trim()) { 
@@ -133,7 +133,6 @@ export default function ProductSearchScreen({ navigation, route }) {
       if (result.status === 'success') { 
         setProductos(result.data || []); 
         
-        // Si la búsqueda manual devuelve un producto con mapa, movemos el mapa ahí
         if (result.data && result.data.length > 0 && result.data[0].latitud) {
           const proxyRegion = {
             latitude: parseFloat(result.data[0].latitud),
@@ -155,50 +154,6 @@ export default function ProductSearchScreen({ navigation, route }) {
       setLoading(false); 
     }
   };
-
-  const ejecutarSalidaSegura = () => {
-    Alert.alert(
-      "Cerrar Aplicación",
-      "¿Estás seguro de que deseas salir de la aplicación?",
-      [
-        { text: "No", style: "cancel" },
-        { 
-          text: "Sí", 
-          onPress: async () => {
-            try {
-              setIsExiting(true);
-              const { sound } = await Audio.Sound.createAsync(
-                AUDIO_DESPEDIDA,
-                { shouldPlay: false }
-              );
-
-              sound.setOnPlaybackStatusUpdate(async (status) => {
-                if (status.didJustFinish) {
-                  await sound.unloadAsync();
-                  BackHandler.exitApp();
-                }
-              });
-
-              await sound.playAsync();
-            } catch (error) {
-              console.error("Error en la automatización del cierre:", error);
-              BackHandler.exitApp();
-            }
-          } 
-        }
-      ]
-    );
-  };
-
-  if (isExiting) {
-    return (
-      <View style={styles.exitContainer}>
-        <Image source={require('../../assets/logo.png')} style={styles.exitLogo} />
-        <Text style={styles.exitTitle}>¡HASTA LUEGO!</Text>
-        <Text style={styles.exitSubtitle}>¡Vuelva pronto!</Text>
-      </View>
-    );
-  }
 
   return (
     <View style={styles.container}>
@@ -269,7 +224,7 @@ export default function ProductSearchScreen({ navigation, route }) {
         <TouchableOpacity onPress={() => navigation.goBack()}>
           <Image source={require('../../assets/volver.png')} style={styles.iconosFooter} />
         </TouchableOpacity>
-        <TouchableOpacity onPress={ejecutarSalidaSegura}>
+        <TouchableOpacity onPress={handleLogoutFlow}>
           <Image source={require('../../assets/salir.png')} style={styles.iconosFooter} />
         </TouchableOpacity>
       </View>
@@ -277,7 +232,6 @@ export default function ProductSearchScreen({ navigation, route }) {
   );
 }
 
-// Mantenemos tus mismos estilos intactos
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#001f3f' },
   header: { flexDirection: 'row', justifyContent: 'space-between', padding: 20, paddingTop: 40, alignItems: 'center' },
@@ -302,9 +256,5 @@ const styles = StyleSheet.create({
   itemText: { color: '#fff' },
   emptyText: { color: '#555', textAlign: 'center', marginTop: 10, fontSize: 12 },
   footer: { flexDirection: 'row', justifyContent: 'space-between', paddingHorizontal: 40, paddingBottom: 25 },
-  iconosFooter: { width: 45, height: 45, resizeMode: 'contain' },
-  exitContainer: { flex: 1, backgroundColor: '#001f3f', justifyContent: 'center', alignItems: 'center' },
-  exitLogo: { width: 100, height: 100, marginBottom: 20, resizeMode: 'contain' },
-  exitTitle: { color: '#ffcc00', fontSize: 24, fontWeight: '900', letterSpacing: 3, marginBottom: 5 },
-  exitSubtitle: { color: '#00ffcc', fontSize: 16, fontWeight: '600', letterSpacing: 1 }
+  iconosFooter: { width: 45, height: 45, resizeMode: 'contain' }
 });
