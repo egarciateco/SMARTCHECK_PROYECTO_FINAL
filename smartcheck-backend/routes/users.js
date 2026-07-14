@@ -8,6 +8,11 @@ const canvas = require('canvas');
 const db = admin.firestore();
 const upload = multer({ storage: multer.memoryStorage() });
 
+// --- RUTA NUEVA: PRUEBA DE CONEXIÓN ---
+router.get('/prueba-conexion', (req, res) => {
+    return res.status(200).json({ status: 'ok', mensaje: 'El servidor está vivo' });
+});
+
 // --- RUTA: OBTENER PERFIL SIN BIOMETRÍA ---
 router.get('/profile/:email', async (req, res) => {
     try {
@@ -38,7 +43,7 @@ router.get('/usuarios', async (req, res) => {
     }
 });
 
-// --- NUEVA RUTA: ACTUALIZAR UBICACIÓN AUTOMÁTICA ---
+// --- RUTA: ACTUALIZAR UBICACIÓN AUTOMÁTICA ---
 router.post('/actualizar-ubicacion', async (req, res) => {
     try {
         const { email, provincia, localidad } = req.body;
@@ -119,13 +124,16 @@ router.post('/register', upload.single('imageFile'), async (req, res) => {
     }
 });
 
-// --- RUTA BIOMETRÍA ---
+// --- RUTA BIOMETRÍA (OPTIMIZADA) ---
 router.post('/biometria', upload.single('imageFile'), async (req, res) => {
     if (!req.file) return res.status(400).json({ status: 'error', mensaje: 'Imagen requerida' });
     
     try {
         const img = await canvas.loadImage(req.file.buffer);
-        const detection = await faceapi.detectSingleFace(img, new faceapi.SsdMobilenetv1Options({ minConfidence: 0.5 })).withFaceLandmarks().withFaceDescriptor();
+        // CAMBIO AQUÍ: TinyFaceDetectorOptions optimiza el consumo de RAM
+        const detection = await faceapi.detectSingleFace(img, new faceapi.TinyFaceDetectorOptions({ inputSize: 128 }))
+            .withFaceLandmarks()
+            .withFaceDescriptor();
         
         if (!detection) return res.status(400).json({ status: 'error', mensaje: 'No se escaneó el rostro' });
         
