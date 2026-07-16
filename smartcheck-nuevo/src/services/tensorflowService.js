@@ -2,19 +2,18 @@ import * as tf from '@tensorflow/tfjs';
 import '@tensorflow/tfjs-react-native';
 import { bundleResourceIO } from '@tensorflow/tfjs-react-native';
 
-// IMPORTANTE: Tras renombrar 'face_recognition_model-weights_manifest.json' a 'model.json',
-// el require apuntará al nuevo nombre.
+// 1. IMPORTANTE: Asegúrate de que los archivos en tu carpeta 'models' 
+// tengan la extensión .bin y que el archivo manifest se llame 'model.json'
 const modelJson = require('../../assets/models/model.json');
 
-// NOTA: Como tienes shard1 y shard2, los pesos se cargarán automáticamente
-// siempre que estén en la misma carpeta que el model.json.
 const modelWeights = [
-  require('../../assets/models/face_recognition_model-shard1'),
-  require('../../assets/models/face_recognition_model-shard2')
+  require('../../assets/models/face_recognition_model-shard1.bin'),
+  require('../../assets/models/face_recognition_model-shard2.bin')
 ];
 
 export let model = null;
 
+// 2. Inicialización del backend
 export const initializeTensorFlow = async () => {
   try {
     await tf.ready();
@@ -26,12 +25,13 @@ export const initializeTensorFlow = async () => {
   }
 };
 
+// 3. Carga del modelo (se ejecuta solo una vez)
 export const loadModel = async () => {
   if (model) return model;
   try {
     console.log("📂 Cargando modelo de reconocimiento facial...");
 
-    // Cargamos el grafo. Usamos los archivos de pesos cargados arriba.
+    // Cargamos el grafo usando el JSON y el array de pesos (.bin)
     model = await tf.loadGraphModel(bundleResourceIO(modelJson, modelWeights));
     
     console.log("✅ Modelo cargado exitosamente");
@@ -42,15 +42,22 @@ export const loadModel = async () => {
   }
 };
 
+// 4. Conversión de Imagen a Tensor (Pre-procesamiento)
 export const imageToTensor = (rawImageData) => {
   return tf.tidy(() => {
     const imgTensor = tf.browser.fromPixels(rawImageData);
+    
+    // Redimensionar a lo que tu modelo espera (224x224)
     const resized = tf.image.resizeBilinear(imgTensor, [224, 224]);
+    
+    // Normalizar
     const normalized = resized.div(255.0).expandDims(0);
+    
     return normalized;
   });
 };
 
+// 5. Limpieza
 export const disposeModel = () => {
   if (model) {
     model.dispose();
