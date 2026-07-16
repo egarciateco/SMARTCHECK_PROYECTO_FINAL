@@ -12,7 +12,7 @@ import {
   Keyboard 
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
-import { Picker } from '@react-navigation/picker';
+import { Picker } from '@react-native-picker/picker'; // Corrección de importación
 import { createUserWithEmailAndPassword } from 'firebase/auth';
 import { auth } from '../services/firebaseConfig';
 import api from '../config/api'; 
@@ -85,7 +85,6 @@ export default function RegisterScreen() {
             navigation.navigate('Login');
         } catch (error) {
             console.error("Error al registrar:", error);
-            // Manejo del 429
             if (error.response && error.response.status === 429) {
                 Alert.alert("Servidor Ocupado", error.response.data.mensaje || "El servidor está saturado. Intenta de nuevo en unos segundos.");
             } else {
