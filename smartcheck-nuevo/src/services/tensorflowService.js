@@ -2,10 +2,16 @@ import * as tf from '@tensorflow/tfjs';
 import '@tensorflow/tfjs-react-native';
 import { bundleResourceIO } from '@tensorflow/tfjs-react-native';
 
-// 1. IMPORTANTE: Ajustamos la ruta a 'models' (plural)
-// Asegúrate de que dentro de esa carpeta exista el archivo 'model.json'
+// IMPORTANTE: Tras renombrar 'face_recognition_model-weights_manifest.json' a 'model.json',
+// el require apuntará al nuevo nombre.
 const modelJson = require('../../assets/models/model.json');
-const modelWeights = require('../../assets/models/group1-shard1.bin'); 
+
+// NOTA: Como tienes shard1 y shard2, los pesos se cargarán automáticamente
+// siempre que estén en la misma carpeta que el model.json.
+const modelWeights = [
+  require('../../assets/models/face_recognition_model-shard1'),
+  require('../../assets/models/face_recognition_model-shard2')
+];
 
 export let model = null;
 
@@ -23,15 +29,15 @@ export const initializeTensorFlow = async () => {
 export const loadModel = async () => {
   if (model) return model;
   try {
-    console.log("📂 Assets encontrados en 'models/', intentando cargar...");
+    console.log("📂 Cargando modelo de reconocimiento facial...");
 
-    // Si tu archivo de pesos tiene otro nombre, cámbialo aquí también
+    // Cargamos el grafo. Usamos los archivos de pesos cargados arriba.
     model = await tf.loadGraphModel(bundleResourceIO(modelJson, modelWeights));
     
     console.log("✅ Modelo cargado exitosamente");
     return model;
   } catch (error) {
-    console.error("❌ Error al cargar el modelo:", error);
+    console.error("❌ Error crítico al cargar el modelo:", error);
     return null;
   }
 };
