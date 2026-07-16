@@ -1,13 +1,15 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { StyleSheet, Text, View, TouchableOpacity, Image, Dimensions, Alert } from 'react-native';
+import { StyleSheet, Text, View, TouchableOpacity, Image, Dimensions, Alert, Animated } from 'react-native';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import { Audio } from 'expo-av';
 import * as ImageManipulator from 'expo-image-manipulator';
+import * as tf from '@tensorflow/tfjs'; // Importamos tf para la gestión de memoria
 import { useNavigation, useRoute } from '@react-navigation/native';
 import Svg, { Ellipse } from 'react-native-svg';
 import api from '../config/api';
 import storage from '../utils/storage';
 import { useAuth } from '../context/AuthContext';
+import * as tfService from '../services/tensorflowService';
 
 const { width } = Dimensions.get('window');
 
@@ -20,9 +22,12 @@ export default function FacialLoginScreen() {
   
   const [permission, requestPermission] = useCameraPermissions();
   const [loading, setLoading] = useState(false);
-  const [countdown, setCountdown] = useState(0);
+  const [isProcessing, setIsProcessing] = useState(false); 
+  const [ovalColor, setOvalColor] = useState('#FFD700'); // Amarillo: Buscando rostro
+  
   const cameraRef = useRef(null);
   const soundRef = useRef(new Audio.Sound());
+  const pulseAnim = useRef(new Animated.Value(1)).current;
 
   const audioFiles = {
     bienvenida: require('../../assets/vozmasculina.mp3'),
@@ -37,12 +42,7 @@ export default function FacialLoginScreen() {
   const reproducirVoz = async (tipo, genero = 'masculino') => {
     try {
       await soundRef.current.unloadAsync();
-      let archivo;
-      if (tipo === 'yaregistrado') {
-        archivo = genero === 'mujer' ? audioFiles.femYaRegistrada : audioFiles.mascYaRegistrado;
-      } else {
-        archivo = audioFiles[tipo];
-      }
+      let archivo = (tipo === 'yaregistrado') ? (genero === 'mujer' ? audioFiles.femYaRegistrada : audioFiles.mascYaRegistrado) : audioFiles[tipo];
       if (archivo) {
         await soundRef.current.loadAsync(archivo);
         await soundRef.current.playAsync();
@@ -51,56 +51,82 @@ export default function FacialLoginScreen() {
   };
 
   useEffect(() => {
-    reproducirVoz('bienvenida');
-    return () => { soundRef.current.unloadAsync(); };
-  }, []);
+    const init = async () => {
+      await tfService.initializeTensorFlow();
+      await tfService.loadModel();
+      reproducirVoz('bienvenida');
+    };
+    init();
 
-  const handleSalir = async () => {
-    await reproducirVoz('despedida');
-    navigation.navigate('Goodbye');
-  };
+    // Animación de pulso
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(pulseAnim, { toValue: 1.2, duration: 1000, useNativeDriver: true }),
+        Animated.timing(pulseAnim, { toValue: 1, duration: 1000, useNativeDriver: true })
+      ])
+    ).start();
 
-  const validarRostro = async () => {
-    if (countdown > 0 || loading) return;
-    if (!permission?.granted) { 
-      const s = await requestPermission(); 
-      if (!s.granted) return; 
-    }
+    // BUCLE DE DETECCIÓN INTELIGENTE
+    const detectionInterval = setInterval(async () => {
+      if (!isProcessing && cameraRef.current && tfService.model) {
+        try {
+          // 1. Captura rápida (baja calidad para no ralentizar)
+          const photo = await cameraRef.current.takePictureAsync({ quality: 0.1, skipProcessing: true });
+          
+          // 2. Convertir a Tensor y analizar
+          const tensor = tfService.imageToTensor(photo); // Usamos tu función del servicio
+          const predictions = await tfService.model.predict(tensor);
+          
+          // 3. Lógica de detección (si hay predicciones, hay rostro)
+          if (predictions && predictions.length > 0) {
+            setOvalColor('#00FF00'); // Verde: Rostro detectado
+            clearInterval(detectionInterval); // Detenemos el bucle
+            handleCapture(); // Disparamos la captura real
+          } else {
+            setOvalColor('#FFD700'); // Amarillo: buscando
+          }
+
+          // 4. Limpieza de memoria (CRUCIAL para no cerrar la app)
+          tensor.dispose();
+          predictions.dispose(); // Si aplica al modelo
+        } catch (e) {
+          console.log("Detección en segundo plano:", e);
+        }
+      }
+    }, 1500);
+
+    return () => { 
+        soundRef.current.unloadAsync(); 
+        clearInterval(detectionInterval);
+    };
+  }, [isProcessing]);
+
+  const handleCapture = async () => {
+    if (isProcessing) return;
     
-    for (let i = 3; i > 0; i--) { 
-      setCountdown(i); 
-      await new Promise(r => setTimeout(r, 1000)); 
-    }
-    setCountdown(0); 
+    setIsProcessing(true);
+    setLoading(true);
+    reproducirVoz('verificando');
     
-    if (cameraRef.current) {
-      setLoading(true);
-      try {
-        const photo = await cameraRef.current.takePictureAsync({ quality: 0.2, skipProcessing: true });
-        reproducirVoz('verificando');
+    try {
+        // Captura de alta calidad para el servidor
+        const photo = await cameraRef.current.takePictureAsync({ quality: 0.8, skipProcessing: true });
         
         const p = await ImageManipulator.manipulateAsync(
             photo.uri, 
-            [{ resize: { width: 300 } }], 
-            { compress: 0.15, format: 'jpeg' }
+            [{ resize: { width: 600 } }], 
+            { compress: 0.7, format: 'jpeg' }
         );
         
         const fd = new FormData();
-        fd.append('imageFile', { 
-            uri: p.uri, 
-            name: 'face.jpg', 
-            type: 'image/jpeg' 
-        });
+        fd.append('imageFile', { uri: p.uri, name: 'face.jpg', type: 'image/jpeg' });
         
         if (tipoOperacion === 'REGISTER' && datosRegistro) {
             Object.keys(datosRegistro).forEach(k => datosRegistro[k] !== null && fd.append(k, String(datosRegistro[k])));
         }
         
         const endpoint = tipoOperacion === 'REGISTER' ? '/api/users/register' : '/api/users/biometria';
-        
-        const response = await api.post(endpoint, fd, {
-            headers: { 'Content-Type': 'multipart/form-data' }
-        });
+        const response = await api.post(endpoint, fd, { headers: { 'Content-Type': 'multipart/form-data' } });
         
         if (response.data.status === 'success') {
           reproducirVoz('reconocida');
@@ -112,26 +138,17 @@ export default function FacialLoginScreen() {
             if (typeof login === 'function') login(response.data.usuario);
           }
         } else {
+            setIsProcessing(false);
             const genero = response.data.genero || 'masculino'; 
-            if (response.data.codigo === 'YA_REGISTRADO') {
-              reproducirVoz('yaregistrado', genero);
-            } else {
-              reproducirVoz('error');
-            }
+            if (response.data.codigo === 'YA_REGISTRADO') reproducirVoz('yaregistrado', genero);
+            else reproducirVoz('error');
             Alert.alert("Error", response.data.mensaje || "Error en validación");
         }
-      } catch (e) { 
-        console.error("Error en validación facial:", e);
-        // Manejo específico del 429
-        if (e.response && e.response.status === 429) {
-            const mensaje = e.response.data.mensaje || "El servidor está saturado. Por favor, intenta de nuevo en unos segundos.";
-            Alert.alert("Servidor Ocupado", mensaje);
-        } else {
-            reproducirVoz('error'); 
-            Alert.alert("Error", "No se pudo procesar la biometría.");
-        }
-      } finally { setLoading(false); }
-    }
+    } catch (e) { 
+        setIsProcessing(false);
+        console.error("Error:", e);
+        Alert.alert("Error", "No se pudo procesar la biometría.");
+    } finally { setLoading(false); }
   };
 
   return (
@@ -141,31 +158,29 @@ export default function FacialLoginScreen() {
         <Image source={require('../../assets/nombreapp.png')} style={styles.appName} />
       </View>
 
-      <Text style={styles.titleText}>RECONOCIMIENTO FACIAL</Text>
+      <Text style={styles.titleText}>{isProcessing ? "VERIFICANDO..." : "RECONOCIMIENTO FACIAL"}</Text>
 
       <View style={styles.goldenFrame}>
-        <CameraView style={styles.camera} facing="front" ref={cameraRef}>
-          <Svg style={StyleSheet.absoluteFill}>
-            <Ellipse cx="50%" cy="50%" rx="130" ry="180" stroke="#00E5FF" strokeWidth="5" fill="transparent" />
-          </Svg>
-          {countdown > 0 && (
-            <View style={styles.countdownContainer}>
-              <Text style={styles.countdownText}>{countdown}</Text>
-            </View>
-          )}
-        </CameraView>
+        {isProcessing ? (
+          <View style={styles.standbyContainer}>
+            <Animated.View style={[styles.pulseCircle, { transform: [{ scale: pulseAnim }] }]} />
+            <Text style={styles.standbyText}>Procesando información...</Text>
+          </View>
+        ) : (
+          <CameraView style={styles.camera} facing="front" ref={cameraRef}>
+            <Svg style={StyleSheet.absoluteFill}>
+              <Ellipse cx="50%" cy="50%" rx="130" ry="180" stroke={ovalColor} strokeWidth="5" fill="transparent" />
+            </Svg>
+          </CameraView>
+        )}
       </View>
 
       <View style={styles.footer}>
         <TouchableOpacity style={styles.navButton} onPress={() => navigation.navigate('Welcome')}>
           <Image source={require('../../assets/volver.png')} style={styles.navIcon} />
         </TouchableOpacity>
-        
-        <TouchableOpacity style={styles.captureButton} onPress={validarRostro} disabled={loading}>
-          <Image source={require('../../assets/verificar.png')} style={styles.verifyIcon} />
-        </TouchableOpacity>
-        
-        <TouchableOpacity style={styles.navButton} onPress={handleSalir}>
+        <View style={styles.navButton} /> 
+        <TouchableOpacity style={styles.navButton} onPress={() => { reproducirVoz('despedida'); navigation.navigate('Goodbye'); }}>
           <Image source={require('../../assets/salir.png')} style={styles.navIcon} />
         </TouchableOpacity>
       </View>
@@ -181,11 +196,10 @@ const styles = StyleSheet.create({
   titleText: { color: '#fff', fontSize: 20, fontWeight: 'bold', marginVertical: 10 },
   goldenFrame: { width: '90%', aspectRatio: 3/4, borderColor: '#FFD700', borderWidth: 2, borderRadius: 20, overflow: 'hidden', backgroundColor: '#000' },
   camera: { flex: 1 },
-  countdownContainer: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center' },
-  countdownText: { color: '#00E5FF', fontSize: 72, fontWeight: 'bold' },
   footer: { flexDirection: 'row', justifyContent: 'space-around', alignItems: 'center', width: '100%', paddingBottom: 20 },
-  captureButton: { width: 150, height: 150, justifyContent: 'center', alignItems: 'center' },
-  verifyIcon: { width: 150, height: 150, resizeMode: 'contain' },
   navButton: { width: 60, height: 60, justifyContent: 'center', alignItems: 'center' },
-  navIcon: { width: 50, height: 50, tintColor: '#00E5FF' }
+  navIcon: { width: 50, height: 50, tintColor: '#00E5FF' },
+  standbyContainer: { flex: 1, backgroundColor: '#000', justifyContent: 'center', alignItems: 'center' },
+  pulseCircle: { width: 120, height: 120, borderRadius: 60, backgroundColor: '#00E5FF', opacity: 0.4 },
+  standbyText: { color: '#fff', marginTop: 20, fontSize: 18, fontWeight: 'bold' }
 });
