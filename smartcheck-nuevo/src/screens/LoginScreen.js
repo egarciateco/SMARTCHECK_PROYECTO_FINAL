@@ -40,7 +40,6 @@ export default function LoginScreen({ navigation }) {
     Keyboard.dismiss();
   };
 
-  // Función de salida consistente con las otras pantallas
   const handleSalir = () => {
     navigation.navigate('Goodbye');
   };
@@ -141,7 +140,7 @@ export default function LoginScreen({ navigation }) {
               <TouchableOpacity style={styles.navButton} onPress={() => navigation.navigate('Register')}>
                 <Image source={require('../../assets/registrarse.png')} style={styles.footerRectButton} />
               </TouchableOpacity>
-              <TouchableOpacity style={styles.navButton} onPress={() => {}}>
+              <TouchableOpacity style={styles.navButton} onPress={() => navigation.navigate('ForgotPassword')}>
                 <Image source={require('../../assets/recucontra.png')} style={styles.footerRectButton} />
               </TouchableOpacity>
             </View>

@@ -79,7 +79,6 @@ export default function FacialLoginScreen() {
         const photo = await cameraRef.current.takePictureAsync({ quality: 0.2, skipProcessing: true });
         reproducirVoz('verificando');
         
-        // Compresión de imagen
         const p = await ImageManipulator.manipulateAsync(
             photo.uri, 
             [{ resize: { width: 300 } }], 
@@ -99,8 +98,9 @@ export default function FacialLoginScreen() {
         
         const endpoint = tipoOperacion === 'REGISTER' ? '/api/users/register' : '/api/users/biometria';
         
-        // LA CORRECCIÓN: Axios detectará el FormData y agregará el multipart/form-data automáticamente con el boundary correcto.
-        const response = await api.post(endpoint, fd);
+        const response = await api.post(endpoint, fd, {
+            headers: { 'Content-Type': 'multipart/form-data' }
+        });
         
         if (response.data.status === 'success') {
           reproducirVoz('reconocida');
@@ -122,8 +122,14 @@ export default function FacialLoginScreen() {
         }
       } catch (e) { 
         console.error("Error en validación facial:", e);
-        reproducirVoz('error'); 
-        Alert.alert("Error", "No se pudo procesar la biometría.");
+        // Manejo específico del 429
+        if (e.response && e.response.status === 429) {
+            const mensaje = e.response.data.mensaje || "El servidor está saturado. Por favor, intenta de nuevo en unos segundos.";
+            Alert.alert("Servidor Ocupado", mensaje);
+        } else {
+            reproducirVoz('error'); 
+            Alert.alert("Error", "No se pudo procesar la biometría.");
+        }
       } finally { setLoading(false); }
     }
   };

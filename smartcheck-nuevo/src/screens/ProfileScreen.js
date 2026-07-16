@@ -12,17 +12,14 @@ export default function ProfileScreen({ navigation }) {
 
   const getPhotoUri = () => {
     if (!user) return null;
-    const foto = user.foto || user.image || user.urlFoto || user.photoURL;
-    return foto;
+    return user.foto || user.image || user.urlFoto || user.photoURL;
   };
 
   const photoUri = getPhotoUri();
 
   const handleLogoutFlow = () => {
     navigation.navigate('Goodbye');
-    setTimeout(() => {
-      logout();
-    }, 1000);
+    setTimeout(() => { logout(); }, 1000);
   };
 
   const calcularEdad = () => {
@@ -48,10 +45,6 @@ export default function ProfileScreen({ navigation }) {
     return <Image source={require('../../assets/sexindef.png')} style={styles.sexIcon} />;
   };
 
-  const handleGoBack = () => {
-    navigation.navigate('HomeScreen');
-  };
-
   useEffect(() => {
     const obtenerUbicacion = async () => {
       try {
@@ -69,75 +62,90 @@ export default function ProfileScreen({ navigation }) {
   }, []);
 
   return (
-    <ScrollView style={styles.container}>
-      <View style={styles.blackHeader}>
-        <Image source={require('../../assets/logo.png')} style={styles.logo} />
-        <Image source={require('../../assets/nombreapp.png')} style={styles.appName} />
-      </View>
-
-      <View style={styles.titleBar}>
-        <Text style={styles.titleText}>MI PERFIL</Text>
-      </View>
-
-      <View style={styles.body}>
-        <View style={styles.avatarContainer}>
-          {photoUri ? (
-            <Image 
-              source={{ uri: photoUri }} 
-              style={styles.avatar} 
-              resizeMode="cover" 
-              onError={(e) => setImageError(e.nativeEvent.error)}
-            />
-          ) : (
-            <View style={styles.avatarPlaceholder}><Text style={styles.placeholderText}>Sin foto</Text></View>
-          )}
+    <View style={styles.container}>
+      <ScrollView contentContainerStyle={styles.scrollContent}>
+        {/* Header optimizado */}
+        <View style={styles.header}>
+          <Image source={require('../../assets/logo.png')} style={styles.logo} />
+          <Image source={require('../../assets/nombreapp.png')} style={styles.appName} />
         </View>
 
-        {imageError && <Text style={{color: 'red', fontSize: 10}}>Img Error: {imageError}</Text>}
+        <View style={styles.titleBar}>
+          <Text style={styles.titleText}>MI PERFIL</Text>
+        </View>
 
-        <Text style={styles.userName}>{user?.nombre || 'Usuario'} {user?.apellido || ''}</Text>
-        
-        <View style={styles.goldenLineFull} />
+        <View style={styles.body}>
+          <View style={styles.userHeaderRow}>
+              <View style={styles.avatarContainer}>
+                {photoUri ? (
+                  <Image source={{ uri: photoUri }} style={styles.avatar} resizeMode="cover" onError={(e) => setImageError(e.nativeEvent.error)} />
+                ) : (
+                  <View style={styles.avatarPlaceholder}><Text style={styles.placeholderText}>Sin foto</Text></View>
+                )}
+              </View>
+              <Text style={styles.userName} numberOfLines={2}>{user?.nombre || 'Usuario'} {user?.apellido || ''}</Text>
+          </View>
+          
+          <View style={styles.goldenLineFull} />
 
-        <View style={styles.grid}>
-          <View style={styles.item}><Text style={styles.label}>Email:</Text><Text style={styles.text}>{user?.email || 'N/A'}</Text></View>
-          <View style={styles.item}><Text style={styles.label}>Edad:</Text><Text style={styles.text}>{calcularEdad()} años</Text></View>
-          <View style={styles.item}><Text style={styles.label}>Sexo:</Text>{renderSexIcon()}</View>
-          <View style={styles.item}><Text style={styles.label}>Ubicación:</Text><Text style={styles.text}>{loadingLocation ? "..." : `${localidad}, ${provincia}`}</Text></View>
+          <View style={styles.grid}>
+            <View style={styles.item}><Text style={styles.label}>Email:</Text><Text style={styles.text} numberOfLines={1}>{user?.email || 'N/A'}</Text></View>
+            <View style={styles.item}><Text style={styles.label}>Edad:</Text><Text style={styles.text}>{calcularEdad()} años</Text></View>
+            <View style={styles.item}><Text style={styles.label}>Sexo:</Text>{renderSexIcon()}</View>
+            <View style={styles.item}>
+              <Text style={styles.label}>Ubicación:</Text>
+              {loadingLocation ? 
+                <Text style={styles.loadingText}>Verificando geolocalización...</Text> : 
+                <Text style={styles.text} numberOfLines={1}>{localidad}, {provincia}</Text>
+              }
+            </View>
+          </View>
+        </View>
+      </ScrollView>
+
+      <View style={styles.footerWrapper}>
+        <View style={styles.footerLine} />
+        <View style={styles.footer}>
+            <TouchableOpacity onPress={() => navigation.navigate('HomeScreen')}>
+                <Image source={require('../../assets/volver.png')} style={styles.navIcon}/>
+            </TouchableOpacity>
+            <TouchableOpacity onPress={handleLogoutFlow}>
+                <Image source={require('../../assets/salir.png')} style={styles.navIcon}/>
+            </TouchableOpacity>
         </View>
       </View>
-
-      <View style={styles.footer}>
-        <TouchableOpacity onPress={handleGoBack}>
-            <Image source={require('../../assets/volver.png')} style={styles.footerBtn}/>
-        </TouchableOpacity>
-        <TouchableOpacity onPress={handleLogoutFlow}>
-            <Image source={require('../../assets/salir.png')} style={styles.footerBtn}/>
-        </TouchableOpacity>
-      </View>
-    </ScrollView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#001f3f' },
-  blackHeader: { width: '100%', backgroundColor: '#000', paddingTop: 40, paddingBottom: 10, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 20 },
-  logo: { width: 40, height: 40, resizeMode: 'contain' },
-  appName: { flex: 1, height: 30, resizeMode: 'contain', marginHorizontal: 10 },
-  titleBar: { backgroundColor: '#000', paddingVertical: 8, alignItems: 'center', width: '100%', marginVertical: 5 },
+  scrollContent: { flexGrow: 1 },
+  // Padding superior reducido para subir todo el header
+  header: { width: '100%', backgroundColor: '#001f3f', paddingTop: 10, paddingBottom: 5, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 10 },
+  // Logo más grande y ajustado
+  logo: { width: 100, height: 100, resizeMode: 'contain' },
+  // Nombre de app agrandado (height: 65)
+  appName: { flex: 1, height: 65, resizeMode: 'contain', marginHorizontal: 5 },
+  titleBar: { backgroundColor: '#000', paddingVertical: 8, alignItems: 'center', width: '100%' },
   titleText: { color: '#FFD700', fontSize: 18, fontWeight: 'bold' },
-  body: { flex: 1, alignItems: 'center', marginTop: 15 },
-  avatarContainer: { width: 90, height: 90, borderRadius: 45, backgroundColor: '#fff', marginBottom: 10, borderWidth: 3, borderColor: '#ffcc00', overflow: 'hidden' },
+  // Margen superior reducido para subir el contenido
+  body: { paddingHorizontal: 20, marginTop: 5 },
+  userHeaderRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 15 },
+  avatarContainer: { width: 70, height: 70, borderRadius: 35, backgroundColor: '#fff', borderWidth: 2, borderColor: '#ffcc00', overflow: 'hidden' },
   avatar: { width: '100%', height: '100%' },
   avatarPlaceholder: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#ccc' },
   placeholderText: { color: '#000', fontSize: 10 },
-  userName: { color: '#fff', fontSize: 20, fontWeight: 'bold', marginBottom: 5 },
+  userName: { color: '#fff', fontSize: 18, fontWeight: 'bold', marginLeft: 15, flex: 1 },
   goldenLineFull: { width: '100%', height: 2, backgroundColor: '#ffcc00', marginBottom: 15 },
-  grid: { width: '90%', backgroundColor: '#000', borderRadius: 15, padding: 15, borderWidth: 1, borderColor: '#ffcc00' },
+  grid: { backgroundColor: '#000', borderRadius: 15, padding: 15, borderWidth: 1, borderColor: '#ffcc00' },
   item: { flexDirection: 'row', marginBottom: 10, alignItems: 'center' },
-  label: { color: '#ffcc00', fontWeight: 'bold', marginRight: 10, width: 100 },
-  text: { color: '#fff', flex: 1 },
-  sexIcon: { width: 25, height: 25, resizeMode: 'contain' },
-  footer: { flexDirection: 'row', justifyContent: 'space-between', paddingHorizontal: 20, paddingVertical: 20 },
-  footerBtn: { width: 55, height: 55, resizeMode: 'contain' }
+  label: { color: '#ffcc00', fontWeight: 'bold', marginRight: 10, width: 80, fontSize: 13 },
+  text: { color: '#fff', flex: 1, fontSize: 13 },
+  loadingText: { color: '#00E5FF', flex: 1, fontSize: 13, fontStyle: 'italic' },
+  sexIcon: { width: 35, height: 35, resizeMode: 'contain' },
+  footerWrapper: { width: '100%', paddingHorizontal: 20, paddingBottom: 20 },
+  footerLine: { width: '100%', height: 1, backgroundColor: '#FFD700', marginBottom: 10 },
+  footer: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  navIcon: { width: 50, height: 50, tintColor: '#00E5FF' }
 });

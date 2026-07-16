@@ -12,28 +12,22 @@ import {
   Keyboard 
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
-import { Picker } from '@react-native-picker/picker';
+import { Picker } from '@react-navigation/picker';
+import { createUserWithEmailAndPassword } from 'firebase/auth';
+import { auth } from '../services/firebaseConfig';
 import api from '../config/api'; 
 
 export default function RegisterScreen() {
   const navigation = useNavigation();
-  
-  // Estado para detectar si el teclado está visible
   const [isKeyboardVisible, setKeyboardVisible] = useState(false);
 
   useLayoutEffect(() => {
     navigation.setOptions({ headerShown: false });
   }, [navigation]);
 
-  // Listener para el teclado
   useEffect(() => {
-    const keyboardDidShowListener = Keyboard.addListener('keyboardDidShow', () => {
-      setKeyboardVisible(true);
-    });
-    const keyboardDidHideListener = Keyboard.addListener('keyboardDidHide', () => {
-      setKeyboardVisible(false);
-    });
-
+    const keyboardDidShowListener = Keyboard.addListener('keyboardDidShow', () => setKeyboardVisible(true));
+    const keyboardDidHideListener = Keyboard.addListener('keyboardDidHide', () => setKeyboardVisible(false));
     return () => {
       keyboardDidShowListener.remove();
       keyboardDidHideListener.remove();
@@ -46,7 +40,6 @@ export default function RegisterScreen() {
   
   const [form, setForm] = useState({ nombre: '', apellido: '', email: '', password: '', confirmPassword: '', sexo: '', dia: '', mes: '', anio: '' });
   const [metodo, setMetodo] = useState(null); 
-
   const [verPassword, setVerPassword] = useState(false);
   const [verConfirm, setVerConfirm] = useState(false);
 
@@ -60,7 +53,6 @@ export default function RegisterScreen() {
   };
 
   const handleSalir = () => {
-    // Flujo unificado hacia Goodbye
     navigation.navigate('Goodbye');
   };
 
@@ -74,27 +66,32 @@ export default function RegisterScreen() {
         if (form.password !== form.confirmPassword) return Alert.alert("Error", "Las contraseñas no coinciden.");
         
         try {
+            // 1. Crear usuario en Firebase
+            await createUserWithEmailAndPassword(auth, form.email.trim(), form.password);
+            
+            // 2. Enviar datos a tu API local
             const formData = new FormData();
             formData.append('nombre', form.nombre);
             formData.append('apellido', form.apellido);
-            formData.append('email', form.email);
-            formData.append('password', form.password);
+            formData.append('email', form.email.trim().toLowerCase());
             formData.append('sexo', form.sexo);
-            formData.append('dia', form.dia);
-            formData.append('mes', form.mes);
-            formData.append('anio', form.anio);
             formData.append('fechaNacimiento', stringFecha);
             
-            const response = await api.post('/register', formData, {
-              headers: { 'Content-Type': 'multipart/form-data' },
+            await api.post('/api/users/register', formData, {
+                headers: { 'Content-Type': 'multipart/form-data' },
             });
 
             Alert.alert("Éxito", "Usuario registrado correctamente.");
             navigation.navigate('Login');
         } catch (error) {
-            console.log(error); 
-            const errorMsg = error.response?.data?.mensaje || "Ocurrió un error al registrar.";
-            Alert.alert("Error", errorMsg);
+            console.error("Error al registrar:", error);
+            // Manejo del 429
+            if (error.response && error.response.status === 429) {
+                Alert.alert("Servidor Ocupado", error.response.data.mensaje || "El servidor está saturado. Intenta de nuevo en unos segundos.");
+            } else {
+                const errorMsg = error.response?.data?.mensaje || error.message || "Ocurrió un error al registrar.";
+                Alert.alert("Error", errorMsg);
+            }
         }
     } else {
         navigation.navigate('Camera', { 
@@ -106,7 +103,6 @@ export default function RegisterScreen() {
 
   return (
     <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.container}>
-      
       {!isKeyboardVisible && (
         <View style={styles.header}>
           <Image source={require('../../assets/logo.png')} style={styles.logo} />
@@ -122,7 +118,6 @@ export default function RegisterScreen() {
 
       <View style={styles.bodyContent}>
         <View style={styles.formFrame}>
-          
           <View style={styles.inputContainer}>
             <Text style={styles.emoji}>👤</Text>
             <TextInput style={styles.input} placeholder="Nombre" onChangeText={(v) => handleInputChange('nombre', v)} />
@@ -162,14 +157,7 @@ export default function RegisterScreen() {
               <TouchableOpacity style={styles.metalBtn} onPress={() => setMetodo('password')}>
                 <Text style={styles.metalBtnTxt}>POR{"\n"}CONTRASEÑA</Text>
               </TouchableOpacity>
-              
-              <TouchableOpacity 
-                style={styles.metalBtn} 
-                onPress={() => {
-                  Keyboard.dismiss(); 
-                  setMetodo('facial');
-                }}
-              >
+              <TouchableOpacity style={styles.metalBtn} onPress={() => { Keyboard.dismiss(); setMetodo('facial'); }}>
                 <Text style={styles.metalBtnTxt}>RECONOCIMIENTO{"\n"}FACIAL</Text>
               </TouchableOpacity>
             </View>
@@ -222,7 +210,6 @@ export default function RegisterScreen() {
             </TouchableOpacity>
         </View>
       )}
-
     </KeyboardAvoidingView>
   );
 }
@@ -234,35 +221,26 @@ const styles = StyleSheet.create({
   nombreApp: { width: 140, height: 35, resizeMode: 'contain', marginLeft: 10 },
   blackBar: { backgroundColor: '#000', paddingVertical: 8, width: '100%', marginVertical: 5 },
   titleText: { color: '#fff', fontSize: 14, fontWeight: 'bold', textAlign: 'center', letterSpacing: 0.8 },
-  
   bodyContent: { flex: 1, paddingHorizontal: 15, justifyContent: 'center' },
   formFrame: { borderWidth: 1, borderColor: '#ffa500', borderRadius: 10, padding: 12 },
-  
   inputContainer: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#fff', marginBottom: 8, paddingHorizontal: 10, borderRadius: 5, height: 45 },
   input: { flex: 1, padding: 10 },
   emoji: { marginRight: 10, fontSize: 16 },
   emojiOjo: { marginLeft: 10, fontSize: 20 },
-  
   dateRow: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#fff', marginBottom: 8, paddingHorizontal: 10, borderRadius: 5, justifyContent: 'space-between', height: 45 },
   dateBox: { flex: 1, textAlign: 'center', padding: 5, backgroundColor: '#f0f0f0', borderRadius: 5, fontSize: 15 },
   dateBoxYear: { flex: 1.5, textAlign: 'center', padding: 5, backgroundColor: '#f0f0f0', borderRadius: 5, fontSize: 15 },
   slash: { fontSize: 20, fontWeight: 'bold', color: '#888', marginHorizontal: 5 },
-  
   btnRow: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 10 },
   metalBtn: { backgroundColor: '#c0c0c0', padding: 8, borderRadius: 5, width: '48%', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: '#808080', elevation: 5 },
   metalBtnTxt: { fontWeight: '900', color: '#000', fontSize: 10, textAlign: 'center', lineHeight: 12 },
-  
   finalBtn: { backgroundColor: '#fff', padding: 12, borderRadius: 5, alignItems: 'center', marginTop: 10 },
   btnTxt: { fontWeight: '800', color: '#001f3f', textAlign: 'center' },
-  
   avisoFacialActivo: { color: '#00ffcc', textAlign: 'center', fontWeight: 'bold', marginTop: 10, fontSize: 13 },
-  
   footerArea: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', width: '100%', paddingHorizontal: 20, paddingBottom: 15, height: 140 },
   navButton: { width: 50, height: 50, justifyContent: 'center', alignItems: 'center' },
   captureButton: { justifyContent: 'center', alignItems: 'center' },
-  
   verifyIcon: { width: 150, height: 150, resizeMode: 'contain' },
   placeholderButton: { width: 150, height: 150 }, 
-  
   navIcon: { width: 42, height: 42, resizeMode: 'contain', tintColor: '#00ffcc' }
 });
