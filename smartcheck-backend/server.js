@@ -3,6 +3,7 @@ const admin = require("firebase-admin");
 const cors = require('cors');
 const path = require('path');
 const http = require('http');
+const https = require('https'); // IMPORTADO PARA EL KEEP-ALIVE
 const socketIo = require('socket.io');
 const faceapi = require('face-api.js');
 const canvas = require('canvas');
@@ -68,6 +69,16 @@ async function startServer() {
     const PORT = process.env.PORT || 10000;
     server.listen(PORT, '0.0.0.0', () => {
         console.log(`🚀 SERVIDOR ONLINE EN EL PUERTO ${PORT}`);
+
+        // --- INICIO DE LÓGICA KEEP-ALIVE ---
+        setInterval(() => {
+            https.get('https://smartcheck-proyecto-final.onrender.com', (res) => {
+                console.log(`[Keep-Alive] Ping exitoso: ${res.statusCode} a las ${new Date().toLocaleTimeString()}`);
+            }).on('error', (e) => {
+                console.error(`[Keep-Alive] Error al hacer ping: ${e.message}`);
+            });
+        }, 300000); // 300,000 ms = 5 minutos
+        // --- FIN DE LÓGICA KEEP-ALIVE ---
     });
     
     server.keepAliveTimeout = 120000;

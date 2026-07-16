@@ -8,6 +8,9 @@ const canvas = require('canvas');
 const db = admin.firestore();
 const upload = multer({ storage: multer.memoryStorage() });
 
+// SEMÁFORO: Control de concurrencia para proteger la RAM
+let isProcessing = false;
+
 // --- RUTA NUEVA: PRUEBA DE CONEXIÓN ---
 router.get('/prueba-conexion', (req, res) => {
     return res.status(200).json({ status: 'ok', mensaje: 'El servidor está vivo' });
@@ -71,71 +74,96 @@ router.post('/actualizar-ubicacion', async (req, res) => {
 
 // --- RUTA DE REGISTRO ---
 router.post('/register', upload.single('imageFile'), async (req, res) => {
-    if (!req.file) return res.status(400).json({ status: 'error', mensaje: 'Imagen requerida' });
+    // AVISO PARA EL USUARIO EN ESPERA
+    if (isProcessing) {
+        return res.status(429).json({ 
+            status: 'wait', 
+            mensaje: 'El servidor está procesando otra validación en este momento. Por favor, espera unos segundos mientras otros usuarios terminan su registro e intenta nuevamente.' 
+        });
+    }
     
+    isProcessing = true;
+
     try {
-        const img = await canvas.loadImage(req.file.buffer);
-        const detectionOptions = new faceapi.SsdMobilenetv1Options({ minConfidence: 0.5 });
-        const detection = await faceapi.detectSingleFace(img, detectionOptions).withFaceLandmarks().withFaceDescriptor();
-            
-        if (!detection) return res.status(400).json({ status: 'error', mensaje: 'No se detectó un rostro claro' });
-        
         const { nombre, apellido, email, correo, dia, mes, anio, fechaNacimiento, ...datos } = req.body;
         const emailFinal = (email || correo || '').toLowerCase().trim();
 
         const existingUser = await db.collection('users').where('email', '==', emailFinal).get();
         if (!existingUser.empty) {
+            isProcessing = false; // Liberamos antes de salir
             return res.status(400).json({ status: 'error', mensaje: 'El email ya está registrado' });
         }
 
-        const passwordTemp = Math.random().toString(36).slice(-10) + "A1!"; 
+        let faceDescriptor = null;
+        let fotoBase64 = null;
+
+        if (req.file) {
+            const img = await canvas.loadImage(req.file.buffer);
+            const detection = await faceapi.detectSingleFace(img).withFaceLandmarks().withFaceDescriptor();
+                
+            if (!detection) {
+                isProcessing = false; // Liberamos antes de salir
+                return res.status(400).json({ status: 'error', mensaje: 'No se detectó un rostro claro' });
+            }
+            faceDescriptor = Array.from(detection.descriptor);
+            fotoBase64 = `data:image/jpeg;base64,${req.file.buffer.toString('base64')}`;
+        }
+
+        const passwordTemp = req.body.password || (Math.random().toString(36).slice(-10) + "A1!"); 
         const userRecord = await admin.auth().createUser({
             email: emailFinal,
             password: passwordTemp,
             displayName: `${nombre} ${apellido}`
         });
 
-        const fotoBase64 = req.file ? `data:image/jpeg;base64,${req.file.buffer.toString('base64')}` : null;
-        const arrayDescriptores = Array.from(detection.descriptor);
-        
         const newUser = {
             uid: userRecord.uid,
             nombre, apellido, email: emailFinal, correo: emailFinal,
             dia, mes, anio,
             fechaNacimiento: fechaNacimiento || (dia && mes && anio ? `${dia}/${mes}/${anio}` : null),
-            faceDescriptor: arrayDescriptores,
-            facialDescriptor: arrayDescriptores,
-            foto: fotoBase64,
+            ...(faceDescriptor && { faceDescriptor, facialDescriptor: faceDescriptor }),
+            ...(fotoBase64 && { foto: fotoBase64 }),
             ...datos,
             createdAt: new Date().toISOString()
         };
 
         await db.collection('users').doc(userRecord.uid).set(newUser);
+        
         const io = req.app.get('io');
         if (io) io.emit('actualizar_panel');
 
         res.status(200).json({ status: 'success', mensaje: 'Usuario registrado correctamente' });
     } catch (error) {
         console.error('❌ Error en registro:', error);
-        if (error.code === 'auth/email-already-exists') {
-            return res.status(400).json({ status: 'error', mensaje: 'El email ya existe' });
-        }
         res.status(500).json({ status: 'error', mensaje: 'Error interno al registrar' });
+    } finally {
+        isProcessing = false;
     }
 });
 
-// --- RUTA BIOMETRÍA (OPTIMIZADA) ---
+// --- RUTA BIOMETRÍA ---
 router.post('/biometria', upload.single('imageFile'), async (req, res) => {
     if (!req.file) return res.status(400).json({ status: 'error', mensaje: 'Imagen requerida' });
     
+    // AVISO PARA EL USUARIO EN ESPERA
+    if (isProcessing) {
+        return res.status(429).json({ 
+            status: 'wait', 
+            mensaje: 'El servidor está ocupado verificando otro rostro. Por favor, espera unos segundos e intenta nuevamente.' 
+        });
+    }
+    
+    isProcessing = true;
     try {
         const img = await canvas.loadImage(req.file.buffer);
-        // CAMBIO AQUÍ: TinyFaceDetectorOptions optimiza el consumo de RAM
         const detection = await faceapi.detectSingleFace(img, new faceapi.TinyFaceDetectorOptions({ inputSize: 128 }))
             .withFaceLandmarks()
             .withFaceDescriptor();
         
-        if (!detection) return res.status(400).json({ status: 'error', mensaje: 'No se escaneó el rostro' });
+        if (!detection) {
+            isProcessing = false;
+            return res.status(400).json({ status: 'error', mensaje: 'No se escaneó el rostro' });
+        }
         
         const snapshot = await db.collection('users').get();
         
@@ -146,6 +174,7 @@ router.post('/biometria', upload.single('imageFile'), async (req, res) => {
             if (descArray) {
                 const desc = new Float32Array(descArray);
                 if (faceapi.euclideanDistance(detection.descriptor, desc) <= 0.60) {
+                    isProcessing = false;
                     return res.status(200).json({ 
                         status: 'success', 
                         usuario: { ...usuario, id: doc.id } 
@@ -153,9 +182,11 @@ router.post('/biometria', upload.single('imageFile'), async (req, res) => {
                 }            
             }
         }
+        isProcessing = false;
         return res.status(401).json({ status: 'error', mensaje: 'Autenticación fallida: Rostro no reconocido' });
     } catch (error) {
         console.error('❌ Error en biometría:', error);
+        isProcessing = false;
         res.status(500).json({ status: 'error', mensaje: 'Error en procesamiento facial' });
     }
 });
