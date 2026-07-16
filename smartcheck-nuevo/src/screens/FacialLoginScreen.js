@@ -3,7 +3,7 @@ import { StyleSheet, Text, View, TouchableOpacity, Image, Dimensions, Alert, Ani
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import { Audio } from 'expo-av';
 import * as ImageManipulator from 'expo-image-manipulator';
-import * as tf from '@tensorflow/tfjs'; // Importamos tf para la gestión de memoria
+import * as tf from '@tensorflow/tfjs';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import Svg, { Ellipse } from 'react-native-svg';
 import api from '../config/api';
@@ -23,7 +23,7 @@ export default function FacialLoginScreen() {
   const [permission, requestPermission] = useCameraPermissions();
   const [loading, setLoading] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false); 
-  const [ovalColor, setOvalColor] = useState('#FFD700'); // Amarillo: Buscando rostro
+  const [ovalColor, setOvalColor] = useState('#FFD700'); 
   
   const cameraRef = useRef(null);
   const soundRef = useRef(new Audio.Sound());
@@ -50,6 +50,7 @@ export default function FacialLoginScreen() {
     } catch (e) { console.log("Error de audio:", e); }
   };
 
+  // Lógica de carga inicial
   useEffect(() => {
     const init = async () => {
       await tfService.initializeTensorFlow();
@@ -58,7 +59,6 @@ export default function FacialLoginScreen() {
     };
     init();
 
-    // Animación de pulso
     Animated.loop(
       Animated.sequence([
         Animated.timing(pulseAnim, { toValue: 1.2, duration: 1000, useNativeDriver: true }),
@@ -66,38 +66,53 @@ export default function FacialLoginScreen() {
       ])
     ).start();
 
-    // BUCLE DE DETECCIÓN INTELIGENTE
-    const detectionInterval = setInterval(async () => {
-      if (!isProcessing && cameraRef.current && tfService.model) {
-        try {
-          // 1. Captura rápida (baja calidad para no ralentizar)
-          const photo = await cameraRef.current.takePictureAsync({ quality: 0.1, skipProcessing: true });
-          
-          // 2. Convertir a Tensor y analizar
-          const tensor = tfService.imageToTensor(photo); // Usamos tu función del servicio
-          const predictions = await tfService.model.predict(tensor);
-          
-          // 3. Lógica de detección (si hay predicciones, hay rostro)
-          if (predictions && predictions.length > 0) {
-            setOvalColor('#00FF00'); // Verde: Rostro detectado
-            clearInterval(detectionInterval); // Detenemos el bucle
-            handleCapture(); // Disparamos la captura real
-          } else {
-            setOvalColor('#FFD700'); // Amarillo: buscando
-          }
+    return () => { 
+      soundRef.current.unloadAsync(); 
+    };
+  }, []);
 
-          // 4. Limpieza de memoria (CRUCIAL para no cerrar la app)
-          tensor.dispose();
-          predictions.dispose(); // Si aplica al modelo
-        } catch (e) {
-          console.log("Detección en segundo plano:", e);
-        }
+  // BUCLE DE DETECCIÓN CORREGIDO
+  useEffect(() => {
+    let isRunning = true;
+
+    const runDetection = async () => {
+      if (!isRunning || isProcessing || !cameraRef.current || !tfService.model) {
+        if (isRunning) setTimeout(runDetection, 1000);
+        return;
       }
-    }, 1500);
+
+      try {
+        const photo = await cameraRef.current.takePictureAsync({ quality: 0.1, skipProcessing: true });
+        const tensor = tfService.imageToTensor(photo);
+        const prediction = await tfService.model.predict(tensor);
+        
+        // Convertimos el tensor a array para verificar la probabilidad
+        const data = await prediction.data(); 
+        
+        // Ajusta este valor (0.8) si es muy sensible o muy poco sensible
+        if (data[0] > 0.8) {
+          setOvalColor('#00FF00'); // Verde
+          prediction.dispose();
+          tensor.dispose();
+          handleCapture(); // Disparamos la foto
+          return; 
+        } else {
+          setOvalColor('#FFD700'); // Amarillo
+        }
+
+        prediction.dispose();
+        tensor.dispose();
+      } catch (e) {
+        console.log("Error en bucle de detección:", e);
+      }
+
+      if (isRunning) setTimeout(runDetection, 500);
+    };
+
+    runDetection();
 
     return () => { 
-        soundRef.current.unloadAsync(); 
-        clearInterval(detectionInterval);
+      isRunning = false;
     };
   }, [isProcessing]);
 
@@ -109,7 +124,6 @@ export default function FacialLoginScreen() {
     reproducirVoz('verificando');
     
     try {
-        // Captura de alta calidad para el servidor
         const photo = await cameraRef.current.takePictureAsync({ quality: 0.8, skipProcessing: true });
         
         const p = await ImageManipulator.manipulateAsync(

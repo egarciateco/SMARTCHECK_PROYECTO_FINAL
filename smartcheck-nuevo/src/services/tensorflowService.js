@@ -2,18 +2,14 @@ import * as tf from '@tensorflow/tfjs';
 import '@tensorflow/tfjs-react-native';
 import { bundleResourceIO } from '@tensorflow/tfjs-react-native';
 
-// 1. IMPORTANTE: Asegúrate de que los archivos en tu carpeta 'models' 
-// tengan la extensión .bin y que el archivo manifest se llame 'model.json'
+// 1. IMPORTACIONES DE ASSETS
 const modelJson = require('../../assets/models/model.json');
-
-const modelWeights = [
-  require('../../assets/models/face_recognition_model-shard1.bin'),
-  require('../../assets/models/face_recognition_model-shard2.bin')
-];
+const modelWeights1 = require('../../assets/models/face_recognition_model-shard1.bin');
+const modelWeights2 = require('../../assets/models/face_recognition_model-shard2.bin');
 
 export let model = null;
 
-// 2. Inicialización del backend
+// 2. Inicialización
 export const initializeTensorFlow = async () => {
   try {
     await tf.ready();
@@ -25,34 +21,35 @@ export const initializeTensorFlow = async () => {
   }
 };
 
-// 3. Carga del modelo (se ejecuta solo una vez)
+// 3. Carga del modelo (Ajustado para LayersModel)
 export const loadModel = async () => {
   if (model) return model;
+  
   try {
     console.log("📂 Cargando modelo de reconocimiento facial...");
 
-    // Cargamos el grafo usando el JSON y el array de pesos (.bin)
-    model = await tf.loadGraphModel(bundleResourceIO(modelJson, modelWeights));
+    // DEBUG: Comprobamos si las importaciones son válidas
+    if (!modelJson || !modelWeights1 || !modelWeights2) {
+      throw new Error(`Importaciones fallidas: JSON=${!!modelJson}, W1=${!!modelWeights1}, W2=${!!modelWeights2}`);
+    }
+
+    // CAMBIO CLAVE: Usamos loadLayersModel en lugar de loadGraphModel
+    model = await tf.loadLayersModel(bundleResourceIO(modelJson, [modelWeights1, modelWeights2]));
     
     console.log("✅ Modelo cargado exitosamente");
     return model;
   } catch (error) {
-    console.error("❌ Error crítico al cargar el modelo:", error);
+    console.error("❌ ERROR CRÍTICO al cargar el modelo:", error.message);
     return null;
   }
 };
 
-// 4. Conversión de Imagen a Tensor (Pre-procesamiento)
+// 4. Conversión de Imagen a Tensor
 export const imageToTensor = (rawImageData) => {
   return tf.tidy(() => {
     const imgTensor = tf.browser.fromPixels(rawImageData);
-    
-    // Redimensionar a lo que tu modelo espera (224x224)
     const resized = tf.image.resizeBilinear(imgTensor, [224, 224]);
-    
-    // Normalizar
     const normalized = resized.div(255.0).expandDims(0);
-    
     return normalized;
   });
 };
@@ -64,4 +61,9 @@ export const disposeModel = () => {
     model = null;
     console.log("🗑️ Modelo liberado de memoria");
   }
+};
+
+// 6. Verificación (67 líneas totales)
+export const isModelLoaded = () => {
+  return model !== null;
 };
