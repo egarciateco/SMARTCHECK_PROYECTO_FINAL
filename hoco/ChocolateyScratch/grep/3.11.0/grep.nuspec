@@ -1,0 +1,20 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<package xmlns="http://schemas.microsoft.com/packaging/2011/08/nuspec.xsd">
+  <metadata>
+    <id>grep</id>
+    <version>3.11.0</version>
+    <title>GNU grep for Windows</title>
+    <authors>The GNU Project</authors>
+    <owners>TheCakeIsNaOH</owners>
+    <requireLicenseAcceptance>false</requireLicenseAcceptance>
+    <licenseUrl>https://www.gnu.org/licenses/gpl-3.0.md</licenseUrl>
+    <projectUrl>https://github.com/mbuilov/grep-windows</projectUrl>
+    <description>grep is a command-line utility for searching plain-text data sets for lines that match a regular expression.</description>
+    <summary>grep is a command-line utility for searching plain-text data sets for lines that match a regular expression.</summary>
+    <copyright>Copyright © 1998-2023 Free Software Foundation, Inc.</copyright>
+    <tags>regular-expression grep</tags>
+    <projectSourceUrl>https://github.com/mbuilov/grep-windows</projectSourceUrl>
+    <packageSourceUrl>https://github.com/TheCakeIsNaOH/chocolatey-packages/</packageSourceUrl>
+    <bugTrackerUrl>https://github.com/mbuilov/grep-windows/issues</bugTrackerUrl>
+  </metadata>
+</package>
