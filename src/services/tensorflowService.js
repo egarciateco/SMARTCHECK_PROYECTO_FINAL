@@ -1,44 +1,38 @@
-let model = null;
+import * as tf from '@tensorflow/tfjs';
+import '@tensorflow/tfjs-react-native';
+import { decodeJpeg } from '@tensorflow/tfjs-react-native';
+import * as faceLandmarksDetection from '@tensorflow-models/face-landmarks-detection';
 
-// Función para inicializar usando carga dinámica
+let detector = null;
+
 export const initializeTensorFlow = async () => {
-    if (model) return model;
-    
-    try {
-        // Importaciones dinámicas: Se ejecutan solo cuando se llama a la función, 
-        // no al iniciar la aplicación. Esto acelera el Bundling dramáticamente.
-        const tf = require('@tensorflow/tfjs');
-        require('@tensorflow/tfjs-react-native');
-        const faceLandmarksDetection = require('@tensorflow-models/face-landmarks-detection');
+    if (detector) return detector;
 
-        console.log("DEBUG: Iniciando tf.ready()...");
+    try {
         await tf.ready();
         
-        console.log("DEBUG: Cargando modelo...");
-        model = await faceLandmarksDetection.load(
-            faceLandmarksDetection.SupportedPackages.mediapipeFacemesh,
-            { maxFaces: 1 }
+        detector = await faceLandmarksDetection.createDetector(
+            faceLandmarksDetection.SupportedModels.MediaPipeFaceMesh,
+            {
+                runtime: 'tfjs',
+                modelType: 'lite',
+                maxFaces: 1
+            }
         );
         
-        console.log("✅ Modelo de IA cargado dinámicamente.");
-        return model;
+        console.log("✅ Modelo de IA cargado correctamente.");
+        return detector;
     } catch (error) {
         console.error("❌ ERROR CRÍTICO en initializeTensorFlow:", error);
         return null;
     }
 };
 
-export const imageToTensor = async (image) => {
+export const imageToTensor = async (imageUri) => {
     try {
-        const tf = require('@tensorflow/tfjs'); // Importación dinámica también aquí
-        const response = await fetch(image.uri, {}, { isBinary: true });
-        const imageDataArrayBuffer = await response.arrayBuffer();
-        const imageData = new Uint8Array(imageDataArrayBuffer);
-        const imageTensor = tf.browser.fromPixels({
-            data: imageData,
-            width: image.width,
-            height: image.height,
-        });
+        const response = await fetch(imageUri);
+        const imageData = await response.arrayBuffer();
+        const imageTensor = decodeJpeg(new Uint8Array(imageData));
         return imageTensor;
     } catch (error) {
         console.error("Error convirtiendo a tensor:", error);
@@ -46,4 +40,4 @@ export const imageToTensor = async (image) => {
     }
 };
 
-export { model };
+export { detector };

@@ -1,18 +1,23 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { StyleSheet, Text, View, TouchableOpacity, Image, Alert, ActivityIndicator } from 'react-native';
 import { CameraView, useCameraPermissions } from 'expo-camera';
-import { Audio } from 'expo-av';
-import { useFocusEffect } from '@react-navigation/native';
+import { useFocusEffect, useIsFocused } from '@react-navigation/native';
 import { useAuth } from '../context/AuthContext';
-
-const API_URL = 'https://smartcheck-proyecto-final.onrender.com';
-const AUDIO_BEEP = require('../../assets/beepscanner.mp3');
+import api from '../config/api'; 
+import { playBeep, loadBeepSound, unloadSounds } from '../utils/share';
 
 export default function ScannerScreen({ navigation }) {
   const { logout } = useAuth();
   const [hasPermission, requestPermission] = useCameraPermissions();
   const [scanned, setScanned] = useState(false);
   const [loading, setLoading] = useState(false);
+  
+  const isFocused = useIsFocused();
+
+  useEffect(() => {
+    loadBeepSound().catch(() => {});
+    return () => { unloadSounds().catch(() => {}); };
+  }, []);
 
   useFocusEffect(
     useCallback(() => {
@@ -23,19 +28,7 @@ export default function ScannerScreen({ navigation }) {
 
   const handleLogoutFlow = () => {
     navigation.navigate('Goodbye');
-    setTimeout(() => {
-      logout();
-    }, 1000);
-  };
-
-  const playBeep = async () => {
-    try {
-      const { sound } = await Audio.Sound.createAsync(AUDIO_BEEP);
-      await sound.playAsync();
-      setTimeout(() => sound.unloadAsync(), 1000);
-    } catch (error) {
-      console.log("Error en audio:", error);
-    }
+    setTimeout(logout, 1000);
   };
 
   const handleBarcodeScanned = async ({ data }) => {
@@ -43,20 +36,22 @@ export default function ScannerScreen({ navigation }) {
     
     setScanned(true);
     setLoading(true);
-    await playBeep();
+    
+    await playBeep().catch(() => {});
 
     try {
-      const response = await fetch(`${API_URL}/api/users/productos/buscar?q=${encodeURIComponent(data)}`);
-      const result = await response.json();
+      const response = await api.get('/api/users/productos/buscar', { params: { q: data } });
 
-      if (result.status === 'success' && result.data?.length > 0) {
+      if (response.data?.status === 'success' && response.data.data?.length > 0) {
         navigation.navigate('Busqueda', { 
-          latitud: result.data[0].latitud, 
-          longitud: result.data[0].longitud,
-          productoEncontrado: result.data[0] 
+          latitud: response.data.data[0].latitud, 
+          longitud: response.data.data[0].longitud,
+          productoEncontrado: response.data.data[0] 
         });
       } else {
-        Alert.alert("Atención", "Producto no encontrado.", [{ text: "OK", onPress: () => setScanned(false) }]);
+        Alert.alert("Atención", "Producto no encontrado.", [
+          { text: "OK", onPress: () => setScanned(false) }
+        ]);
       }
     } catch (error) {
       Alert.alert("Error", "Fallo de conexión.");
@@ -70,7 +65,9 @@ export default function ScannerScreen({ navigation }) {
     return (
       <View style={styles.center}>
         <Text style={styles.textError}>Se requiere acceso a la cámara.</Text>
-        <TouchableOpacity style={styles.btnPermiso} onPress={requestPermission}><Text>Dar Permiso</Text></TouchableOpacity>
+        <TouchableOpacity style={styles.btnPermiso} onPress={requestPermission}>
+          <Text style={{color: '#fff'}}>Dar Permiso</Text>
+        </TouchableOpacity>
       </View>
     );
   }
@@ -82,14 +79,18 @@ export default function ScannerScreen({ navigation }) {
         <Image source={require('../../assets/nombreapp.png')} style={styles.appName} />
       </View>
       
-      <View style={styles.blackTitleBar}><Text style={styles.titleText}>ESCÁNER DE CÓDIGOS SMARTCHECK</Text></View>
+      <View style={styles.blackTitleBar}>
+        <Text style={styles.titleText}>ESCÁNER DE CÓDIGOS SMARTCHECK</Text>
+      </View>
 
       <View style={styles.cameraWrapper}>
-        <CameraView
-          style={StyleSheet.absoluteFillObject}
-          onBarcodeScanned={scanned ? undefined : handleBarcodeScanned}
-          barcodeScannerSettings={{ barcodeTypes: ['ean13', 'ean8', 'qr', 'code128'] }}
-        />
+        {isFocused && (
+          <CameraView
+            style={StyleSheet.absoluteFillObject}
+            onBarcodeScanned={scanned ? undefined : handleBarcodeScanned}
+            barcodeScannerSettings={{ barcodeTypes: ['ean13', 'ean8', 'qr', 'code128'] }}
+          />
+        )}
         <View style={styles.overlayFrame}><View style={styles.scannerTarget} /></View>
       </View>
 
@@ -98,7 +99,7 @@ export default function ScannerScreen({ navigation }) {
       </View>
 
       <View style={styles.footer}>
-        <TouchableOpacity onPress={() => navigation.goBack()}>
+        <TouchableOpacity onPress={() => navigation.navigate('Home')}>
           <Image source={require('../../assets/volver.png')} style={styles.navIcon} />
         </TouchableOpacity>
         <TouchableOpacity onPress={handleLogoutFlow}>
@@ -118,10 +119,12 @@ const styles = StyleSheet.create({
   blackTitleBar: { backgroundColor: '#000', paddingVertical: 12, width: '100%', marginVertical: 10 },
   titleText: { color: '#fff', fontSize: 13, fontWeight: 'bold', textAlign: 'center' },
   cameraWrapper: { width: '85%', height: '45%', borderRadius: 15, overflow: 'hidden', borderWidth: 3, borderColor: '#00ffcc' },
-  overlayFrame: { ...StyleSheet.absoluteFillObject, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(0,0,0,0.2)' },
+  overlayFrame: { ...StyleSheet.absoluteFillObject, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(0,0,0,0.1)' },
   scannerTarget: { width: '75%', height: '50%', borderWidth: 2, borderColor: '#ffcc00', borderRadius: 8, borderStyle: 'dashed' },
   feedbackContainer: { height: 60, justifyContent: 'center' },
   instructions: { color: '#aaa', fontSize: 14 },
   navIcon: { width: 45, height: 45, resizeMode: 'contain' },
-  footer: { flexDirection: 'row', width: '100%', justifyContent: 'space-between', paddingHorizontal: 40, paddingBottom: 30 }
+  footer: { flexDirection: 'row', width: '100%', justifyContent: 'space-between', paddingHorizontal: 40, paddingBottom: 30 },
+  btnPermiso: { backgroundColor: '#00ffcc', padding: 15, borderRadius: 10, marginTop: 10 },
+  textError: { color: '#fff', marginBottom: 10 }
 });

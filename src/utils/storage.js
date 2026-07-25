@@ -1,4 +1,3 @@
-// src/utils/storage.js
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const STORAGE_KEY = '@smartcheck_user';
@@ -14,19 +13,16 @@ export const storage = {
         return false;
       }
       
-      // FIX: Agregamos los campos faltantes a este objeto para que no se borren
       const safeUserData = {
         id: userData.id || userData._id,
         email: userData.email.toLowerCase().trim(),
         nombre: userData.nombre,
         apellido: userData.apellido,
         sexo: userData.sexo,
-        // Campos nuevos agregados para que se guarden correctamente
         fechaNacimiento: userData.fechaNacimiento || null,
         dia: userData.dia || null,
         mes: userData.mes || null,
         anio: userData.anio || null,
-        // ----------------------------------------------------
         authMethod: userData.authMethod || 'password',
         faceData: userData.faceData || null,
         foto: userData.foto || null,
@@ -36,7 +32,7 @@ export const storage = {
       };
       
       await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(safeUserData));
-      console.log('✅ Usuario guardado en almacenamiento:', safeUserData.email);
+      console.log('✅ Usuario guardado correctamente.');
       return true;
     } catch (error) {
       console.error('❌ Error guardando usuario:', error);
@@ -45,19 +41,29 @@ export const storage = {
   },
 
   /**
-   * Obtiene los datos del usuario almacenado
+   * Obtiene los datos del usuario con blindaje anti-crash
    */
   getUser: async () => {
     try {
       const jsonValue = await AsyncStorage.getItem(STORAGE_KEY);
-      if (jsonValue === null) {
+      
+      // 1. Verificación básica: Si es null o la cadena "undefined"
+      if (jsonValue === null || jsonValue === 'undefined') {
         return null;
       }
-      const userData = JSON.parse(jsonValue);
-      console.log('✅ Usuario cargado de almacenamiento:', userData?.email);
-      return userData;
+      
+      // 2. Intento de parseo seguro
+      try {
+        const userData = JSON.parse(jsonValue);
+        return userData;
+      } catch (parseError) {
+        // Si el JSON está roto (corrupto), limpiamos el storage y devolvemos null
+        console.error('❌ JSON Corrupto detectado, limpiando storage...', parseError);
+        await AsyncStorage.removeItem(STORAGE_KEY);
+        return null;
+      }
     } catch (error) {
-      console.error('❌ Error cargando usuario:', error);
+      console.error('❌ Error inesperado cargando usuario:', error);
       return null;
     }
   },
@@ -68,12 +74,18 @@ export const storage = {
   clearUser: async () => {
     try {
       await AsyncStorage.removeItem(STORAGE_KEY);
-      console.log('✅ Sesión cerrada - usuario eliminado');
       return true;
     } catch (error) {
       console.error('❌ Error eliminando usuario:', error);
       return false;
     }
+  },
+
+  /**
+   * Alias de clearUser para compatibilidad directa con AuthContext (removeUser)
+   */
+  removeUser: async () => {
+    return await storage.clearUser();
   },
 
   /**
@@ -101,12 +113,8 @@ export const storage = {
    * Verifica si hay un usuario autenticado
    */
   isAuthenticated: async () => {
-    try {
-      const user = await storage.getUser();
-      return user !== null && user.email !== undefined;
-    } catch {
-      return false;
-    }
+    const user = await storage.getUser();
+    return user !== null && user.email !== undefined;
   }
 };
 

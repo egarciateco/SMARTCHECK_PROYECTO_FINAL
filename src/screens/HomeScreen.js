@@ -1,155 +1,205 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, Image, TouchableOpacity, Modal, TextInput, Alert } from 'react-native';
+import React, { useEffect } from 'react';
+import { StyleSheet, View, Image, TouchableOpacity, Text, ScrollView, BackHandler } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAuth } from '../context/AuthContext';
-import * as Location from 'expo-location';
 
 export default function HomeScreen() {
   const navigation = useNavigation();
   const { user, logout } = useAuth();
-  const [modalVisible, setModalVisible] = useState(false);
-  const [adminInput, setAdminInput] = useState('');
 
-  // Sincronización silenciosa de ubicación
+  // DIAGNÓSTICO: Imprime en la consola la estructura real del usuario al cargar
   useEffect(() => {
-    const sincronizarUbicacion = async () => {
-      if (!user?.email) return;
-      
-      try {
-        const { status } = await Location.requestForegroundPermissionsAsync();
-        if (status !== 'granted') return;
+    console.log(">>> ESTRUCTURA DEL USUARIO EN HOMESCREEN:", JSON.stringify(user, null, 2));
+  }, [user]);
 
-        const position = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
-        const direccion = await Location.reverseGeocodeAsync({ 
-          latitude: position.coords.latitude, 
-          longitude: position.coords.longitude 
-        });
-
-        if (direccion.length > 0) {
-          const { city, region } = direccion[0];
-          
-          await fetch('https://smartcheck-proyecto-final.onrender.com/api/users/actualizar-ubicacion', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              email: user.email,
-              provincia: region,
-              localidad: city
-            })
-          });
-        }
-      } catch (error) {
-        console.error("Error silencioso geo:", error);
-      }
-    };
-
-    sincronizarUbicacion();
-  }, []);
-
-  const handleLogoutFlow = () => {
-    navigation.navigate('Goodbye');
-    setTimeout(() => {
-      logout();
-    }, 1000);
+  // Generar iniciales si el usuario no tiene foto
+  const getInitials = () => {
+    const n = user?.nombre ? user.nombre.charAt(0) : '';
+    const a = user?.apellido ? user.apellido.charAt(0) : '';
+    return (n + a).toUpperCase() || 'U';
   };
 
-  const handleAdminAccess = async () => {
-    const savedPass = await AsyncStorage.getItem('admin_pass') || '00192';
-    if (adminInput === savedPass) {
-      setAdminInput(''); 
-      setModalVisible(false); 
-      navigation.navigate('AdminPanel');
-    } else {
-      setAdminInput('');
-      Alert.alert("Error", "Contraseña incorrecta");
+  // Resuelve la foto probando todos los posibles nombres de campo y formatos
+  const resolveUserPhoto = () => {
+    if (!user) return null;
+
+    // Buscar en cualquier campo donde el backend pueda haber guardado la foto
+    const rawPhoto = 
+      user.foto || 
+      user.fotoUrl || 
+      user.foto_url || 
+      user.fotoPerfil || 
+      user.imageUrl || 
+      user.imagenUrl || 
+      user.imagen || 
+      user.avatar || 
+      user.image || 
+      user.photo || 
+      user.rostro || 
+      user.faceUrl || 
+      user.path;
+
+    if (!rawPhoto) return null;
+
+    if (typeof rawPhoto === 'string') {
+      // 1. Si es URL completa (http/https) o Base64 con encabezado
+      if (rawPhoto.startsWith('http') || rawPhoto.startsWith('data:image')) {
+        return rawPhoto;
+      }
+
+      // 2. Si es un Base64 puro sin el prefijo "data:image..."
+      if (rawPhoto.length > 200 && !rawPhoto.includes('/') && !rawPhoto.includes('.')) {
+        return `data:image/jpeg;base64,${rawPhoto}`;
+      }
+
+      // 3. Si es una ruta relativa del servidor (e.g. "uploads/facial_123.jpg")
+      let cleanPath = rawPhoto.replace(/\\/g, '/'); // Normaliza barras de Windows
+      if (!cleanPath.startsWith('/')) {
+        cleanPath = `/${cleanPath}`;
+      }
+
+      return `https://smartcheck-proyecto-final.onrender.com${cleanPath}`;
     }
+
+    return rawPhoto.uri || null;
+  };
+
+  const userPhoto = resolveUserPhoto();
+
+  // Botón Volver: Regresa a Login y borra la pila de navegación
+  const handleVolver = async () => {
+    await logout();
+    navigation.reset({
+      index: 0,
+      routes: [{ name: 'LoginScreen' }],
+    });
+  };
+
+  // Botón Salir: Cierra por completo la aplicación
+  const handleSalir = async () => {
+    await logout();
+    BackHandler.exitApp();
   };
 
   return (
     <View style={styles.container}>
-      <View style={styles.mainContent}>
-        <View style={styles.header}>
-          <Image source={require('../../assets/logo.png')} style={styles.logoHeader} />
-          <View style={styles.nameContainer}>
-            <Image source={require('../../assets/nombreapp.png')} style={styles.nameHeader} />
-          </View>
+      {/* CABECERA */}
+      <View style={styles.header}>
+        <View style={styles.headerLeft}>
+          <Image source={require('../../assets/logo.png')} style={styles.logoMini} />
+          <Image source={require('../../assets/nombreapp.png')} style={styles.nombreApp} />
         </View>
 
-        <View style={styles.titleBar}>
-          <Text style={styles.titleText}>PANEL PRINCIPAL</Text>
-        </View>
-
-        <View style={styles.buttonGrid}>
-          <TouchableOpacity style={styles.buttonWrapper} onPress={() => setModalVisible(true)}>
-            <Image source={require('../../assets/btnadmin.png')} style={styles.menuButton} />
-          </TouchableOpacity>
-          
-          <TouchableOpacity style={styles.buttonWrapper} onPress={() => navigation.navigate('Busqueda')}>
-            <Image source={require('../../assets/btnbuscaprod.png')} style={styles.menuButton} />
-          </TouchableOpacity>
-
-          <TouchableOpacity style={styles.buttonWrapper} onPress={() => navigation.navigate('Perfil')}>
-            <Image source={require('../../assets/btnmiperfil.png')} style={styles.menuButton} />
-          </TouchableOpacity>
-
-          <TouchableOpacity style={styles.buttonWrapper} onPress={() => Alert.alert("Aviso", "Pantalla de Reportes en desarrollo")}>
-            <Image source={require('../../assets/btnrepoahorro.png')} style={styles.menuButton} />
-          </TouchableOpacity>
+        {/* FOTO O INICIALES ARRIBA A LA DERECHA */}
+        <View style={styles.avatarContainer}>
+          {userPhoto ? (
+            <Image source={{ uri: userPhoto }} style={styles.avatarImage} />
+          ) : (
+            <View style={styles.initialsCircle}>
+              <Text style={styles.initialsText}>{getInitials()}</Text>
+            </View>
+          )}
         </View>
       </View>
 
-      <View style={styles.footerContainer}>
+      {/* FRANJA NEGRA CON SALUDO */}
+      <View style={styles.blackBanner}>
+        <Text style={styles.bannerText}>
+          {user?.nombre ? `¡BIENVENID@, ${user.nombre.toUpperCase()}!` : '¡BIENVENID@!'}
+        </Text>
+      </View>
+      <View style={styles.titleGoldLine} />
+
+      {/* MENÚ PRINCIPAL */}
+      <ScrollView contentContainerStyle={styles.scrollContainer}>
+        <View style={styles.goldenFrame}>
+          <Text style={styles.welcomeSubtitle}>Seleccione una opción</Text>
+
+          <TouchableOpacity 
+            style={styles.menuButton} 
+            onPress={() => navigation.navigate('Busqueda')}
+          >
+            <Text style={styles.menuButtonText}>🔍 Buscar Productos</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity 
+            style={styles.menuButton} 
+            onPress={() => navigation.navigate('Scanner')}
+          >
+            <Text style={styles.menuButtonText}>📷 Escáner de Código</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity 
+            style={styles.menuButton} 
+            onPress={() => navigation.navigate('Perfil')}
+          >
+            <Text style={styles.menuButtonText}>👤 Mi Perfil</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity 
+            style={styles.menuButtonAdmin} 
+            onPress={() => navigation.navigate('AdminPanel')}
+          >
+            <Text style={styles.menuButtonText}>⚙️ Panel de Administración</Text>
+          </TouchableOpacity>
+        </View>
+      </ScrollView>
+
+      {/* FOOTER FIJO ABAJO */}
+      <View style={styles.footerFixed}>
         <View style={styles.goldLine} />
-        <View style={styles.footerArea}>
-          <TouchableOpacity onPress={logout}>
-            <Image source={require('../../assets/volver.png')} style={styles.navIcon} />
+        <View style={styles.footerButtonsRow}>
+          <TouchableOpacity onPress={handleVolver} style={styles.footerButton}>
+            <Image source={require('../../assets/volver.png')} style={styles.footerIcon} />
+            <Text style={styles.footerButtonText}>Volver</Text>
           </TouchableOpacity>
-          <TouchableOpacity onPress={handleLogoutFlow}>
-            <Image source={require('../../assets/salir.png')} style={styles.navIcon} />
+
+          <TouchableOpacity onPress={handleSalir} style={styles.footerButton}>
+            <Image source={require('../../assets/salir.png')} style={styles.footerIcon} />
+            <Text style={styles.footerButtonText}>Salir</Text>
           </TouchableOpacity>
         </View>
       </View>
-
-      <Modal animationType="slide" transparent={true} visible={modalVisible}>
-        <View style={styles.modalView}>
-          <Text style={styles.modalTitle}>Acceso Administrador</Text>
-          <TextInput 
-            style={styles.modalInput} 
-            secureTextEntry 
-            value={adminInput} 
-            onChangeText={setAdminInput} 
-            keyboardType="numeric" 
-            placeholder="Contraseña"
-          />
-          <View style={{flexDirection: 'row', gap: 10}}>
-            <TouchableOpacity style={[styles.btnAction, {backgroundColor: '#ff4444'}]} onPress={() => setModalVisible(false)}><Text style={{color: '#fff'}}>Cancelar</Text></TouchableOpacity>
-            <TouchableOpacity style={[styles.btnAction, {backgroundColor: '#00ffcc'}]} onPress={handleAdminAccess}><Text style={{color: '#000'}}>Ingresar</Text></TouchableOpacity>
-          </View>
-        </View>
-      </Modal>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#001f3f' },
-  mainContent: { flex: 1, paddingTop: 20 }, 
-  header: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 15, marginBottom: 10 },
-  logoHeader: { width: 60, height: 60, resizeMode: 'contain' },
-  nameContainer: { flex: 1, alignItems: 'center' },
-  nameHeader: { width: 160, height: 45, resizeMode: 'contain' },
-  titleBar: { backgroundColor: '#000', paddingVertical: 8, alignItems: 'center', width: '100%', marginVertical: 10 },
-  titleText: { color: '#FFD700', fontSize: 18, fontWeight: 'bold' },
-  buttonGrid: { flex: 1, flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', alignItems: 'center', padding: 10 },
-  buttonWrapper: { width: '45%', aspectRatio: 1, margin: 5 },
-  menuButton: { width: '100%', height: '100%', resizeMode: 'contain' },
-  footerContainer: { paddingBottom: 30 },
-  goldLine: { height: 1, backgroundColor: '#FFD700', width: '90%', alignSelf: 'center', marginBottom: 15 },
-  footerArea: { flexDirection: 'row', justifyContent: 'space-between', paddingHorizontal: 40 },
-  navIcon: { width: 60, height: 60, resizeMode: 'contain' },
-  modalView: { margin: 20, marginTop: 100, backgroundColor: '#002a54', borderRadius: 20, padding: 35, alignItems: 'center', borderWidth: 1, borderColor: '#ffcc00' },
-  modalTitle: { color: '#fff', fontSize: 18, marginBottom: 15, fontWeight: 'bold' },
-  modalInput: { backgroundColor: '#fff', width: '100%', padding: 10, borderRadius: 8, marginBottom: 15, fontSize: 18, textAlign: 'center' },
-  btnAction: { padding: 10, borderRadius: 8, paddingHorizontal: 20 }
+  container: { flex: 1, backgroundColor: '#001f3f', paddingTop: 20 },
+  
+  header: { 
+    flexDirection: 'row', 
+    alignItems: 'center', 
+    justifyContent: 'space-between', 
+    paddingHorizontal: 15, 
+    paddingBottom: 10 
+  },
+  headerLeft: { flexDirection: 'row', alignItems: 'center', flex: 1 },
+  logoMini: { width: 45, height: 45, resizeMode: 'contain', marginRight: 10 },
+  nombreApp: { width: 180, height: 45, resizeMode: 'contain' },
+  
+  avatarContainer: { marginLeft: 10 },
+  avatarImage: { width: 50, height: 50, borderRadius: 25, borderWidth: 2, borderColor: '#FFD700', resizeMode: 'cover' },
+  initialsCircle: { width: 50, height: 50, borderRadius: 25, backgroundColor: '#003366', borderWidth: 2, borderColor: '#FFD700', justifyContent: 'center', alignItems: 'center' },
+  initialsText: { color: '#FFD700', fontSize: 18, fontWeight: 'bold' },
+
+  blackBanner: { width: '100%', backgroundColor: '#000000', paddingVertical: 12, alignItems: 'center', justifyContent: 'center', marginTop: 5 },
+  bannerText: { color: '#FFD700', fontSize: 18, fontWeight: 'bold', letterSpacing: 1, textAlign: 'center' },
+  titleGoldLine: { height: 1, backgroundColor: '#FFD700', width: '100%', marginBottom: 15 },
+  
+  scrollContainer: { paddingBottom: 100, paddingHorizontal: 20 },
+  goldenFrame: { borderWidth: 1, borderColor: '#FFD700', borderRadius: 15, padding: 20, backgroundColor: '#001f3f', alignItems: 'center' },
+  
+  welcomeSubtitle: { color: '#fff', fontSize: 16, marginBottom: 20, fontWeight: '600' },
+  
+  menuButton: { width: '100%', backgroundColor: '#003366', borderWidth: 1, borderColor: '#00ffff', paddingVertical: 15, borderRadius: 10, alignItems: 'center', marginBottom: 15 },
+  menuButtonAdmin: { width: '100%', backgroundColor: '#331a00', borderWidth: 1, borderColor: '#FFD700', paddingVertical: 15, borderRadius: 10, alignItems: 'center', marginBottom: 15 },
+  menuButtonText: { color: '#fff', fontSize: 16, fontWeight: 'bold' },
+  
+  footerFixed: { position: 'absolute', bottom: 10, left: 20, right: 20, paddingBottom: 10 },
+  goldLine: { height: 1, backgroundColor: '#FFD700', marginBottom: 10 },
+  footerButtonsRow: { flexDirection: 'row', justifyContent: 'space-between', paddingHorizontal: 20 },
+  footerButton: { alignItems: 'center', justifyContent: 'center' },
+  footerIcon: { width: 40, height: 40, resizeMode: 'contain', tintColor: '#00BFFF' },
+  footerButtonText: { color: '#00BFFF', fontSize: 11, marginTop: 4, fontWeight: 'bold' }
 });

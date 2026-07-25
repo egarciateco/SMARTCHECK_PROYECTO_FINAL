@@ -1,212 +1,485 @@
-import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { StyleSheet, Text, View, TouchableOpacity, Image, Alert, ActivityIndicator, InteractionManager } from 'react-native';
-import { CameraView } from 'expo-camera';
+import React, { useState, useEffect, useRef } from 'react';
+import { 
+  StyleSheet, Text, View, TouchableOpacity, Image, 
+  Alert, SafeAreaView, BackHandler 
+} from 'react-native';
+import { Camera, CameraView } from 'expo-camera';
+import { useNavigation, useRoute } from '@react-navigation/native';
 import { Audio } from 'expo-av';
 import * as ImageManipulator from 'expo-image-manipulator';
-import { useNavigation, useRoute } from '@react-navigation/native';
-import Svg, { Ellipse } from 'react-native-svg';
-import api from '../config/api';
-import storage from '../utils/storage';
+import { authService } from '../config/api';
 import { useAuth } from '../context/AuthContext';
-
-// Importamos el modelo pero manejaremos su carga con cuidado
-import { model, imageToTensor } from '../services/tensorflowService';
 
 export default function FacialLoginScreen() {
   const navigation = useNavigation();
   const route = useRoute();
-  const { login } = useAuth();
-  
-  const { tipoOperacion, datosRegistro } = route.params || { tipoOperacion: 'LOGIN', datosRegistro: {} };
-  
-  const [modelLoaded, setModelLoaded] = useState(false);
-  const [isProcessing, setIsProcessing] = useState(false); 
-  const [ovalColor, setOvalColor] = useState('#FFD700'); 
-  const [countdown, setCountdown] = useState(null); 
-  
+  const { login, registerFormData, clearRegisterData } = useAuth();
   const cameraRef = useRef(null);
-  const soundRef = useRef(new Audio.Sound());
 
-  // Función de captura optimizada
-  const handleCapture = useCallback(async () => {
-    if (isProcessing) return;
-    
-    console.log("DEBUG: Iniciando captura...");
-    setIsProcessing(true);
-    
-    try {
-        await soundRef.current.unloadAsync();
-        await soundRef.current.loadAsync(require('../../assets/vozverificando.mp3'));
-        await soundRef.current.playAsync();
-        
-        if (!cameraRef.current) throw new Error("La cámara no está lista");
+  const [hasPermission, setHasPermission] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [isCapturing, setIsCapturing] = useState(false);
 
-        const photo = await cameraRef.current.takePictureAsync({ quality: 0.8, skipProcessing: true });
-        const p = await ImageManipulator.manipulateAsync(photo.uri, [{ resize: { width: 600 } }], { compress: 0.7, format: 'jpeg' });
-        
-        const fd = new FormData();
-        fd.append('imageFile', { uri: p.uri, name: 'face.jpg', type: 'image/jpeg' });
-        
-        const uidParaEnviar = datosRegistro.uid || datosRegistro.email;
-        if (uidParaEnviar) fd.append('uid', String(uidParaEnviar));
+  const isFromRegister = route.params?.returnScreen === 'RegisterScreen';
 
-        Object.keys(datosRegistro).forEach(k => {
-            if (k !== 'uid' && datosRegistro[k] !== null) fd.append(k, String(datosRegistro[k]));
-        });
-        
-        const endpoint = tipoOperacion === 'REGISTER' ? '/api/users/register' : '/api/users/biometria';
-        console.log("DEBUG: Enviando al endpoint:", endpoint);
-        
-        const response = await api.post(endpoint, fd);
-        
-        if (response.data.status === 'success') {
-          await soundRef.current.unloadAsync();
-          await soundRef.current.loadAsync(require('../../assets/vozreconocida.mp3'));
-          await soundRef.current.playAsync();
-          
-          if (tipoOperacion === 'REGISTER') {
-            navigation.navigate('Login');
-          } else { 
-            await storage.saveUser(response.data.usuario); 
-            if (login) login(response.data.usuario); 
-          }
-        } else {
-            throw new Error(response.data.message || "Error en la validación");
-        }
-    } catch (e) { 
-        console.error("Error en captura:", e);
-        await soundRef.current.unloadAsync();
-        await soundRef.current.loadAsync(require('../../assets/vozerror.mp3'));
-        await soundRef.current.playAsync();
-        Alert.alert("Error", "No se pudo verificar. Intenta de nuevo."); 
-    } finally {
-        setIsProcessing(false); 
-        console.log("DEBUG: Captura finalizada, botón liberado.");
-    }
-  }, [isProcessing, tipoOperacion, datosRegistro, navigation, login]);
-
-  // Carga inicial usando InteractionManager para no bloquear la UI
   useEffect(() => {
-    const task = InteractionManager.runAfterInteractions(() => {
-        if (model) {
-            setModelLoaded(true);
-        }
-    });
+    let isMounted = true;
 
-    return () => { 
-        task.cancel();
-        soundRef.current.unloadAsync(); 
+    (async () => {
+      const { status } = await Camera.requestCameraPermissionsAsync();
+      if (isMounted) setHasPermission(status === 'granted');
+    })();
+
+    const timer = setTimeout(async () => {
+      try {
+        await Audio.setAudioModeAsync({
+          playsInSilentModeIOS: true,
+          staysActiveInBackground: false,
+        });
+        const { sound: playbackObject } = await Audio.Sound.createAsync(
+          require('../../assets/vozoprimir.mp3')
+        );
+        if (isMounted) {
+          await playbackObject.playAsync();
+        }
+      } catch (error) {
+        console.warn("Aviso de audio inicial:", error.message);
+      }
+    }, 600);
+
+    return () => {
+      isMounted = false;
+      clearTimeout(timer);
     };
   }, []);
 
-  // Contador regresivo
-  const startCountdown = () => {
-    if (countdown !== null) return;
-    setCountdown(3);
-    const interval = setInterval(() => {
-      setCountdown((prev) => {
-        if (prev <= 1) {
-          clearInterval(interval);
-          setCountdown(null);
-          handleCapture();
-          return null;
-        }
-        return prev - 1;
-      });
-    }, 1000);
+  // AUDIOS
+  const reproducirAudioVerificando = async () => {
+    try {
+      const { sound: playbackObject } = await Audio.Sound.createAsync(
+        require('../../assets/vozverificando.mp3')
+      );
+      await playbackObject.playAsync();
+    } catch (error) {
+      console.warn("Aviso de audio verificando:", error.message);
+    }
   };
 
-  // Loop de detección
-  useEffect(() => {
-    if (!modelLoaded || isProcessing || countdown !== null) return;
-    
-    let isMounted = true;
-    const runDetection = async () => {
-      if (!isMounted || !cameraRef.current || !model || isProcessing) return;
-      
-      try {
-        const photo = await cameraRef.current.takePictureAsync({ quality: 0.3, skipProcessing: true });
-        if (photo) {
-          const tensor = await imageToTensor(photo);
-          const predictions = await model.estimateFaces(tensor, false);
-          
-          if (predictions.length > 0) {
-            setOvalColor('#00FF00');
-            startCountdown();
-          } else {
-            setOvalColor('#FFD700');
+  const reproducirAudioError = async () => {
+    try {
+      const { sound: playbackObject } = await Audio.Sound.createAsync(
+        require('../../assets/vozerror.mp3')
+      );
+      await playbackObject.playAsync();
+    } catch (error) {
+      console.warn("Aviso de audio error:", error.message);
+    }
+  };
+
+  const reproducirAudioReconocida = async () => {
+    try {
+      const { sound: playbackObject } = await Audio.Sound.createAsync(
+        require('../../assets/vozreconocida.mp3')
+      );
+      await playbackObject.playAsync();
+    } catch (error) {
+      console.warn("Aviso de audio reconocida:", error.message);
+    }
+  };
+
+  // NAVEGACIÓN INTELIGENTE A LA PANTALLA DE LOGIN
+  const navegarALogin = () => {
+    const routeNames = navigation.getState()?.routeNames || [];
+    const targetLogin = routeNames.find(name => 
+      name === 'Login' || name === 'LoginScreen' || name === 'Inicio'
+    ) || 'Login';
+
+    navigation.reset({
+      index: 0,
+      routes: [{ name: targetLogin }],
+    });
+  };
+
+  // NAVEGACIÓN INTELIGENTE A HOMESCREEN
+  const navegarAHome = () => {
+    const routeNames = navigation.getState()?.routeNames || [];
+    const targetHome = routeNames.find(name => 
+      name === 'HomeScreen' || name === 'Home' || name === 'Principal'
+    ) || 'HomeScreen';
+
+    navigation.reset({
+      index: 0,
+      routes: [{ name: targetHome }],
+    });
+  };
+
+  const tomarFotoYValidar = async () => {
+    console.log(">>> Botón presionado. Validando estado de la cámara...");
+
+    if (!cameraRef.current) {
+      console.log(">>> Error: cameraRef.current es nulo.");
+      Alert.alert("Aviso", "La cámara aún no está lista. Intenta de nuevo en un segundo.");
+      return;
+    }
+
+    if (isCapturing) {
+      console.log(">>> Ya hay una captura en proceso.");
+      return;
+    }
+
+    try {
+      setIsCapturing(true);
+      reproducirAudioVerificando().catch(() => {});
+
+      await new Promise(resolve => setTimeout(resolve, 200));
+
+      console.log(">>> Ejecutando takePictureAsync...");
+      const photo = await cameraRef.current.takePictureAsync({
+        quality: 0.6,
+        skipProcessing: true, 
+      });
+
+      if (!photo || !photo.uri) {
+        throw new Error("No se pudo obtener la URI de la foto tomada.");
+      }
+
+      console.log(">>> Foto tomada. Comprimiendo imagen en el celular...");
+
+      const photoComprimida = await ImageManipulator.manipulateAsync(
+        photo.uri,
+        [{ resize: { width: 500 } }],
+        { compress: 0.5, format: ImageManipulator.SaveFormat.JPEG }
+      );
+
+      console.log(">>> Imagen optimizada con éxito:", photoComprimida.uri);
+
+      setLoading(true);
+
+      const formData = new FormData();
+      const filename = photoComprimida.uri.split('/').pop() || 'facial.jpg';
+
+      formData.append('imageFile', {
+        uri: photoComprimida.uri,
+        name: filename,
+        type: 'image/jpeg',
+      });
+
+      // FLUJO 1: REGISTRO FACIAL
+      if (isFromRegister) {
+        console.log(">>> Enviando datos de registro facial a la API...");
+        const emailFinal = (registerFormData.email || '').trim().toLowerCase();
+        const fechaNacimientoFinal = `${(registerFormData.dia || '').padStart(2, '0')}/${(registerFormData.mes || '').padStart(2, '0')}/${registerFormData.anio || ''}`;
+
+        formData.append('nombre', (registerFormData.nombre || '').trim());
+        formData.append('apellido', (registerFormData.apellido || '').trim());
+        formData.append('email', emailFinal);
+        formData.append('sexo', registerFormData.sexo || '');
+        formData.append('fechaNacimiento', fechaNacimientoFinal);
+        formData.append('localidad', (registerFormData.localidad || '').trim());
+        formData.append('provincia', (registerFormData.provincia || '').trim());
+
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 60000);
+
+        let response;
+        try {
+          response = await fetch('https://smartcheck-proyecto-final.onrender.com/api/users/register-facial', {
+            method: 'POST',
+            body: formData,
+            signal: controller.signal,
+          });
+        } catch (fetchError) {
+          clearTimeout(timeoutId);
+          if (fetchError.name === 'AbortError') {
+            throw new Error("El servidor tardó demasiado en responder. Por favor, intenta de nuevo.");
           }
-          tensor.dispose();
+          throw fetchError;
         }
-      } catch (e) { console.log("Detección fallida"); }
-      
-      if (isMounted) setTimeout(runDetection, 1500); 
-    };
-    
-    runDetection();
-    return () => { isMounted = false; };
-  }, [modelLoaded, isProcessing, countdown]);
+        clearTimeout(timeoutId);
+
+        const data = await response.json();
+        console.log(">>> Respuesta del servidor de registro:", data);
+
+        if (!response.ok) {
+          throw new Error(data.mensaje || 'Error en el registro facial');
+        }
+
+        // 🔊 REPRODUCIR AUDIO DE ÉXITO
+        await reproducirAudioReconocida().catch(() => {});
+
+        // CONSTRUIR O TOMAR OBJETO DE USUARIO Y LOGUEAR AUTOMÁTICAMENTE
+        const usuarioNuevo = data.usuario || {
+          uid: data.uid || data.userId,
+          nombre: (registerFormData.nombre || '').trim(),
+          apellido: (registerFormData.apellido || '').trim(),
+          email: emailFinal,
+          sexo: registerFormData.sexo || '',
+          fechaNacimiento: fechaNacimientoFinal,
+          localidad: (registerFormData.localidad || '').trim(),
+          provincia: (registerFormData.provincia || '').trim(),
+        };
+
+        await login(usuarioNuevo);
+
+        clearRegisterData();
+        setLoading(false);
+
+        // REDIRECCIÓN DIRECTA A HOMESCREEN
+        Alert.alert(
+          "¡Registro Exitoso!", 
+          `Bienvenid@, ${usuarioNuevo.nombre || ''}. Tu cuenta ha sido creada con éxito.`,
+          [
+            { 
+              text: "Ingresar", 
+              onPress: () => navegarAHome()
+            }
+          ],
+          { cancelable: false }
+        );
+        return;
+      }
+
+      // FLUJO 2: INICIO DE SESIÓN BIOMÉTRICO
+      console.log(">>> Enviando datos de inicio de sesión biométrico...");
+      const response = await authService.loginBiometric(formData);
+
+      if (response && response.data && response.data.status === 'success') {
+        const usuarioLogueado = response.data.usuario;
+        
+        // 🔊 REPRODUCIR AUDIO DE ÉXITO
+        await reproducirAudioReconocida().catch(() => {});
+
+        await login(usuarioLogueado);
+        setLoading(false);
+
+        Alert.alert(
+          "¡Éxito!", 
+          `Bienvenid@ de nuevo, ${usuarioLogueado.nombre || ''}`,
+          [
+            {
+              text: "Continuar",
+              onPress: () => navegarAHome()
+            }
+          ],
+          { cancelable: false }
+        );
+      } else {
+        throw new Error(response?.data?.mensaje || "No se reconoció el rostro.");
+      }
+
+    } catch (error) {
+      console.log(">>> Error capturado en reconocimiento facial:", error.message || error);
+      reproducirAudioError().catch(() => {});
+
+      let mensajeError = error.response?.data?.mensaje || error.message || "Error desconocido";
+      if (mensajeError.includes("Network Error") || error.code === 'ECONNABORTED' || mensajeError.includes("Aborted")) {
+        mensajeError = "El servidor en la nube está despertando. Por favor, espera unos segundos y vuelve a presionar el botón de verificar.";
+      }
+
+      Alert.alert("Aviso", mensajeError);
+      setLoading(false); 
+    } finally {
+      setIsCapturing(false);
+    }
+  };
+
+  const handleVolver = () => {
+    navegarALogin();
+  };
+
+  const handleSalir = () => {
+    BackHandler.exitApp();
+  };
+
+  if (hasPermission === null) {
+    return <View style={styles.container} />;
+  }
+  
+  if (hasPermission === false) {
+    return (
+      <View style={styles.container}>
+        <Text style={styles.errorText}>No hay acceso a la cámara. Habilítalo en los ajustes.</Text>
+      </View>
+    );
+  }
 
   return (
-    <View style={styles.container}>
-      <View style={styles.header}>
+    <SafeAreaView style={styles.container}>
+      {/* CABECERA */}
+      <View style={styles.headerRow}>
         <Image source={require('../../assets/logo.png')} style={styles.logo} />
-        <Image source={require('../../assets/nombreapp.png')} style={styles.appName} />
+        <Image source={require('../../assets/nombreapp.png')} style={styles.appNameImage} />
+        <View style={styles.logoPlaceholder} />
       </View>
-      <View style={styles.blackBar}>
-        <Text style={styles.titleText}>{isProcessing ? "VERIFICANDO..." : "RECONOCIMIENTO FACIAL"}</Text>
+
+      {/* BANNER DE TÍTULO */}
+      <View style={styles.blackBanner}>
+        <Text style={styles.bannerTitle}>
+          {isFromRegister ? "REGISTRO FACIAL" : "RECONOCIMIENTO FACIAL"}
+        </Text>
       </View>
+
+      {/* CÁMARA */}
       <View style={styles.cameraContainer}>
-        <View style={styles.goldenFrame}>
-          {!modelLoaded ? (
-             <View style={styles.loadingContainer}>
-                <ActivityIndicator size="large" color="#00E5FF" />
-                <Text style={styles.loadingText}>Preparando cámara...</Text>
-             </View>
-          ) : (
-            <CameraView style={styles.camera} facing="front" ref={cameraRef}>
-              <Svg style={StyleSheet.absoluteFill}>
-                <Ellipse cx="50%" cy="50%" rx="130" ry="180" stroke={ovalColor} strokeWidth="5" fill="transparent" />
-              </Svg>
-            </CameraView>
-          )}
+        <CameraView 
+          ref={cameraRef} 
+          style={styles.camera} 
+          facing="front"
+        >
+          <View style={styles.overlayOval} />
+        </CameraView>
+
+        {loading && (
+          <Image source={require('../../assets/standby.gif')} style={styles.standbyFullBoxAbsolute} />
+        )}
+      </View>
+
+      {/* FOOTER */}
+      <View style={styles.footer}>
+        {!loading && (
+          <TouchableOpacity 
+            style={[styles.captureButtonOnly, isCapturing && { opacity: 0.5 }]} 
+            onPress={tomarFotoYValidar} 
+            activeOpacity={0.7}
+            disabled={isCapturing}
+          >
+            <Image source={require('../../assets/verificar.png')} style={styles.verifyIconOnly} />
+          </TouchableOpacity>
+        )}
+
+        <View style={styles.goldenDivider} />
+
+        <View style={styles.bottomNavContainer}>
+          <TouchableOpacity onPress={handleVolver} style={styles.navButton}>
+            <Image source={require('../../assets/volver.png')} style={styles.navIcon} />
+          </TouchableOpacity>
+
+          <TouchableOpacity onPress={handleSalir} style={styles.navButton}>
+            <Image source={require('../../assets/salir.png')} style={styles.navIcon} />
+          </TouchableOpacity>
         </View>
       </View>
-      <View style={styles.footer}>
-         <TouchableOpacity onPress={() => navigation.goBack()}>
-            <Image source={require('../../assets/volver.png')} style={styles.navIcon} />
-         </TouchableOpacity>
-         
-         <TouchableOpacity onPress={handleCapture} disabled={isProcessing}>
-             {countdown !== null ? (
-               <Text style={styles.countdownText}>{countdown}</Text>
-             ) : (
-               <Image source={require('../../assets/verificara.png')} style={styles.verifyIcon} />
-             )}
-         </TouchableOpacity>
-         
-         <TouchableOpacity onPress={() => navigation.navigate('Goodbye')}>
-            <Image source={require('../../assets/salir.png')} style={styles.navIcon} />
-         </TouchableOpacity>
-      </View>
-    </View>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#001f3f' },
-  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: 10 },
-  logo: { width: 90, height: 90, resizeMode: 'contain' },
-  appName: { width: 250, height: 70, resizeMode: 'contain', marginLeft: 15 },
-  blackBar: { backgroundColor: '#000', width: '100%', height: 35, justifyContent: 'center', alignItems: 'center' },
-  titleText: { color: '#FFD700', fontSize: 18, fontWeight: 'bold' },
-  cameraContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  goldenFrame: { width: '85%', aspectRatio: 3/4, borderColor: '#FFD700', borderWidth: 2, borderRadius: 20, overflow: 'hidden', justifyContent: 'center', alignItems: 'center' },
-  camera: { flex: 1 },
-  loadingContainer: { alignItems: 'center' },
-  loadingText: { color: '#00E5FF', marginTop: 10 },
-  footer: { height: 100, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 20 },
-  verifyIcon: { width: 80, height: 80, resizeMode: 'contain' },
-  navIcon: { width: 50, height: 50, tintColor: '#00E5FF' },
-  countdownText: { fontSize: 50, color: '#00FF00', fontWeight: 'bold' }
+  container: { 
+    flex: 1, 
+    backgroundColor: '#001f3f', 
+    justifyContent: 'space-between' 
+  },
+  headerRow: { 
+    flexDirection: 'row', 
+    alignItems: 'center', 
+    justifyContent: 'space-between',
+    paddingHorizontal: 15,
+    marginTop: 5,
+    marginBottom: 2
+  },
+  logo: { 
+    width: 70, 
+    height: 70, 
+    resizeMode: 'contain' 
+  },
+  appNameImage: { 
+    width: 200, 
+    height: 55, 
+    resizeMode: 'contain' 
+  },
+  logoPlaceholder: {
+    width: 70, 
+  },
+  blackBanner: {
+    width: '100%',
+    backgroundColor: '#000000',
+    paddingVertical: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginVertical: 2
+  },
+  bannerTitle: { 
+    color: '#FFD700', 
+    fontSize: 16, 
+    fontWeight: 'bold', 
+    letterSpacing: 1.5 
+  },
+  cameraContainer: { 
+    flex: 1, 
+    width: '96%', 
+    borderRadius: 20, 
+    overflow: 'hidden', 
+    borderWidth: 2, 
+    borderColor: '#FFD700', 
+    alignSelf: 'center',
+    marginVertical: 4,
+    position: 'relative',
+    backgroundColor: '#000'
+  },
+  camera: { 
+    flex: 1, 
+    justifyContent: 'center', 
+    alignItems: 'center' 
+  },
+  overlayOval: { 
+    width: '82%', 
+    height: '96%', 
+    borderWidth: 3, 
+    borderColor: 'rgba(255, 215, 0, 0.9)', 
+    borderRadius: 1000, 
+    backgroundColor: 'transparent'
+  },
+  standbyFullBoxAbsolute: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    width: '100%',
+    height: '100%',
+    resizeMode: 'cover',
+    zIndex: 10
+  },
+  footer: { 
+    alignItems: 'center', 
+    paddingHorizontal: 15,
+    paddingBottom: 10 
+  },
+  captureButtonOnly: { 
+    alignItems: 'center', 
+    justifyContent: 'center',
+    marginVertical: 2
+  },
+  verifyIconOnly: {
+    width: 220, 
+    height: 135,
+    resizeMode: 'contain'
+  },
+  goldenDivider: {
+    width: '100%',
+    height: 1,
+    backgroundColor: '#FFD700',
+    marginVertical: 6
+  },
+  bottomNavContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    width: '100%',
+    paddingHorizontal: 20
+  },
+  navButton: { 
+    padding: 5 
+  },
+  navIcon: {
+    width: 42,
+    height: 42,
+    resizeMode: 'contain',
+    tintColor: '#00BFFF' 
+  },
+  errorText: { 
+    color: '#fff', 
+    textAlign: 'center', 
+    marginTop: 50, 
+    fontSize: 16 
+  }
 });

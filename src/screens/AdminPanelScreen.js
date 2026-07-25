@@ -6,6 +6,7 @@ import {
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../context/AuthContext';
+import api from '../config/api';
 
 export default function AdminPanelScreen({ navigation }) {
   const { logout } = useAuth();
@@ -28,24 +29,15 @@ export default function AdminPanelScreen({ navigation }) {
   useEffect(() => {
     const obtenerUsuarios = async () => {
       try {
-        // Hacemos el fetch
-        const respuesta = await fetch('https://smartcheck-proyecto-final.onrender.com/api/users/usuarios');
-        const textoRespuesta = await respuesta.text(); // Obtenemos el texto para debuggear
-
-        console.log("Respuesta cruda del servidor:", textoRespuesta); // <-- Esto te dirá el error real en la consola
-
-        try {
-          const json = JSON.parse(textoRespuesta);
-          if (json.status === 'success') {
-            setUsuarios(json.usuarios);
-          } else {
-            console.error("Error en respuesta:", json.mensaje);
-          }
-        } catch (e) {
-          console.error("El servidor no devolvió JSON válido. Revisar URL o Backend.");
+        const response = await api.get('/api/users/usuarios');
+        if (response.data && response.data.status === 'success') {
+          setUsuarios(response.data.usuarios);
+        } else {
+          console.error("Error en respuesta del servidor:", response.data?.mensaje || "Respuesta vacía");
         }
       } catch (error) {
-        console.error("Error cargando usuarios:", error);
+        console.error("Error cargando usuarios:", error.message);
+        Alert.alert("Error", "No se pudieron cargar los usuarios.");
       } finally {
         setLoading(false);
       }
@@ -80,8 +72,6 @@ export default function AdminPanelScreen({ navigation }) {
     let nacimiento = item.fechaNacimiento || (item.dia ? `${item.dia}/${item.mes}/${item.anio}` : "N/A");
     const edad = calcularEdad(nacimiento);
     const imagenUri = item.foto || item.image || null;
-
-    // Lógica para mostrar la ubicación real
     const partesUbicacion = [item.localidad, item.provincia].filter(Boolean);
     const textoUbicacion = partesUbicacion.length > 0 ? partesUbicacion.join(' - ') : "Ubicación no especificada";
 
@@ -93,26 +83,8 @@ export default function AdminPanelScreen({ navigation }) {
           </Text>
           <Text style={styles.cardText}>Sexo: {item.sexo || 'N/A'} | Edad: {edad}</Text>
           <Text style={styles.cardText}>Fecha Nac.: {nacimiento}</Text>
-          
-          <Text 
-            style={styles.cardText} 
-            numberOfLines={1} 
-            ellipsizeMode="clip"
-            adjustsFontSizeToFit={true} 
-            minimumFontScale={0.8}
-          >
-            Lugar: {textoUbicacion}
-          </Text>
-
-          <Text 
-            style={styles.cardText} 
-            numberOfLines={1} 
-            ellipsizeMode="clip"
-            adjustsFontSizeToFit={true} 
-            minimumFontScale={0.8}
-          >
-            Email: {item.email || item.correo || "No registrado"}
-          </Text>
+          <Text style={styles.cardText} numberOfLines={1}>Lugar: {textoUbicacion}</Text>
+          <Text style={styles.cardText} numberOfLines={1}>Email: {item.email || item.correo || "No registrado"}</Text>
         </View>
         <View style={styles.imageContainer}>
           {imagenUri ? (
@@ -151,6 +123,7 @@ export default function AdminPanelScreen({ navigation }) {
         contentContainerStyle={styles.listPadding}
       />
 
+      {/* Modal para Admin Pass */}
       <Modal animationType="slide" transparent={true} visible={modalVisible} onRequestClose={() => setModalVisible(false)}>
         <View style={styles.modalOverlay}>
           <View style={styles.modalView}>
@@ -177,6 +150,7 @@ export default function AdminPanelScreen({ navigation }) {
 
       <View style={styles.lineaDorada} />
       
+      {/* Footer con Navegación Verificada */}
       <View style={styles.footer}>
         <TouchableOpacity style={styles.footerBtn} onPress={() => navigation.navigate('HomeScreen')}>
           <Image source={require('../../assets/volver.png')} style={styles.navIcon} />
@@ -195,6 +169,7 @@ export default function AdminPanelScreen({ navigation }) {
 }
 
 const styles = StyleSheet.create({
+  // Tus estilos se mantienen intactos
   container: { flex: 1, backgroundColor: '#001a33' },
   center: { justifyContent: 'center', alignItems: 'center' },
   topHeader: { height: 70, backgroundColor: '#001a33', flexDirection: 'row', alignItems: 'center', paddingHorizontal: 20 },

@@ -1,253 +1,518 @@
 import React, { useState, useRef, useLayoutEffect, useEffect } from 'react';
 import { 
-  StyleSheet, 
-  Text, 
-  View, 
-  TextInput, 
-  TouchableOpacity, 
-  Image, 
-  KeyboardAvoidingView, 
-  Platform, 
-  Alert,
-  Keyboard,
-  ScrollView 
+  StyleSheet, Text, View, TextInput, TouchableOpacity, Image, 
+  Alert, ActivityIndicator, SafeAreaView, KeyboardAvoidingView, Platform, Modal, FlatList, Keyboard 
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
-import { Picker } from '@react-native-picker/picker'; 
 import { createUserWithEmailAndPassword } from 'firebase/auth';
 import { auth } from '../services/firebaseConfig';
-import api from '../config/api'; 
+import { useAuth } from '../context/AuthContext';
 
 export default function RegisterScreen() {
   const navigation = useNavigation();
-  const [isKeyboardVisible, setKeyboardVisible] = useState(false);
+  const { 
+    registerPhotoUri, 
+    setRegisterPhotoUri, 
+    registerFormData, 
+    setRegisterFormData, 
+    clearRegisterData 
+  } = useAuth();
 
-  useLayoutEffect(() => {
-    navigation.setOptions({ headerShown: false });
-  }, [navigation]);
+  // Inicializar con los datos guardados en el contexto global
+  const [nombre, setNombre] = useState(registerFormData.nombre);
+  const [apellido, setApellido] = useState(registerFormData.apellido);
+  const [email, setEmail] = useState(registerFormData.email);
+  const [dia, setDia] = useState(registerFormData.dia);
+  const [mes, setMes] = useState(registerFormData.mes);
+  const [anio, setAnio] = useState(registerFormData.anio);
+  const [sexo, setSexo] = useState(registerFormData.sexo);
+  const [password, setPassword] = useState(registerFormData.password);
+  const [confirmPassword, setConfirmPassword] = useState(registerFormData.confirmPassword);
+  const [authMode, setAuthMode] = useState(registerFormData.authMode);
 
-  useEffect(() => {
-    const keyboardDidShowListener = Keyboard.addListener('keyboardDidShow', () => setKeyboardVisible(true));
-    const keyboardDidHideListener = Keyboard.addListener('keyboardDidHide', () => setKeyboardVisible(false));
-    return () => {
-      keyboardDidShowListener.remove();
-      keyboardDidHideListener.remove();
-    };
-  }, []);
-  
-  const diaRef = useRef(null);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [hasPhoto, setHasPhoto] = useState(Boolean(registerPhotoUri));
+  const [photoUri, setPhotoUri] = useState(registerPhotoUri);
+  const [loading, setLoading] = useState(false);
+  const [sexoModalVisible, setSexoModalVisible] = useState(false);
+
   const mesRef = useRef(null);
   const anioRef = useRef(null);
+
+  const sexoOptions = ['Masculino', 'Femenino', 'Otro', 'Prefiero no decirlo'];
+
+  useLayoutEffect(() => navigation.setOptions({ headerShown: false }), [navigation]);
+
+  // Actualizar el contexto cada vez que el usuario escriba en el formulario
+  useEffect(() => {
+    setRegisterFormData({
+      nombre,
+      apellido,
+      email,
+      dia,
+      mes,
+      anio,
+      sexo,
+      password,
+      confirmPassword,
+      authMode,
+    });
+  }, [nombre, apellido, email, dia, mes, anio, sexo, password, confirmPassword, authMode]);
+
+  // Capturar la foto que viene de FacialLoginScreen
+  useEffect(() => {
+    if (registerPhotoUri) {
+      setHasPhoto(true);
+      setPhotoUri(registerPhotoUri);
+    }
+  }, [registerPhotoUri]);
+
+  const areStandardFieldsComplete = Boolean(
+    nombre.trim() && apellido.trim() && email.trim() && dia && mes && anio && sexo
+  );
+
+  const isPasswordValid = Boolean(password && /^\d{4,}$/.test(password) && password === confirmPassword);
   
-  const [form, setForm] = useState({ nombre: '', apellido: '', email: '', password: '', confirmPassword: '', sexo: '', dia: '', mes: '', anio: '' });
-  const [metodo, setMetodo] = useState(null); 
-  const [verPassword, setVerPassword] = useState(false);
-  const [verConfirm, setVerConfirm] = useState(false);
+  const isFormComplete = areStandardFieldsComplete && (
+    (authMode === 'password' && isPasswordValid) ||
+    (authMode === 'photo' && hasPhoto)
+  );
 
-  const handleInputChange = (field, value) => setForm(prev => ({ ...prev, [field]: value }));
+  const isFaceLoginActive = areStandardFieldsComplete && authMode === 'photo';
 
-  const handleDateChange = (field, value) => {
-    const numericValue = value.replace(/[^0-9]/g, '');
-    setForm(prev => ({ ...prev, [field]: numericValue }));
-    if (field === 'dia' && numericValue.length === 2 && mesRef.current) mesRef.current.focus();
-    if (field === 'mes' && numericValue.length === 2 && anioRef.current) anioRef.current.focus();
-  };
+  const handleRegister = async () => {
+    if (!areStandardFieldsComplete) {
+      return Alert.alert("Error", "Por favor completa todos los campos obligatorios.");
+    }
+    if (authMode === null) {
+      return Alert.alert("Error", "Por favor selecciona un método de registro (con contraseña o con foto).");
+    }
 
-  const handleSalir = () => {
-    navigation.navigate('Goodbye');
-  };
+    if (authMode === 'password') {
+      if (!password) {
+        return Alert.alert("Error", "Por favor ingresa una contraseña.");
+      }
+      const isNumeric = /^\d+$/.test(password);
+      if (!isNumeric || password.length < 4) {
+        return Alert.alert("Error", "La contraseña debe ser de al menos 4 dígitos numéricos y no contener letras.");
+      }
+      if (!confirmPassword) {
+        return Alert.alert("Error", "Por favor confirma tu contraseña.");
+      }
+      if (password !== confirmPassword) {
+        return Alert.alert("Error", "Las contraseñas no coinciden.");
+      }
+    }
 
-  const validarYRegistrar = async () => {
-    if (!form.nombre || !form.apellido || !form.email || !form.sexo) return Alert.alert("Error", "Faltan completar datos.");
-    if (form.dia.length !== 2 || form.mes.length !== 2 || form.anio.length !== 4) return Alert.alert("Error", "La fecha debe ser DD-MM-AAAA completa.");
-    
-    const stringFecha = `${form.dia}/${form.mes}/${form.anio}`;
+    if (authMode === 'photo') {
+      if (!hasPhoto || !photoUri) {
+        return Alert.alert("Error", "Por favor tómate la foto de perfil con reconocimiento facial.");
+      }
+    }
 
-    if (metodo === 'password') {
-        if (form.password !== form.confirmPassword) return Alert.alert("Error", "Las contraseñas no coinciden.");
+    try {
+      setLoading(true);
+      const emailFinal = email.trim().toLowerCase();
+      const fechaNacimientoFinal = `${dia.padStart(2, '0')}/${mes.padStart(2, '0')}/${anio}`;
+
+      if (authMode === 'password') {
+        await createUserWithEmailAndPassword(auth, emailFinal, password);
+        clearRegisterData();
+        Alert.alert("¡Éxito!", "Registro completado correctamente.");
+        navigation.replace('HomeScreen');
+      } else if (authMode === 'photo') {
+        const formData = new FormData();
+        formData.append('nombre', nombre.trim());
+        formData.append('apellido', apellido.trim());
+        formData.append('email', emailFinal);
+        formData.append('sexo', sexo);
+        formData.append('fechaNacimiento', fechaNacimientoFinal);
         
-        try {
-            await createUserWithEmailAndPassword(auth, form.email.trim(), form.password);
-            
-            const formData = new FormData();
-            formData.append('nombre', form.nombre);
-            formData.append('apellido', form.apellido);
-            formData.append('email', form.email.trim().toLowerCase());
-            formData.append('sexo', form.sexo);
-            formData.append('fechaNacimiento', stringFecha);
-            
-            await api.post('/api/users/register', formData, {
-                headers: { 'Content-Type': 'multipart/form-data' },
-            });
+        if (photoUri) {
+          const filename = photoUri.split('/').pop();
+          const match = /\.(\w+)$/.exec(filename);
+          const type = match ? `image/${match[1]}` : `image/jpeg`;
 
-            Alert.alert("Éxito", "Usuario registrado correctamente.");
-            navigation.navigate('Login');
-        } catch (error) {
-            console.error("Error al registrar:", error);
-            if (error.response && error.response.status === 429) {
-                Alert.alert("Servidor Ocupado", error.response.data.mensaje || "El servidor está saturado. Intenta de nuevo en unos segundos.");
-            } else {
-                const errorMsg = error.response?.data?.mensaje || error.message || "Ocurrió un error al registrar.";
-                Alert.alert("Error", errorMsg);
-            }
+          formData.append('imageFile', {
+            uri: photoUri,
+            name: filename || 'photo.jpg',
+            type,
+          });
         }
-    } else {
-        navigation.navigate('Camera', { 
-            tipoOperacion: 'REGISTER', 
-            datosRegistro: { ...form, fechaNacimiento: stringFecha } 
+
+        const response = await fetch('https://smartcheck-proyecto-final.onrender.com/api/users/register-facial', {
+          method: 'POST',
+          body: formData,
+          headers: {
+            'Content-Type': 'multipart/form-data',
+          },
         });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+          throw new Error(data.mensaje || 'Error en el registro facial');
+        }
+
+        clearRegisterData();
+        Alert.alert("¡Éxito!", "Registro facial completado correctamente.");
+        navigation.replace('HomeScreen');
+      }
+    } catch (error) {
+      console.error("Error en registro:", error);
+      Alert.alert("Error", error.message || "No se pudo completar el registro.");
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
-    <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.container}>
-      {!isKeyboardVisible && (
+    <SafeAreaView style={styles.container}>
+      <KeyboardAvoidingView 
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'} 
+        style={{ flex: 1 }}
+      >
         <View style={styles.header}>
           <Image source={require('../../assets/logo.png')} style={styles.logo} />
-          <Image source={require('../../assets/nombreapp.png')} style={styles.nombreApp} />
+          <Image source={require('../../assets/nombreapp.png')} style={styles.appNameImage} />
         </View>
-      )}
-      
-      {!isKeyboardVisible && (
         <View style={styles.blackBar}>
-          <Text style={styles.titleText}>REGISTRO DE USUARIO</Text>
+          <Text style={styles.titleText}>FORMULARIO DE REGISTRO</Text>
         </View>
-      )}
-
-      <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
-        <View style={styles.formFrame}>
-          <View style={styles.inputContainer}>
-            <Text style={styles.emoji}>👤</Text>
-            <TextInput style={styles.input} placeholder="Nombre" onChangeText={(v) => handleInputChange('nombre', v)} />
-          </View>
-          
-          <View style={styles.inputContainer}>
-            <Text style={styles.emoji}>👤</Text>
-            <TextInput style={styles.input} placeholder="Apellido" onChangeText={(v) => handleInputChange('apellido', v)} />
-          </View>
-          
-          <View style={styles.inputContainer}>
-            <Text style={styles.emoji}>📧</Text>
-            <TextInput style={styles.input} placeholder="Email" keyboardType="email-address" autoCapitalize="none" onChangeText={(v) => handleInputChange('email', v)} />
-          </View>
-
-          <View style={styles.dateRow}>
-            <Text style={styles.emoji}>📅</Text>
-            <TextInput ref={diaRef} style={styles.dateBox} placeholder="DD" maxLength={2} keyboardType="numeric" onChangeText={(v) => handleDateChange('dia', v)} />
-            <Text style={styles.slash}>/</Text>
-            <TextInput ref={mesRef} style={styles.dateBox} placeholder="MM" maxLength={2} keyboardType="numeric" onChangeText={(v) => handleDateChange('mes', v)} />
-            <Text style={styles.slash}>/</Text>
-            <TextInput ref={anioRef} style={styles.dateBoxYear} placeholder="AAAA" maxLength={4} keyboardType="numeric" onChangeText={(v) => handleDateChange('anio', v)} />
-          </View>
-
-          <View style={styles.inputContainer}>
-            <Text style={styles.emoji}>🚻</Text>
-            <Picker selectedValue={form.sexo} onValueChange={(v) => handleInputChange('sexo', v)} style={{flex: 1, height: 40}}>
-                <Picker.Item label="Seleccionar sexo..." value="" />
-                <Picker.Item label="Masculino" value="M" />
-                <Picker.Item label="Femenino" value="F" />
-                <Picker.Item label="Otro" value="O" />
-            </Picker>
-          </View>
-
-          {!metodo && (
-            <View style={styles.btnRow}>
-              <TouchableOpacity style={styles.metalBtn} onPress={() => setMetodo('password')}>
-                <Text style={styles.metalBtnTxt}>POR{"\n"}CONTRASEÑA</Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={styles.metalBtn} onPress={() => { Keyboard.dismiss(); setMetodo('facial'); }}>
-                <Text style={styles.metalBtnTxt}>RECONOCIMIENTO{"\n"}FACIAL</Text>
-              </TouchableOpacity>
+        
+        <View style={styles.contentContainer}>
+          <View style={styles.formFrame}>
+            <View style={styles.inputContainer}>
+              <Image source={require('../../assets/perfil.png')} style={styles.smallEmoji} />
+              <TextInput 
+                style={styles.input} 
+                placeholder="Nombre" 
+                placeholderTextColor="#AAAAAA"
+                value={nombre} 
+                onChangeText={setNombre} 
+              />
+              {nombre ? (
+                <TouchableOpacity onPress={() => setNombre('')} style={styles.clearBtn}>
+                  <Text style={styles.clearText}>🗑️</Text>
+                </TouchableOpacity>
+              ) : null}
             </View>
-          )}
 
-          {metodo === 'password' && (
-            <View>
-              <View style={styles.inputContainer}>
-                <Text style={styles.emoji}>🔒</Text>
-                <TextInput style={styles.input} placeholder="Contraseña" secureTextEntry={!verPassword} onChangeText={(v) => handleInputChange('password', v)} />
-                <TouchableOpacity onPress={() => setVerPassword(!verPassword)}><Text style={styles.emojiOjo}>{verPassword ? '🙈' : '👁️'}</Text></TouchableOpacity>
+            <View style={styles.inputContainer}>
+              <Image source={require('../../assets/perfil.png')} style={styles.smallEmoji} />
+              <TextInput 
+                style={styles.input} 
+                placeholder="Apellido" 
+                placeholderTextColor="#AAAAAA"
+                value={apellido} 
+                onChangeText={setApellido} 
+              />
+              {apellido ? (
+                <TouchableOpacity onPress={() => setApellido('')} style={styles.clearBtn}>
+                  <Text style={styles.clearText}>🗑️</Text>
+                </TouchableOpacity>
+              ) : null}
+            </View>
+
+            <View style={styles.inputContainer}>
+              <Image source={require('../../assets/email.png')} style={styles.largeEmoji} />
+              <TextInput 
+                style={styles.input} 
+                placeholder="Email" 
+                placeholderTextColor="#AAAAAA"
+                keyboardType="email-address" 
+                autoCapitalize="none" 
+                value={email} 
+                onChangeText={setEmail} 
+              />
+              {email ? (
+                <TouchableOpacity onPress={() => setEmail('')} style={styles.clearBtn}>
+                  <Text style={styles.clearText}>🗑️</Text>
+                </TouchableOpacity>
+              ) : null}
+            </View>
+
+            <View style={styles.inputContainer}>
+              <Image source={require('../../assets/fechanac.png')} style={styles.largeEmoji} />
+              <View style={styles.dateContainer}>
+                <TextInput 
+                  style={styles.dateInput} 
+                  placeholder="DD" 
+                  placeholderTextColor="#AAAAAA"
+                  keyboardType="numeric" 
+                  maxLength={2}
+                  value={dia} 
+                  onChangeText={(text) => {
+                    setDia(text);
+                    if (text.length === 2) {
+                      mesRef.current?.focus();
+                    }
+                  }} 
+                />
+                <Text style={styles.dateSlash}>/</Text>
+                <TextInput 
+                  ref={mesRef}
+                  style={styles.dateInput} 
+                  placeholder="MM" 
+                  placeholderTextColor="#AAAAAA"
+                  keyboardType="numeric" 
+                  maxLength={2}
+                  value={mes} 
+                  onChangeText={(text) => {
+                    setMes(text);
+                    if (text.length === 2) {
+                      anioRef.current?.focus();
+                    }
+                  }} 
+                />
+                <Text style={styles.dateSlash}>/</Text>
+                <TextInput 
+                  ref={anioRef}
+                  style={styles.dateInputYear} 
+                  placeholder="AAAA" 
+                  placeholderTextColor="#AAAAAA"
+                  keyboardType="numeric" 
+                  maxLength={4}
+                  value={anio} 
+                  onChangeText={(text) => {
+                    setAnio(text);
+                    if (text.length === 4) {
+                      Keyboard.dismiss();
+                      setSexoModalVisible(true);
+                    }
+                  }} 
+                />
               </View>
-              
-              <View style={styles.inputContainer}>
-                <Text style={styles.emoji}>🔒</Text>
-                <TextInput style={styles.input} placeholder="Confirmar" secureTextEntry={!verConfirm} onChangeText={(v) => handleInputChange('confirmPassword', v)} />
-                <TouchableOpacity onPress={() => setVerConfirm(!verConfirm)}><Text style={styles.emojiOjo}>{verConfirm ? '🙈' : '👁️'}</Text></TouchableOpacity>
-              </View>
+              {(dia || mes || anio) ? (
+                <TouchableOpacity onPress={() => { setDia(''); setMes(''); setAnio(''); }} style={styles.clearBtn}>
+                  <Text style={styles.clearText}>🗑️</Text>
+                </TouchableOpacity>
+              ) : null}
+            </View>
 
-              <TouchableOpacity style={styles.finalBtn} onPress={validarYRegistrar}>
-                <Text style={styles.btnTxt}>FINALIZAR</Text>
+            <View style={styles.inputContainer}>
+              <Image source={require('../../assets/sexo.png')} style={styles.largeEmoji} />
+              <TouchableOpacity 
+                style={{ flex: 1, justifyContent: 'center' }} 
+                onPress={() => {
+                  Keyboard.dismiss();
+                  setSexoModalVisible(true);
+                }}
+              >
+                <Text style={[styles.input, { color: sexo ? '#000' : '#AAAAAA', textAlignVertical: 'center', lineHeight: 46 }]}>
+                  {sexo || 'Sexo'}
+                </Text>
               </TouchableOpacity>
+              {sexo ? (
+                <TouchableOpacity onPress={() => setSexo('')} style={styles.clearBtn}>
+                  <Text style={styles.clearText}>🗑️</Text>
+                </TouchableOpacity>
+              ) : null}
             </View>
-          )}
 
-          {metodo === 'facial' && (
-            <View style={{alignItems: 'center'}}>
-              <Text style={styles.avisoFacialActivo}>Para continuar con su registro oprima el botón de Biometría Facial por favor</Text>
-            </View>
-          )}
-        </View>
-      </ScrollView>
+            {authMode === 'password' ? (
+              <>
+                <View style={styles.inputContainer}>
+                  <Image source={require('../../assets/candado.png')} style={styles.largeEmoji} />
+                  <TextInput 
+                    style={styles.input} 
+                    placeholder="Contraseña" 
+                    placeholderTextColor="#AAAAAA"
+                    secureTextEntry={!showPassword} 
+                    value={password} 
+                    onChangeText={setPassword} 
+                  />
+                  <TouchableOpacity onPress={() => setShowPassword(!showPassword)} style={{ marginRight: 6 }}>
+                    <Image source={showPassword ? require('../../assets/eye.png') : require('../../assets/eyeoff.png')} style={styles.eyeIcon} />
+                  </TouchableOpacity>
+                  {password ? (
+                    <TouchableOpacity onPress={() => setPassword('')} style={styles.clearBtn}>
+                      <Text style={styles.clearText}>🗑️</Text>
+                    </TouchableOpacity>
+                  ) : null}
+                </View>
 
-      {/* Footer condicional: desaparece cuando el teclado aparece */}
-      {!isKeyboardVisible && (
-        <View style={styles.footerArea}>
-            <TouchableOpacity style={styles.navButton} onPress={() => navigation.goBack()}>
-              <Image source={require('../../assets/volver.png')} style={styles.navIcon} />
+                <View style={styles.inputContainer}>
+                  <Image source={require('../../assets/candado.png')} style={styles.largeEmoji} />
+                  <TextInput 
+                    style={styles.input} 
+                    placeholder="Confirmar Contraseña" 
+                    placeholderTextColor="#AAAAAA"
+                    secureTextEntry={!showConfirmPassword} 
+                    value={confirmPassword} 
+                    onChangeText={setConfirmPassword} 
+                  />
+                  <TouchableOpacity onPress={() => setShowConfirmPassword(!showConfirmPassword)} style={{ marginRight: 6 }}>
+                    <Image source={showConfirmPassword ? require('../../assets/eye.png') : require('../../assets/eyeoff.png')} style={styles.eyeIcon} />
+                  </TouchableOpacity>
+                  {confirmPassword ? (
+                    <TouchableOpacity onPress={() => setConfirmPassword('')} style={styles.clearBtn}>
+                      <Text style={styles.clearText}>🗑️</Text>
+                    </TouchableOpacity>
+                  ) : null}
+                </View>
+              </>
+            ) : (
+              <View style={styles.authModeRow}>
+                <TouchableOpacity 
+                  onPress={() => setAuthMode('password')} 
+                  style={[
+                    styles.authModeBtn, 
+                    { backgroundColor: authMode === 'password' ? '#28a745' : '#fff' }
+                  ]}
+                >
+                  <Text style={[
+                    styles.authModeText, 
+                    { color: authMode === 'password' ? '#fff' : '#00BFFF' }
+                  ]}>
+                    Registrarse con contraseña
+                  </Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity 
+                  onPress={() => { setAuthMode('photo'); setPassword(''); setConfirmPassword(''); }} 
+                  style={[
+                    styles.authModeBtn, 
+                    { backgroundColor: authMode === 'photo' ? '#28a745' : '#fff' }
+                  ]}
+                >
+                  <Text style={[
+                    styles.authModeText, 
+                    { color: authMode === 'photo' ? '#fff' : '#00BFFF' }
+                  ]}>
+                    {hasPhoto ? "Foto capturada ✓" : "Registrarse con foto"}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            )}
+          </View>
+
+          <View style={styles.actionRow}>
+            <TouchableOpacity 
+              style={[styles.actionBtn, !isFormComplete && { opacity: 0.5 }]} 
+              onPress={handleRegister} 
+              disabled={!isFormComplete || loading}
+            >
+              {loading ? (
+                <ActivityIndicator color="#001f3f" />
+              ) : (
+                <Image source={require('../../assets/registrarse.png')} style={styles.actionImg} />
+              )}
             </TouchableOpacity>
-            
-            {metodo === 'facial' ? (
-              <TouchableOpacity style={styles.captureButton} onPress={validarYRegistrar}>
-                  <Image source={require('../../assets/verificar.png')} style={styles.verifyIcon} />
+
+            {authMode === 'password' ? (
+              <TouchableOpacity style={styles.actionBtn} onPress={() => { setAuthMode(null); setPassword(''); setConfirmPassword(''); }}>
+                <Image source={require('../../assets/cancelar.png')} style={styles.cancelImg} />
               </TouchableOpacity>
             ) : (
-              <View style={styles.placeholderButton} />
+              <TouchableOpacity 
+                style={[styles.actionBtn, !isFaceLoginActive && { opacity: 0.5 }]} 
+                onPress={() => navigation.navigate('FacialLogin', { returnScreen: 'RegisterScreen' })}
+                disabled={!isFaceLoginActive}
+              >
+                <Image source={require('../../assets/facelogin.png')} style={styles.actionImg} />
+              </TouchableOpacity>
             )}
-            
-            <TouchableOpacity style={styles.navButton} onPress={handleSalir}>
-              <Image source={require('../../assets/salir.png')} style={styles.navIcon} />
-            </TouchableOpacity>
+          </View>
         </View>
-      )}
-    </KeyboardAvoidingView>
+
+        <View style={styles.footerWrapper}>
+          <View style={styles.footerLine} />
+          <View style={styles.footer}>
+            <TouchableOpacity onPress={() => { clearRegisterData(); navigation.goBack(); }}>
+              <Image source={require('../../assets/volver.png')} style={styles.navIconCeleste} />
+            </TouchableOpacity>
+
+            {!isFormComplete && (
+              <Text style={styles.mandatoryNoticeFooter}>Todos los datos son obligatorios</Text>
+            )}
+
+            <TouchableOpacity onPress={() => navigation.navigate('Goodbye')}>
+              <Image source={require('../../assets/salir.png')} style={styles.navIconCeleste} />
+            </TouchableOpacity>
+          </View>
+        </View>
+
+        <Modal
+          visible={sexoModalVisible}
+          transparent={true}
+          animationType="fade"
+          onRequestClose={() => setSexoModalVisible(false)}
+        >
+          <View style={styles.modalOverlay}>
+            <View style={styles.modalContent}>
+              <Text style={styles.modalTitle}>Seleccione Sexo</Text>
+              <FlatList
+                data={sexoOptions}
+                keyExtractor={(item) => item}
+                renderItem={({ item }) => (
+                  <TouchableOpacity 
+                    style={styles.modalOption} 
+                    onPress={() => {
+                      Keyboard.dismiss();
+                      setSexo(item);
+                      setSexoModalVisible(false);
+                    }}
+                  >
+                    <Text style={styles.modalOptionText}>{item}</Text>
+                  </TouchableOpacity>
+                )}
+              />
+              <TouchableOpacity 
+                style={styles.modalCloseBtn} 
+                onPress={() => {
+                  Keyboard.dismiss();
+                  setSexoModalVisible(false);
+                }}
+              >
+                <Text style={styles.modalCloseText}>Cerrar</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </Modal>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#001f3f' },
-  header: { padding: 10, flexDirection: 'row', alignItems: 'center', justifyContent: 'center' },
-  logo: { width: 50, height: 50, resizeMode: 'contain' },
-  nombreApp: { width: 140, height: 35, resizeMode: 'contain', marginLeft: 10 },
-  blackBar: { backgroundColor: '#000', paddingVertical: 8, width: '100%', marginVertical: 5 },
-  titleText: { color: '#fff', fontSize: 14, fontWeight: 'bold', textAlign: 'center', letterSpacing: 0.8 },
-  scrollContent: { flexGrow: 1, paddingHorizontal: 15, justifyContent: 'center' },
-  formFrame: { borderWidth: 1, borderColor: '#ffa500', borderRadius: 10, padding: 12 },
-  inputContainer: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#fff', marginBottom: 8, paddingHorizontal: 10, borderRadius: 5, height: 45 },
-  input: { flex: 1, padding: 10 },
-  emoji: { marginRight: 10, fontSize: 16 },
-  emojiOjo: { marginLeft: 10, fontSize: 20 },
-  dateRow: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#fff', marginBottom: 8, paddingHorizontal: 10, borderRadius: 5, justifyContent: 'space-between', height: 45 },
-  dateBox: { flex: 1, textAlign: 'center', padding: 5, backgroundColor: '#f0f0f0', borderRadius: 5, fontSize: 15 },
-  dateBoxYear: { flex: 1.5, textAlign: 'center', padding: 5, backgroundColor: '#f0f0f0', borderRadius: 5, fontSize: 15 },
-  slash: { fontSize: 20, fontWeight: 'bold', color: '#888', marginHorizontal: 5 },
-  btnRow: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 10 },
-  metalBtn: { backgroundColor: '#c0c0c0', padding: 8, borderRadius: 5, width: '48%', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: '#808080', elevation: 5 },
-  metalBtnTxt: { fontWeight: '900', color: '#000', fontSize: 10, textAlign: 'center', lineHeight: 12 },
-  finalBtn: { backgroundColor: '#fff', padding: 12, borderRadius: 5, alignItems: 'center', marginTop: 10 },
-  btnTxt: { fontWeight: '800', color: '#001f3f', textAlign: 'center' },
-  avisoFacialActivo: { color: '#00ffcc', textAlign: 'center', fontWeight: 'bold', marginTop: 10, fontSize: 13 },
-  footerArea: { 
-    flexDirection: 'row', 
-    justifyContent: 'space-between', 
-    alignItems: 'center', 
-    width: '100%', 
-    paddingHorizontal: 20, 
-    paddingBottom: 15, 
-    height: 140 
-  },
-  navButton: { width: 50, height: 50, justifyContent: 'center', alignItems: 'center' },
-  captureButton: { justifyContent: 'center', alignItems: 'center' },
-  verifyIcon: { width: 120, height: 120, resizeMode: 'contain' },
-  placeholderButton: { width: 120, height: 120 }, 
-  navIcon: { width: 42, height: 42, resizeMode: 'contain', tintColor: '#00ffcc' }
+  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-start', paddingVertical: 6, paddingHorizontal: 10 },
+  logo: { width: 75, height: 75, resizeMode: 'contain' },
+  appNameImage: { width: 190, height: 48, resizeMode: 'contain', marginLeft: 12 },
+  blackBar: { backgroundColor: '#000', paddingVertical: 8, alignItems: 'center' },
+  titleText: { color: '#FFD700', fontSize: 16, fontWeight: 'bold' },
+  contentContainer: { flex: 1, paddingHorizontal: 10, paddingVertical: 10, justifyContent: 'space-between' },
+  formFrame: { borderWidth: 2, borderColor: '#FFD700', borderRadius: 12, paddingTop: 12, paddingBottom: 4, paddingHorizontal: 12, backgroundColor: 'rgba(0,0,0,0.3)' },
+  inputContainer: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#fff', marginBottom: 11, paddingLeft: 6, paddingRight: 10, borderRadius: 8, height: 46 },
+  smallEmoji: { width: 24, height: 24, marginRight: 8, resizeMode: 'contain' },
+  largeEmoji: { width: 42, height: 42, marginRight: 8, resizeMode: 'contain' },
+  input: { flex: 1, fontSize: 12, color: '#000', height: '100%', textAlignVertical: 'center' },
+  dateContainer: { flex: 1, flexDirection: 'row', alignItems: 'center' },
+  dateInput: { width: 32, fontSize: 12, color: '#000', textAlign: 'center', height: '100%', textAlignVertical: 'center' },
+  dateInputYear: { width: 50, fontSize: 12, color: '#000', textAlign: 'center', height: '100%', textAlignVertical: 'center' },
+  dateSlash: { fontSize: 13, color: '#AAAAAA', marginHorizontal: 2 },
+  eyeIcon: { width: 20, height: 20, resizeMode: 'contain' },
+  clearBtn: { padding: 4, justifyContent: 'center', alignItems: 'center', marginLeft: 4 },
+  clearText: { fontSize: 14 },
+  authModeRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 11 },
+  authModeBtn: { flex: 1, height: 46, borderRadius: 8, justifyContent: 'center', alignItems: 'center', marginHorizontal: 4, paddingHorizontal: 4 },
+  authModeText: { fontSize: 11, fontWeight: 'bold', textAlign: 'center' },
+  mandatoryNoticeFooter: { color: '#FFD700', fontSize: 10, textAlign: 'center', flex: 1, marginHorizontal: 5 },
+  actionRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginVertical: 6 },
+  actionBtn: { flex: 1, alignItems: 'center', marginHorizontal: 6, height: 82, justifyContent: 'center' },
+  actionImg: { width: '100%', height: 82, resizeMode: 'contain' },
+  cancelImg: { width: '68%', height: 82, resizeMode: 'contain' },
+  footerWrapper: { width: '100%', paddingHorizontal: 25, paddingBottom: 8 },
+  footerLine: { width: '100%', height: 1, backgroundColor: '#FFD700', marginBottom: 8 },
+  footer: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  navIconCeleste: { width: 40, height: 40, resizeMode: 'contain', tintColor: '#00BFFF' },
+  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'center', alignItems: 'center' },
+  modalContent: { width: '80%', backgroundColor: '#fff', borderRadius: 12, padding: 20, alignItems: 'center' },
+  modalTitle: { fontSize: 16, fontWeight: 'bold', color: '#001f3f', marginBottom: 15 },
+  modalOption: { paddingVertical: 12, width: '100%', alignItems: 'center', borderBottomWidth: 1, borderBottomColor: '#eee' },
+  modalOptionText: { fontSize: 14, color: '#333', fontWeight: '500' },
+  modalCloseBtn: { marginTop: 15, backgroundColor: '#001f3f', paddingVertical: 10, paddingHorizontal: 25, borderRadius: 8 },
+  modalCloseText: { color: '#fff', fontSize: 13, fontWeight: 'bold' }
 });
