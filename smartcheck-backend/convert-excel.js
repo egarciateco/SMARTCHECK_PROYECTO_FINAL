@@ -134,10 +134,29 @@ if (validProducts.length > 0) {
   });
 }
 
-// Guardar en JSON
-fs.writeFileSync(jsonPath, JSON.stringify(validProducts, null, 2), 'utf8');
+// --- BLINDAJE DE SEGURIDAD (Se agregó al final para evitar errores de escritura) ---
 
-console.log(`\n✅ Conversión completada!`);
-console.log(`📄 Archivo guardado en: ${jsonPath}`);
-console.log(`📦 Total productos: ${validProducts.length}`);
-console.log(`📦 Con EAN: ${productsWithEan.length}`);
+// 1. Verificación de seguridad antes de guardar
+if (!Array.isArray(validProducts)) {
+  console.error("❌ ERROR CRÍTICO: validProducts no es un array. Abortando escritura.");
+  process.exit(1);
+}
+
+// 2. Convertir a string con control
+const jsonContent = JSON.stringify(validProducts, null, 2);
+
+if (jsonContent === "undefined" || !jsonContent) {
+  console.error("❌ ERROR CRÍTICO: El contenido generado es 'undefined' o vacío. No se sobrescribirá el archivo.");
+  process.exit(1);
+}
+
+// 3. Escritura segura
+try {
+  fs.writeFileSync(jsonPath, jsonContent, 'utf8');
+  console.log(`\n✅ Conversión completada!`);
+  console.log(`📄 Archivo guardado en: ${jsonPath}`);
+  console.log(`📦 Total productos: ${validProducts.length}`);
+  console.log(`📦 Con EAN: ${productsWithEan.length}`);
+} catch (err) {
+  console.error("❌ Error al escribir el archivo JSON:", err);
+}

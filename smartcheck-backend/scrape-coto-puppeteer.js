@@ -192,7 +192,6 @@ class CotoDigitalPuppeteerScraper {
     }
   }
 
-  // ✅ NUEVA FUNCIÓN: Explorar la estructura del sitio
   async exploreSite() {
     console.log('🔍 Explorando estructura del sitio...');
     
@@ -207,14 +206,12 @@ class CotoDigitalPuppeteerScraper {
       const page = await browser.newPage();
       await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36');
       
-      // Cargar la página principal nueva
       const mainUrl = `${this.baseUrl}${this.sitePath}`;
       console.log(`🌐 Cargando: ${mainUrl}`);
       
       await page.goto(mainUrl, { waitUntil: 'networkidle2', timeout: 30000 });
       await new Promise(resolve => setTimeout(resolve, 3000));
       
-      // Extraer información de la página
       const siteInfo = await page.evaluate(() => {
         return {
           title: document.title,
@@ -253,18 +250,23 @@ class CotoDigitalPuppeteerScraper {
   async saveProducts(newProducts) {
     let existingProducts = [];
     
+    // 1. Lectura segura (BLINDAJE CONTRA JSON CORRUPTO)
     if (fs.existsSync(this.productsFile)) {
       try {
         const content = fs.readFileSync(this.productsFile, 'utf8');
-        existingProducts = JSON.parse(content);
+        // Si el archivo existe pero está vacío o mal formado, no rompemos el proceso
+        if (content && content.trim() !== '') {
+          existingProducts = JSON.parse(content);
+        }
       } catch (e) {
-        console.error('⚠️ Error leyendo products.json');
+        console.error('⚠️ Error leyendo products.json (archivo corrupto?), iniciando desde cero:', e);
         existingProducts = [];
       }
     }
     
     let added = 0, updated = 0;
     
+    // 2. Procesamiento
     for (const newProduct of newProducts) {
       const existingIndex = existingProducts.findIndex(p => 
         (p.ean && newProduct.ean && p.ean === newProduct.ean) || 
@@ -289,10 +291,15 @@ class CotoDigitalPuppeteerScraper {
       }
     }
     
-    fs.writeFileSync(this.productsFile, JSON.stringify(existingProducts, null, 2), 'utf8');
-    console.log(`💾 Guardados ${existingProducts.length} productos (+${added} nuevos, +${updated} actualizados)`);
-    
-    return { success: true, count: existingProducts.length, added, updated };
+    // 3. Escritura segura
+    try {
+      fs.writeFileSync(this.productsFile, JSON.stringify(existingProducts, null, 2), 'utf8');
+      console.log(`💾 Guardados ${existingProducts.length} productos (+${added} nuevos, +${updated} actualizados)`);
+      return { success: true, count: existingProducts.length, added, updated };
+    } catch (writeError) {
+      console.error('❌ Error fatal escribiendo el archivo:', writeError);
+      return { success: false, error: writeError.message };
+    }
   }
 
   async run(searches = ['leche', 'arroz', 'yerba']) {

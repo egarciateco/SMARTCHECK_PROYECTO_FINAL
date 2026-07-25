@@ -44,6 +44,11 @@ try {
 const usersRouter = require('./routes/users');
 app.use('/api/users', usersRouter);
 
+// --- INTEGRACIÓN BIOMETRÍA ---
+const biometriaRouter = require('./routes/biometria');
+app.use('/api/biometria', biometriaRouter);
+// -----------------------------
+
 app.get('/', (req, res) => {
   res.status(200).send("🚀 Servidor SMARTCHECK Backend Online");
 });

@@ -3,11 +3,11 @@ const fs = require('fs');
 const path = require('path');
 
 class CotoScraper extends BaseScraper {
- constructor() {
-  super('Coto', 'https://www.cotodigital.com.ar');  // ← Dominio correcto
-  this.delay = 3000;
-  this.productsFile = path.join(__dirname, '..', 'products.json');
-}
+  constructor() {
+    super('Coto', 'https://www.cotodigital.com.ar');
+    this.delay = 3000;
+    this.productsFile = path.join(__dirname, '..', 'products.json');
+  }
 
   async scrapeProduct(url) {
     try {
@@ -18,7 +18,7 @@ class CotoScraper extends BaseScraper {
       
       const $ = this.parseHTML(response.data);
       
-      // Selectores actualizados para Coto
+      // Selectores para Coto
       const name = $('h1.product-title').text().trim() || 
                    $('.product-name').text().trim();
       
@@ -42,7 +42,7 @@ class CotoScraper extends BaseScraper {
       };
       
     } catch (error) {
-      console.error('❌ Error:', error.message);
+      console.error('❌ Error en scrapeProduct:', error.message);
       return null;
     }
   }
@@ -78,7 +78,7 @@ class CotoScraper extends BaseScraper {
       return products;
       
     } catch (error) {
-      console.error('❌ Error:', error.message);
+      console.error('❌ Error en scrapeCategory:', error.message);
       return [];
     }
   }
@@ -86,20 +86,31 @@ class CotoScraper extends BaseScraper {
   async saveProducts(newProducts) {
     let existingProducts = [];
     
+    // 1. Lectura segura (BLINDAJE CONTRA JSON CORRUPTO)
     if (fs.existsSync(this.productsFile)) {
-      const content = fs.readFileSync(this.productsFile, 'utf8');
-      existingProducts = JSON.parse(content);
+      try {
+        const content = fs.readFileSync(this.productsFile, 'utf8');
+        // Si el archivo no está vacío, intentamos parsear
+        if (content && content.trim() !== '') {
+          existingProducts = JSON.parse(content);
+        }
+      } catch (e) {
+        console.error('❌ Error leyendo products.json (archivo corrupto?), iniciando desde cero:', e);
+        // Si el JSON está roto, forzamos un array vacío para evitar que el proceso se detenga
+        existingProducts = [];
+      }
     }
     
+    // 2. Procesamiento
     for (const newProduct of newProducts) {
-      const existingIndex = existingProducts.findIndex(p => p.ean === newProduct.ean);
+      const existingIndex = existingProducts.findIndex(p => p.ean === newProduct.ean && newProduct.ean !== null);
       
       if (existingIndex >= 0) {
         // Actualizar precio existente
         existingProducts[existingIndex] = { 
           ...existingProducts[existingIndex], 
           ...newProduct,
-          price: newProduct.price // ✅ Actualizar precio
+          price: newProduct.price 
         };
         console.log(`🔄 Actualizado: ${newProduct.name} - $${newProduct.price}`);
       } else {
@@ -108,22 +119,25 @@ class CotoScraper extends BaseScraper {
       }
     }
     
-    fs.writeFileSync(this.productsFile, JSON.stringify(existingProducts, null, 2), 'utf8');
-    console.log(`💾 Guardados ${existingProducts.length} productos`);
-    
-    return { success: true, count: existingProducts.length };
+    // 3. Escritura segura
+    try {
+      fs.writeFileSync(this.productsFile, JSON.stringify(existingProducts, null, 2), 'utf8');
+      console.log(`💾 Guardados ${existingProducts.length} productos`);
+      return { success: true, count: existingProducts.length };
+    } catch (writeError) {
+      console.error('❌ Error fatal escribiendo el archivo:', writeError);
+      return { success: false, error: writeError.message };
+    }
   }
 
   async run(categories = null) {
-    // URLs reales de Coto (actualizar según el sitio actual)
-    // URLs CORRECTAS de Coto Digital
-const defaultCategories = [
-  'https://www.cotodigital.com.ar/sitios/cdigi/productos/lacteos',
-  'https://www.cotodigital.com.ar/sitios/cdigi/productos/almacen',
-  'https://www.cotodigital.com.ar/sitios/cdigi/productos/bebidas',
-  'https://www.cotodigital.com.ar/sitios/cdigi/productos/limpieza',
-  'https://www.cotodigital.com.ar/sitios/cdigi/productos/perfumeria'
-];
+    const defaultCategories = [
+      'https://www.cotodigital.com.ar/sitios/cdigi/productos/lacteos',
+      'https://www.cotodigital.com.ar/sitios/cdigi/productos/almacen',
+      'https://www.cotodigital.com.ar/sitios/cdigi/productos/bebidas',
+      'https://www.cotodigital.com.ar/sitios/cdigi/productos/limpieza',
+      'https://www.cotodigital.com.ar/sitios/cdigi/productos/perfumeria'
+    ];
     
     const categoriesToScrape = categories || defaultCategories;
     const allProducts = [];

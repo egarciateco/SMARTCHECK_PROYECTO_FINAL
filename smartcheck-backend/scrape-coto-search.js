@@ -55,7 +55,6 @@ class CotoDigitalScraper {
       const products = [];
       
       // Buscar productos en la página de resultados
-      // Selectores comunes en e-commerce
       $('a[href*="/productos/"]').each((i, elem) => {
         if (products.length >= maxResults) return false;
         
@@ -126,11 +125,22 @@ class CotoDigitalScraper {
   async saveProducts(newProducts) {
     let existingProducts = [];
     
+    // 1. LECTURA SEGURA (Blindaje contra archivo corrupto)
     if (fs.existsSync(this.productsFile)) {
-      const content = fs.readFileSync(this.productsFile, 'utf8');
-      existingProducts = JSON.parse(content);
+      try {
+        const content = fs.readFileSync(this.productsFile, 'utf8');
+        if (content && content.trim() !== '') {
+          existingProducts = JSON.parse(content);
+          // Asegurar que sea un array
+          if (!Array.isArray(existingProducts)) existingProducts = [];
+        }
+      } catch (e) {
+        console.error('⚠️ Error leyendo products.json (archivo corrupto?), iniciando desde cero:', e);
+        existingProducts = [];
+      }
     }
     
+    // 2. PROCESAMIENTO
     for (const newProduct of newProducts) {
       const existingIndex = existingProducts.findIndex(p => p.ean === newProduct.ean || p.name === newProduct.name);
       
@@ -143,10 +153,15 @@ class CotoDigitalScraper {
       }
     }
     
-    fs.writeFileSync(this.productsFile, JSON.stringify(existingProducts, null, 2), 'utf8');
-    console.log(`💾 Guardados ${existingProducts.length} productos totales`);
-    
-    return { success: true, count: existingProducts.length };
+    // 3. ESCRITURA SEGURA
+    try {
+      fs.writeFileSync(this.productsFile, JSON.stringify(existingProducts, null, 2), 'utf8');
+      console.log(`💾 Guardados ${existingProducts.length} productos totales`);
+      return { success: true, count: existingProducts.length };
+    } catch (writeError) {
+      console.error('❌ Error fatal escribiendo el archivo:', writeError);
+      return { success: false, error: writeError.message };
+    }
   }
 
   async run(searches = ['leche', 'arroz', 'yerba']) {
