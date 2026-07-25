@@ -1,0 +1,11 @@
+# Excluir la carpeta del backend
+smartcheck-backend/
+
+# Excluir otras carpetas pesadas o innecesarias
+node_modules/
+.git/
+.expo/
+dist/
+build/
+android/
+ios/

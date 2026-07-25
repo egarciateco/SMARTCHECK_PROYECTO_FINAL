@@ -1,55 +1,115 @@
 import React, { createContext, useState, useContext, useEffect } from 'react';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import storage from '../utils/storage';
 
-const AuthContext = createContext({});
+const AuthContext = createContext(null);
 
 export const AuthProvider = ({ children }) => {
-  const [user, setUser] = useState(null);
-  const [isLoading, setIsLoading] = useState(true);
+    const [user, setUser] = useState(null);
+    const [isLoading, setIsLoading] = useState(true);
+    const [registerPhotoUri, setRegisterPhotoUri] = useState(null);
+    const [registerFormData, setRegisterFormData] = useState({
+        nombre: '',
+        apellido: '',
+        email: '',
+        dia: '',
+        mes: '',
+        anio: '',
+        sexo: '',
+        password: '',
+        confirmPassword: '',
+        authMode: null,
+    });
 
-  useEffect(() => {
-    // Función para cargar el usuario al iniciar la app
-    const loadUser = async () => {
-      try {
-        const storedUser = await AsyncStorage.getItem('@user');
-        if (storedUser) {
-          setUser(JSON.parse(storedUser));
-        }
-      } catch (error) {
-        console.error("Error al cargar usuario del storage:", error);
-      } finally {
-        setIsLoading(false); // Una vez verificado, quitamos el loading
-      }
+    const clearRegisterData = () => {
+        setRegisterPhotoUri(null);
+        setRegisterFormData({
+            nombre: '',
+            apellido: '',
+            email: '',
+            dia: '',
+            mes: '',
+            anio: '',
+            sexo: '',
+            password: '',
+            confirmPassword: '',
+            authMode: null,
+        });
     };
 
-    loadUser();
-  }, []);
+    useEffect(() => {
+        const checkAuth = async () => {
+            try {
+                console.log("AuthContext: Buscando sesión guardada...");
+                if (storage && typeof storage.getUser === 'function') {
+                    const savedUser = await storage.getUser();
+                    if (savedUser && typeof savedUser === 'object') {
+                        console.log("AuthContext: Usuario cargado correctamente.");
+                        setUser(savedUser);
+                    } else {
+                        console.log("AuthContext: No se encontró sesión activa.");
+                        setUser(null);
+                    }
+                }
+            } catch (e) {
+                console.error("AuthContext: Error crítico al recuperar usuario:", e);
+                setUser(null);
+            } finally {
+                setIsLoading(false);
+            }
+        };
+        checkAuth();
+    }, []);
 
-  const login = async (userData) => {
-    try {
-      await AsyncStorage.setItem('@user', JSON.stringify(userData));
-      setUser(userData);
-      console.log("✅ [AuthContext] Usuario logueado y guardado");
-    } catch (error) {
-      console.error("Error al guardar usuario:", error);
-    }
-  };
+    const login = async (userData) => {
+        try {
+            if (storage && typeof storage.saveUser === 'function') {
+                await storage.saveUser(userData);
+            }
+            setUser(userData);
+        } catch (e) {
+            console.error("AuthContext: Error al guardar sesión durante login:", e);
+        }
+    };
 
-  const logout = async () => {
-    try {
-      await AsyncStorage.removeItem('@user');
-      setUser(null);
-      console.log("✅ [AuthContext] Sesión cerrada");
-    } catch (error) {
-      console.error("Error al cerrar sesión:", error);
-    }
-  };
+    const logout = async () => {
+        try {
+            if (storage && typeof storage.removeUser === 'function') {
+                await storage.removeUser();
+            }
+            setUser(null);
+        } catch (e) {
+            console.error("AuthContext: Error al cerrar sesión:", e);
+        }
+    };
 
-  return (
-    <AuthContext.Provider value={{ user, login, logout, isLoading }}>
-      {children}
-    </AuthContext.Provider>
-  );
+    const updateUser = async (newData) => {
+        try {
+            const updatedUser = { ...user, ...newData };
+            if (storage && typeof storage.saveUser === 'function') {
+                await storage.saveUser(updatedUser);
+            }
+            setUser(updatedUser);
+        } catch (e) {
+            console.error("AuthContext: Error al actualizar perfil:", e);
+        }
+    };
+
+    return (
+        <AuthContext.Provider value={{ 
+            user, 
+            login, 
+            logout, 
+            updateUser, 
+            isLoading, 
+            registerPhotoUri, 
+            setRegisterPhotoUri,
+            registerFormData,
+            setRegisterFormData,
+            clearRegisterData
+        }}>
+            {children}
+        </AuthContext.Provider>
+    );
 };
 
 export const useAuth = () => useContext(AuthContext);

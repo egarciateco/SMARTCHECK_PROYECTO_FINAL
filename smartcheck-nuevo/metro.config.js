@@ -1,12 +1,8 @@
 const { getDefaultConfig } = require('expo/metro-config');
+
 const config = getDefaultConfig(__dirname);
 
-// Decirle a Metro que estos archivos binarios NO los intente transformar como JS
-config.resolver.assetExts.push('bin', 'json', 'weights', 'tflite', 'shard1');
-
-// Bloquear la carpeta de modelos para que el bundler no entre a leerlos
-config.resolver.blockList = [
-  /.*\/models\/.*/, 
-];
+config.resolver.assetExts.push('bin', 'txt', 'jpg', 'png', 'tflite');
+config.resolver.sourceExts.push('js', 'json', 'ts', 'tsx', 'jsx');
 
 module.exports = config;

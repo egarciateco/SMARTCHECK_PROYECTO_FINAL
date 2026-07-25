@@ -19,7 +19,8 @@ export default function ForgotPasswordScreen({ navigation }) {
       // Manejo de errores específicos
       let message = "No se pudo procesar la solicitud.";
       if (error.code === 'auth/invalid-email') message = "El formato del email no es válido.";
-      if (error.code === 'auth/user-not-found') message = "No existe una cuenta con este correo.";
+      else if (error.code === 'auth/user-not-found') message = "No existe una cuenta con este correo.";
+      
       Alert.alert("Error", message);
     }
   };
@@ -33,6 +34,7 @@ export default function ForgotPasswordScreen({ navigation }) {
           <View style={styles.headerSection}>
             <Image source={require('../../assets/logo.png')} style={styles.logo} />
             <Image source={require('../../assets/nombreapp.png')} style={styles.appName} />
+            
             {/* Franja amarilla */}
             <View style={styles.fullWidthTitleStrip}>
               <Text style={styles.titleStripText}>RECUPERAR CONTRASEÑA</Text>

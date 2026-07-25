@@ -6,6 +6,7 @@ import {
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../context/AuthContext';
+import api from '../config/api';
 
 export default function AdminPanelScreen({ navigation }) {
   const { logout } = useAuth();
@@ -28,24 +29,16 @@ export default function AdminPanelScreen({ navigation }) {
   useEffect(() => {
     const obtenerUsuarios = async () => {
       try {
-        // Hacemos el fetch
-        const respuesta = await fetch('https://smartcheck-proyecto-final.onrender.com/api/users/usuarios');
-        const textoRespuesta = await respuesta.text(); // Obtenemos el texto para debuggear
-
-        console.log("Respuesta cruda del servidor:", textoRespuesta); // <-- Esto te dirá el error real en la consola
-
-        try {
-          const json = JSON.parse(textoRespuesta);
-          if (json.status === 'success') {
-            setUsuarios(json.usuarios);
-          } else {
-            console.error("Error en respuesta:", json.mensaje);
-          }
-        } catch (e) {
-          console.error("El servidor no devolvió JSON válido. Revisar URL o Backend.");
+        const response = await api.get('/api/users/usuarios');
+        if (response.data && response.data.status === 'success') {
+          setUsuarios(response.data.usuarios || []);
+        } else {
+          console.error("Error en respuesta del servidor:", response.data?.mensaje || "Respuesta vacía");
+          Alert.alert("Aviso", response.data?.mensaje || "No se obtuvieron usuarios.");
         }
       } catch (error) {
-        console.error("Error cargando usuarios:", error);
+        console.error("Error cargando usuarios:", error.message);
+        Alert.alert("Error", "No se pudieron cargar los usuarios.");
       } finally {
         setLoading(false);
       }
@@ -65,23 +58,25 @@ export default function AdminPanelScreen({ navigation }) {
   };
 
   const calcularEdad = (nacimiento) => {
+    if (!nacimiento || nacimiento === "N/A") return "N/A";
     try {
       const partes = nacimiento.split('/');
+      if (partes.length !== 3) return "N/A";
       const nDate = new Date(parseInt(partes[2]), parseInt(partes[1]) - 1, parseInt(partes[0]));
       const hoy = new Date();
       let edad = hoy.getFullYear() - nDate.getFullYear();
       const mDiff = hoy.getMonth() - nDate.getMonth();
       if (mDiff < 0 || (mDiff === 0 && hoy.getDate() < nDate.getDate())) edad--;
-      return edad.toString();
-    } catch (e) { return "N/A"; }
+      return isNaN(edad) ? "N/A" : edad.toString();
+    } catch (e) { 
+      return "N/A"; 
+    }
   };
 
   const renderUserItem = ({ item }) => {
     let nacimiento = item.fechaNacimiento || (item.dia ? `${item.dia}/${item.mes}/${item.anio}` : "N/A");
     const edad = calcularEdad(nacimiento);
     const imagenUri = item.foto || item.image || null;
-
-    // Lógica para mostrar la ubicación real
     const partesUbicacion = [item.localidad, item.provincia].filter(Boolean);
     const textoUbicacion = partesUbicacion.length > 0 ? partesUbicacion.join(' - ') : "Ubicación no especificada";
 
@@ -93,26 +88,8 @@ export default function AdminPanelScreen({ navigation }) {
           </Text>
           <Text style={styles.cardText}>Sexo: {item.sexo || 'N/A'} | Edad: {edad}</Text>
           <Text style={styles.cardText}>Fecha Nac.: {nacimiento}</Text>
-          
-          <Text 
-            style={styles.cardText} 
-            numberOfLines={1} 
-            ellipsizeMode="clip"
-            adjustsFontSizeToFit={true} 
-            minimumFontScale={0.8}
-          >
-            Lugar: {textoUbicacion}
-          </Text>
-
-          <Text 
-            style={styles.cardText} 
-            numberOfLines={1} 
-            ellipsizeMode="clip"
-            adjustsFontSizeToFit={true} 
-            minimumFontScale={0.8}
-          >
-            Email: {item.email || item.correo || "No registrado"}
-          </Text>
+          <Text style={styles.cardText} numberOfLines={1}>Lugar: {textoUbicacion}</Text>
+          <Text style={styles.cardText} numberOfLines={1}>Email: {item.email || item.correo || "No registrado"}</Text>
         </View>
         <View style={styles.imageContainer}>
           {imagenUri ? (
@@ -146,11 +123,12 @@ export default function AdminPanelScreen({ navigation }) {
 
       <FlatList
         data={usuarios}
-        keyExtractor={(item) => item._id || item.email}
+        keyExtractor={(item) => item.id || item.uid || item._id || item.email}
         renderItem={renderUserItem}
         contentContainerStyle={styles.listPadding}
       />
 
+      {/* Modal para Admin Pass */}
       <Modal animationType="slide" transparent={true} visible={modalVisible} onRequestClose={() => setModalVisible(false)}>
         <View style={styles.modalOverlay}>
           <View style={styles.modalView}>
@@ -177,6 +155,7 @@ export default function AdminPanelScreen({ navigation }) {
 
       <View style={styles.lineaDorada} />
       
+      {/* Footer con Navegación */}
       <View style={styles.footer}>
         <TouchableOpacity style={styles.footerBtn} onPress={() => navigation.navigate('HomeScreen')}>
           <Image source={require('../../assets/volver.png')} style={styles.navIcon} />
