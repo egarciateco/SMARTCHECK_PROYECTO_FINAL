@@ -30,12 +30,12 @@ const upload = multer({
     limits: { fileSize: 8 * 1024 * 1024 } 
 });
 
-// RUTA TEST STATUS
+// RUTA TEST STATUS -> /api/users/
 router.get('/', (req, res) => {
     res.json({ status: 'success', mensaje: 'Conexión exitosa a la API de usuarios' });
 });
 
-// OBTENER LISTA COMPLETA DE USUARIOS (Para el Admin Panel)
+// OBTENER LISTA COMPLETA DE USUARIOS -> /api/users/usuarios
 router.get('/usuarios', async (req, res) => {
     try {
         const snapshot = await db.collection('users').get();
@@ -57,7 +57,36 @@ router.get('/usuarios', async (req, res) => {
     }
 });
 
-// REGISTRO FACIAL ROBUSTO CON ROLLBACK
+// OBTENER UN USUARIO POR SU ID O UID -> /api/users/usuario/:id
+router.get('/usuario/:id', async (req, res) => {
+    try {
+        const { id } = req.params;
+        const userDoc = await db.collection('users').doc(id).get();
+
+        if (!userDoc.exists) {
+            return res.status(404).json({
+                status: 'error',
+                mensaje: 'Usuario no encontrado en la base de datos'
+            });
+        }
+
+        return res.json({
+            status: 'success',
+            usuario: {
+                id: userDoc.id,
+                ...userDoc.data()
+            }
+        });
+    } catch (error) {
+        console.error('Error al obtener usuario por ID:', error);
+        return res.status(500).json({
+            status: 'error',
+            mensaje: 'Error al obtener el usuario'
+        });
+    }
+});
+
+// REGISTRO FACIAL ROBUSTO CON ROLLBACK -> /api/users/register-facial
 router.post('/register-facial', upload.single('imageFile'), async (req, res) => {
     let createdAuthUser = null;
 
@@ -147,7 +176,7 @@ router.post('/register-facial', upload.single('imageFile'), async (req, res) => 
     }
 });
 
-// BIOMETRÍA
+// BIOMETRÍA -> /api/users/biometria
 router.post('/biometria', upload.single('imageFile'), async (req, res) => {
     try {
         if (!req.file) {
@@ -192,7 +221,7 @@ router.post('/biometria', upload.single('imageFile'), async (req, res) => {
     }
 });
 
-// ACTUALIZAR UBICACIÓN
+// ACTUALIZAR UBICACIÓN -> /api/users/actualizar-ubicacion
 router.post('/actualizar-ubicacion', async (req, res) => {
     try {
         const { uid, localidad, provincia } = req.body;
@@ -211,6 +240,32 @@ router.post('/actualizar-ubicacion', async (req, res) => {
     } catch (error) {
         console.error('Error al actualizar ubicación:', error);
         res.status(500).json({ status: 'error', mensaje: 'Error al procesar la actualización' });
+    }
+});
+
+// BUSCAR PRODUCTO POR CÓDIGO -> /api/users/productos/buscar
+router.get('/productos/buscar', async (req, res) => {
+    try {
+        const { q } = req.query;
+
+        if (!q) {
+            return res.status(400).json({ status: 'error', mensaje: 'Falta el parámetro de búsqueda (q)' });
+        }
+
+        // Aquí puedes realizar la consulta real a tu colección de productos en Firestore
+        // Ejemplo: const productDoc = await db.collection('productos').where('ean', '==', q).get();
+
+        return res.json({
+            status: 'success',
+            producto: {
+                codigo: q,
+                nombre: 'Producto de prueba',
+                precio: 0
+            }
+        });
+    } catch (error) {
+        console.error('Error al buscar producto:', error);
+        return res.status(500).json({ status: 'error', mensaje: 'Error al buscar el producto' });
     }
 });
 
