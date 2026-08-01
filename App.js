@@ -1,6 +1,6 @@
 import './shim'; 
 import 'react-native-get-random-values'; 
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { StatusBar, StyleSheet, View, Image } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
@@ -11,7 +11,7 @@ import * as ExpoSplashScreen from 'expo-splash-screen';
 import { AuthProvider, useAuth } from './src/context/AuthContext';
 import { unloadSounds } from './src/utils/share';
 
-// Imports de pantallas
+// Imports de pantallas existentes
 import WelcomeScreen from './src/screens/WelcomeScreen';
 import LoginScreen from './src/screens/LoginScreen';
 import RegisterScreen from './src/screens/RegisterScreen';
@@ -25,20 +25,42 @@ import ProfileScreen from './src/screens/ProfileScreen';
 import AdminPanelScreen from './src/screens/AdminPanelScreen';
 import GoodbyeScreen from './src/screens/GoodbyeScreen';
 import ForgotPasswordScreen from './src/screens/ForgotPasswordScreen';
+import SupermercadosCercaScreen from './src/screens/SupermercadosCercaScreen';
+
+// 🚀 IMPORTS DEL FLUJO DE CHANGO INTELIGENTE Y HISTORIAL
+import SelectorInteligenteScreen from './src/screens/SelectorInteligenteScreen';
+import ChangoComparativoScreen from './src/screens/ChangoComparativoScreen';
+import MisChangosScreen from './src/screens/MisChangosScreen';
+import CategorySelectionScreen from './src/screens/CategorySelectionScreen';
+import BrandSelectionScreen from './src/screens/BrandSelectionScreen';
+import ProductSelectionScreen from './src/screens/ProductSelectionScreen';
+import CartScreen from './src/screens/CartScreen';
 
 // Prevenimos que el splash nativo desaparezca solo
-ExpoSplashScreen.preventAutoHideAsync().catch(() => {});
+try {
+  ExpoSplashScreen.preventAutoHideAsync();
+} catch (e) {}
 
 const Stack = createNativeStackNavigator();
 
 function AppContent() {
   const { user, isLoading: authLoading } = useAuth();
+  const [isTimedOut, setIsTimedOut] = useState(false);
 
   useEffect(() => {
-    if (!authLoading) {
+    const timer = setTimeout(() => {
+      setIsTimedOut(true);
+    }, 1500);
+    return () => clearTimeout(timer);
+  }, []);
+
+  const isLoadingFinal = authLoading && !isTimedOut;
+
+  useEffect(() => {
+    if (!isLoadingFinal) {
       ExpoSplashScreen.hideAsync().catch(() => {});
     }
-  }, [authLoading]);
+  }, [isLoadingFinal]);
 
   useEffect(() => {
     return () => {
@@ -46,7 +68,7 @@ function AppContent() {
     };
   }, []);
 
-  if (authLoading) {
+  if (isLoadingFinal) {
     return (
       <View style={styles.splashContainer}>
         <Image source={require('./assets/splash.png')} style={styles.splashImage} resizeMode="contain" />
@@ -54,39 +76,58 @@ function AppContent() {
     );
   }
 
-  // Navegación principal unificada para evitar errores de pantallas no encontradas
   return (
     <NavigationContainer>
       <StatusBar barStyle="light-content" backgroundColor="#003366" />
       <Stack.Navigator screenOptions={{ headerShown: false }}>
         {user ? (
+          // ==========================================
+          // RUTAS PRIVADAS (Usuario Autenticado)
+          // ==========================================
           <>
             <Stack.Screen name="HomeScreen" component={HomeScreen} />
             <Stack.Screen name="Busqueda" component={ProductSearchScreen} />
             <Stack.Screen name="Scanner" component={ScannerScreen} />
+            <Stack.Screen name="SupermercadosCerca" component={SupermercadosCercaScreen} />
             <Stack.Screen name="ProductList" component={ProductListScreen} />
             <Stack.Screen name="ProductDetail" component={ProductDetailScreen} />
+            
+            {/* 🛒 RUTAS DEL CHANGO INTELIGENTE Y GUARDADO (CON ALIAS SEGURAS) */}
+            <Stack.Screen name="CategorySelection" component={CategorySelectionScreen} />
+            
+            <Stack.Screen name="BrandSelection" component={BrandSelectionScreen} />
+            <Stack.Screen name="BrandSelectionScreen" component={BrandSelectionScreen} />
+            
+            <Stack.Screen name="ProductSelection" component={ProductSelectionScreen} />
+            <Stack.Screen name="ProductSelectionScreen" component={ProductSelectionScreen} />
+            
+            <Stack.Screen name="SelectorInteligente" component={SelectorInteligenteScreen} />
+            
+            <Stack.Screen name="ChangoComparativo" component={ChangoComparativoScreen} />
+            <Stack.Screen name="ChangoComparativoScreen" component={ChangoComparativoScreen} />
+            
+            <Stack.Screen name="MisChangos" component={MisChangosScreen} />
+            <Stack.Screen name="MisChangosScreen" component={MisChangosScreen} />
+            
+            <Stack.Screen name="CartScreen" component={CartScreen} />
+
             <Stack.Screen name="Perfil" component={ProfileScreen} />
             <Stack.Screen name="AdminPanel" component={AdminPanelScreen} />
             <Stack.Screen name="Goodbye" component={GoodbyeScreen} />
           </>
         ) : (
+          // ==========================================
+          // RUTAS PÚBLICAS (Sin Sesión / Invitado)
+          // ==========================================
           <>
             <Stack.Screen name="Welcome" component={WelcomeScreen} />
             <Stack.Screen name="Login" component={LoginScreen} />
-            {/* Soportamos ambos nombres para evitar fallos de navegación */}
+            
             <Stack.Screen name="Register" component={RegisterScreen} />
             <Stack.Screen name="RegisterScreen" component={RegisterScreen} />
+            
             <Stack.Screen name="ForgotPassword" component={ForgotPasswordScreen} />
             <Stack.Screen name="FacialLogin" component={FacialLoginScreen} />
-            <Stack.Screen name="HomeScreen" component={HomeScreen} />
-            <Stack.Screen name="Busqueda" component={ProductSearchScreen} />
-            <Stack.Screen name="Scanner" component={ScannerScreen} />
-            <Stack.Screen name="ProductList" component={ProductListScreen} />
-            <Stack.Screen name="ProductDetail" component={ProductDetailScreen} />
-            <Stack.Screen name="Perfil" component={ProfileScreen} />
-            <Stack.Screen name="AdminPanel" component={AdminPanelScreen} />
-            <Stack.Screen name="Goodbye" component={GoodbyeScreen} />
           </>
         )}
       </Stack.Navigator>
@@ -94,7 +135,7 @@ function AppContent() {
   );
 }
 
-export default function App() {
+export function App() {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <SafeAreaProvider>
@@ -106,7 +147,9 @@ export default function App() {
   );
 }
 
+export default App;
+
 const styles = StyleSheet.create({
-  splashContainer: { flex: 1, backgroundColor: '#001f3f', justifyContent: 'center', alignItems: 'center' },
+  splashContainer: { flex: 1, backgroundColor: '#0A192F', justifyContent: 'center', alignItems: 'center' },
   splashImage: { width: '80%', height: '80%' }
 });

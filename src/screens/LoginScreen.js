@@ -118,9 +118,6 @@ export default function LoginScreen() {
         <View style={styles.footerWrapper}>
           <View style={styles.footerLine} />
           <View style={styles.footer}>
-            <TouchableOpacity onPress={() => navigation.goBack()}>
-              <Image source={require('../../assets/volver.png')} style={styles.navIconCeleste} />
-            </TouchableOpacity>
             <TouchableOpacity onPress={() => navigation.navigate('Register')}>
               <Image source={require('../../assets/registrarse.png')} style={styles.registrarseCenterIcon} />
             </TouchableOpacity>
@@ -153,7 +150,7 @@ const styles = StyleSheet.create({
   ingresoImg: { width: 300, height: 95, resizeMode: 'contain' },
   footerWrapper: { width: '100%', paddingHorizontal: 25, paddingBottom: 10 },
   footerLine: { width: '100%', height: 1, backgroundColor: '#FFD700', marginBottom: 12 },
-  footer: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  footer: { flexDirection: 'row', justifyContent: 'space-around', alignItems: 'center' },
   navIconCeleste: { width: 45, height: 45, resizeMode: 'contain', tintColor: '#00BFFF' },
   registrarseCenterIcon: { width: 110, height: 80, resizeMode: 'contain' }
 });

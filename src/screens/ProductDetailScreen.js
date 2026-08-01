@@ -1,94 +1,180 @@
 import React from 'react';
-import { View, Text, StyleSheet, Image, ScrollView, TouchableOpacity, SafeAreaView } from 'react-native';
-import { useAuth } from '../context/AuthContext';
+import { View, Text, Image, FlatList, StyleSheet, SafeAreaView } from 'react-native';
 
-export default function ProductDetailScreen({ route, navigation }) {
-  // Accedemos a product de forma segura
-  const product = route?.params?.product;
-  const { logout } = useAuth();
+export default function ProductDetailScreen({ route }) {
+    // Recibimos el producto y las comparaciones desde los parámetros de navegación o estado
+    const { producto } = route.params || {};
+    const comparisons = producto?.comparisons || [];
 
-  const handleLogoutFlow = () => {
-    navigation.navigate('Goodbye');
-    setTimeout(() => {
-      logout();
-    }, 1000);
-  };
+    const renderItem = ({ item, index }) => {
+        // El primer elemento (index 0) es el más barato porque el backend ya los ordenó
+        const esElMasBarato = index === 0;
 
-  // Pantalla de error para manejar navegación sin datos
-  if (!product) {
-    return (
-      <SafeAreaView style={styles.containerCenter}>
-        <Text style={styles.text}>Información no disponible.</Text>
-        <TouchableOpacity style={styles.btnRetry} onPress={() => navigation.goBack()}>
-          <Text style={styles.btnText}>Volver atrás</Text>
-        </TouchableOpacity>
-      </SafeAreaView>
-    );
-  }
+        return (
+            <View style={[styles.card, esElMasBarato && styles.cardMasBarato]}>
+                {/* Etiqueta destacada para el más económico */}
+                {esElMasBarato && (
+                    <View style={styles.badgeContainer}>
+                        <Text style={styles.badgeText}>🔥 ¡El más barato!</Text>
+                    </View>
+                )}
 
-  return (
-    <SafeAreaView style={styles.container}>
-      <View style={styles.header}>
-        <Image source={require('../../assets/logo.png')} style={styles.logo} />
-        <Text style={styles.title}>{product.name || 'Producto sin nombre'}</Text>
-      </View>
-      
-      <ScrollView contentContainerStyle={styles.scrollContent}>
-        {product.imagen ? (
-          <Image source={{ uri: product.imagen }} style={styles.image} />
-        ) : (
-          <View style={styles.placeholderImage}>
-            <Text style={styles.textPlaceholder}>Sin imagen disponible</Text>
-          </View>
-        )}
-        
-        <Text style={styles.subTitle}>COMPARATIVA DE PRECIOS:</Text>
-        
-        {product.comparisons?.length > 0 ? (
-          product.comparisons.map((c, i) => (
-            <View key={i} style={styles.compCard}>
-              <Text style={styles.marketText}>{c.supermarket || 'Supermercado'}</Text>
-              <Text style={styles.priceText}>${c.price || 'N/A'}</Text>
+                <View style={styles.cardContent}>
+                    {/* Logo o indicador del supermercado */}
+                    {item.logo ? (
+                        <Image source={{ uri: item.logo }} style={styles.logo} resizeMode="contain" />
+                    ) : (
+                        <View style={[styles.colorIndicator, { backgroundColor: item.color || '#ccc' }]} />
+                    )}
+
+                    <View style={styles.infoContainer}>
+                        <Text style={styles.supermarketName}>{item.supermarket}</Text>
+                        <Text style={[styles.priceText, esElMasBarato && styles.priceTextBarato]}>
+                            ${item.price}
+                        </Text>
+                    </View>
+                </View>
             </View>
-          ))
-        ) : (
-          <Text style={[styles.text, { textAlign: 'center', marginTop: 10 }]}>
-            No hay comparativas disponibles.
-          </Text>
-        )}
-      </ScrollView>
+        );
+    };
 
-      <View style={styles.footerContainer}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.footerBtn}>
-          <Image source={require('../../assets/volver.png')} style={styles.btnIcon} />
-        </TouchableOpacity>
-        
-        <TouchableOpacity onPress={handleLogoutFlow} style={styles.footerBtn}>
-          <Image source={require('../../assets/salir.png')} style={styles.btnIcon} />
-        </TouchableOpacity>
-      </View>
-    </SafeAreaView>
-  );
+    return (
+        <SafeAreaView style={styles.container}>
+            {/* Cabecera del Producto */}
+            {producto && (
+                <View style={styles.productHeader}>
+                    <Image source={{ uri: producto.image }} style={styles.productImage} resizeMode="contain" />
+                    <Text style={styles.productName}>{producto.name}</Text>
+                    <Text style={styles.productBrand}>Marca: {producto.brand || 'Genérica'}</Text>
+                </View>
+            )}
+
+            <Text style={styles.sectionTitle}>Comparativa en supermercados cercanos:</Text>
+
+            {/* Lista de Comparaciones */}
+            <FlatList
+                data={comparisons}
+                keyExtractor={(item, index) => index.toString()}
+                renderItem={renderItem}
+                contentContainerStyle={styles.listContainer}
+                ListEmptyComponent={
+                    <Text style={styles.emptyText}>No hay datos de precios disponibles para la zona.</Text>
+                }
+            />
+        </SafeAreaView>
+    );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#001f3f' },
-  containerCenter: { flex: 1, backgroundColor: '#001f3f', justifyContent: 'center', alignItems: 'center' },
-  scrollContent: { paddingBottom: 40 },
-  header: { alignItems: 'center', padding: 20 },
-  logo: { width: 60, height: 60, resizeMode: 'contain', marginBottom: 10 },
-  title: { color: '#fff', fontSize: 22, fontWeight: 'bold', textAlign: 'center', marginHorizontal: 20 },
-  subTitle: { color: '#ffcc00', fontSize: 16, marginLeft: 20, marginTop: 20, marginBottom: 10, fontWeight: 'bold', letterSpacing: 1 },
-  image: { width: '100%', height: 250, resizeMode: 'contain', backgroundColor: '#fff' },
-  placeholderImage: { width: '100%', height: 200, justifyContent: 'center', alignItems: 'center', backgroundColor: '#002a54' },
-  textPlaceholder: { color: '#aaa', fontSize: 16 },
-  compCard: { flexDirection: 'row', justifyContent: 'space-between', padding: 18, marginHorizontal: 20, marginVertical: 6, backgroundColor: '#002a54', borderRadius: 12, borderWidth: 1, borderColor: '#004a91' },
-  marketText: { color: '#fff', fontSize: 16, fontWeight: '600' },
-  priceText: { color: '#00ffcc', fontSize: 18, fontWeight: 'bold' },
-  text: { color: '#fff', fontSize: 16 },
-  btnText: { color: '#001f3f', fontWeight: 'bold' },
-  footerContainer: { flexDirection: 'row', justifyContent: 'space-around', alignItems: 'center', paddingVertical: 20, borderTopWidth: 1, borderTopColor: '#004a91' },
-  footerBtn: { padding: 5 },
-  btnIcon: { width: 50, height: 50, resizeMode: 'contain' },
-  btnRetry: { marginTop: 20, padding: 12, backgroundColor: '#00ffcc', borderRadius: 8 }
+    container: {
+        flex: 1,
+        backgroundColor: '#f8f9fa',
+        paddingHorizontal: 16,
+    },
+    productHeader: {
+        alignItems: 'center',
+        paddingVertical: 16,
+        borderBottomWidth: 1,
+        borderBottomColor: '#eee',
+        marginBottom: 16,
+    },
+    productImage: {
+        width: 100,
+        height: 100,
+        marginBottom: 8,
+    },
+    productName: {
+        fontSize: 18,
+        fontWeight: 'bold',
+        textAlign: 'center',
+        color: '#333',
+    },
+    productBrand: {
+        fontSize: 14,
+        color: '#666',
+        marginTop: 4,
+    },
+    sectionTitle: {
+        fontSize: 16,
+        fontWeight: '600',
+        color: '#444',
+        marginBottom: 12,
+    },
+    listContainer: {
+        paddingBottom: 20,
+    },
+    card: {
+        backgroundColor: '#fff',
+        borderRadius: 12,
+        padding: 16,
+        marginBottom: 12,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.2,
+        shadowRadius: 1.41,
+        elevation: 2,
+        borderWidth: 1,
+        borderColor: '#eee',
+    },
+    // Estilo especial para resaltar la tarjeta del producto más económico
+    cardMasBarato: {
+        borderColor: '#28a745',
+        borderWidth: 2,
+        backgroundColor: '#f4fff6',
+    },
+    badgeContainer: {
+        backgroundColor: '#28a745',
+        alignSelf: 'flex-start',
+        paddingHorizontal: 8,
+        paddingVertical: 4,
+        borderRadius: 6,
+        marginBottom: 8,
+    },
+    badgeText: {
+        color: '#fff',
+        fontSize: 12,
+        fontWeight: 'bold',
+    },
+    cardContent: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+    },
+    logo: {
+        width: 60,
+        height: 30,
+        marginRight: 12,
+    },
+    colorIndicator: {
+        width: 12,
+        height: 40,
+        borderRadius: 6,
+        marginRight: 12,
+    },
+    infoContainer: {
+        flex: 1,
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+    },
+    supermarketName: {
+        fontSize: 16,
+        fontWeight: '500',
+        color: '#333',
+    },
+    priceText: {
+        fontSize: 16,
+        fontWeight: '600',
+        color: '#555',
+    },
+    priceTextBarato: {
+        fontSize: 18,
+        fontWeight: 'bold',
+        color: '#28a745',
+    },
+    emptyText: {
+        textAlign: 'center',
+        color: '#888',
+        marginTop: 20,
+    },
 });

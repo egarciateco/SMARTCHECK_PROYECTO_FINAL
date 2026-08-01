@@ -2,10 +2,8 @@ import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const api = axios.create({
-  baseURL: 'http://192.168.1.7:10000',
+  baseURL: 'https://smartcheck-proyecto-final.onrender.com', // Cambiar por tu IP local si testeas en red local (ej: http://192.168.1.7:10000)
   timeout: 30000,
-  // ELIMINADO: 'Content-Type': 'application/json'
-  // IMPORTANTE: Al quitar esto, Axios detectará automáticamente si envías JSON o FormData.
 });
 
 // Interceptor para inyectar el Token automáticamente
@@ -15,7 +13,6 @@ api.interceptors.request.use(async (config) => {
     config.headers.Authorization = `Bearer ${token}`;
   }
   
-  // Imprimimos la URL completa para debug
   console.log(`🚀 PETICIÓN A: ${config.baseURL}${config.url}`);
   return config;
 }, (error) => Promise.reject(error));
@@ -24,7 +21,6 @@ api.interceptors.request.use(async (config) => {
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    // Si el error contiene HTML, lo mostramos para identificar el error real
     if (error.response && typeof error.response.data === 'string' && error.response.data.includes('<!DOCTYPE')) {
       console.error('❌ ERROR API (Recibido HTML en vez de JSON):');
       console.error('El servidor respondió con:', error.response.data.substring(0, 200));
@@ -40,6 +36,7 @@ export const authService = {
   register: (userData) => api.post('/api/users/register', userData),
   loginBiometria: (formData) => api.post('/api/users/biometria', formData),
   buscarProducto: (codigo) => api.get('/api/users/productos/buscar', { params: { q: codigo } }),
+  getCatalogo: (params) => api.get('/api/users/productos/catalogo', { params }),
 };
 
 export default api;

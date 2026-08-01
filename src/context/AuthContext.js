@@ -39,19 +39,14 @@ export const AuthProvider = ({ children }) => {
     useEffect(() => {
         const checkAuth = async () => {
             try {
-                console.log("AuthContext: Buscando sesión guardada...");
-                if (storage && typeof storage.getUser === 'function') {
-                    const savedUser = await storage.getUser();
-                    if (savedUser && typeof savedUser === 'object') {
-                        console.log("AuthContext: Usuario cargado correctamente.");
-                        setUser(savedUser);
-                    } else {
-                        console.log("AuthContext: No se encontró sesión activa.");
-                        setUser(null);
-                    }
+                console.log("AuthContext: Forzando inicio limpio (sin auto-logueo)...");
+                // Forzamos la limpieza de sesión al arrancar para que siempre pida Login
+                if (storage && typeof storage.removeUser === 'function') {
+                    await storage.removeUser();
                 }
+                setUser(null);
             } catch (e) {
-                console.error("AuthContext: Error crítico al recuperar usuario:", e);
+                console.error("AuthContext: Error al limpiar sesión:", e);
                 setUser(null);
             } finally {
                 setIsLoading(false);
