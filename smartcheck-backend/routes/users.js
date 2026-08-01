@@ -65,6 +65,7 @@ router.get('/usuario/:id', async (req, res) => {
     try {
         const { id } = req.params;
         const userDoc = await db.collection('users').doc(id).get();
+catalogo-local
 
         if (!userDoc.exists) {
             return res.status(404).json({
@@ -73,6 +74,16 @@ router.get('/usuario/:id', async (req, res) => {
             });
         }
 
+
+
+        if (!userDoc.exists) {
+            return res.status(404).json({
+                status: 'error',
+                mensaje: 'Usuario no encontrado en la base de datos'
+            });
+        }
+
+main
         return res.json({
             status: 'success',
             usuario: {
@@ -102,6 +113,10 @@ router.post('/register-facial', upload.single('imageFile'), async (req, res) => 
 
         const emailFinal = email.toLowerCase().trim();
 
+catalogo-local
+
+        // 1. VERIFICAR SI YA EXISTE EN FIREBASE AUTH
+ main
         try {
             await admin.auth().getUserByEmail(emailFinal);
             return res.status(400).json({ status: 'error', mensaje: 'El email ya está registrado' });
@@ -111,11 +126,19 @@ router.post('/register-facial', upload.single('imageFile'), async (req, res) => 
             }
         }
 
+ catalogo-local
+
+        // 2. VERIFICAR SI YA EXISTE EN FIRESTORE
+main
         const existing = await db.collection('users').where('email', '==', emailFinal).get();
         if (!existing.empty) {
             return res.status(400).json({ status: 'error', mensaje: 'El email ya está registrado' });
         }
 
+catalogo-local
+
+        // 3. OPTIMIZAR Y REDIMENSIONAR IMAGEN CON SHARP
+ main
         const bufferCorregido = await sharp(req.file.buffer)
             .rotate()
             .resize(400, 400, { fit: 'cover' })
@@ -124,6 +147,10 @@ router.post('/register-facial', upload.single('imageFile'), async (req, res) => 
 
         const img = await canvas.loadImage(bufferCorregido);
         
+catalogo-local
+
+        // 4. DETECCIÓN FACIAL CON FACE-API
+main
         const detection = await faceapi.detectSingleFace(img, new faceapi.TinyFaceDetectorOptions({ inputSize: 416, scoreThreshold: 0.3 }))
             .withFaceLandmarks()
             .withFaceDescriptor();
@@ -131,6 +158,7 @@ router.post('/register-facial', upload.single('imageFile'), async (req, res) => 
         if (!detection) {
             return res.status(400).json({ status: 'error', mensaje: 'No se detectó un rostro claro. Mejora la iluminación.' });
         }
+ catalogo-local
 
         const base64Foto = `data:image/jpeg;base64,${bufferCorregido.toString('base64')}`;
 
@@ -169,6 +197,48 @@ router.post('/register-facial', upload.single('imageFile'), async (req, res) => 
             }
         }
 
+
+
+        const base64Foto = `data:image/jpeg;base64,${bufferCorregido.toString('base64')}`;
+
+        // 5. CREAR USUARIO EN FIREBASE AUTHENTICATION
+        createdAuthUser = await admin.auth().createUser({
+            email: emailFinal,
+            password: req.body.password || (Math.random().toString(36).slice(-12) + "A1!"),
+            displayName: `${nombre} ${apellido}`
+        });
+
+        // 6. CREAR Y GUARDAR EN FIRESTORE
+        const newUser = {
+            nombre: nombre || '',
+            apellido: apellido || '',
+            email: emailFinal,
+            sexo: sexo || '',
+            localidad: localidad || '',
+            provincia: provincia || '',
+            fechaNacimiento: fechaNacimiento || '',
+            foto: base64Foto || '',
+            uid: createdAuthUser.uid,
+            faceDescriptor: Array.from(detection.descriptor),
+            createdAt: new Date().toISOString()
+        };
+
+        await db.collection('users').doc(createdAuthUser.uid).set(newUser);
+        return res.status(201).json({ status: 'success', usuario: newUser });
+        
+    } catch (error) {
+        console.error('Error en /register-facial:', error);
+
+        if (createdAuthUser) {
+            try {
+                await admin.auth().deleteUser(createdAuthUser.uid);
+                console.log("⚠️ Rollback: Usuario eliminado de Auth para mantener consistencia.");
+            } catch (deleteErr) {
+                console.error("Error realizando rollback:", deleteErr);
+            }
+        }
+
+ main
         return res.status(500).json({ status: 'error', mensaje: error.message || 'Error al procesar el registro' });
     }
 });
@@ -179,6 +249,7 @@ router.post('/biometria', upload.single('imageFile'), async (req, res) => {
         if (!req.file) {
             return res.status(400).json({ status: 'error', mensaje: 'No hay imagen' });
         }
+ catalogo-local
 
         const bufferCorregido = await sharp(req.file.buffer).rotate().toBuffer();
         const img = await canvas.loadImage(bufferCorregido);
@@ -240,7 +311,7 @@ router.post('/actualizar-ubicacion', async (req, res) => {
     }
 });
 
-<<<<<<< HEAD
+HEAD
 // BUSCAR PRODUCTO POR CÓDIGO -> /api/users/productos/buscar
 router.get('/productos/buscar', async (req, res) => {
     try {
@@ -599,7 +670,93 @@ router.post('/lista/optimizar', async (req, res) => {
     } catch (error) {
         console.error('Error al optimizar la lista de compras:', error);
         return res.status(500).json({ status: 'error', mensaje: 'Error interno al procesar el chango de compras' });
->>>>>>> 3e25880 (Agregar ruta de catalogo)
+ 3e25880 (Agregar ruta de catalogo)
+
+
+        const bufferCorregido = await sharp(req.file.buffer).rotate().toBuffer();
+        const img = await canvas.loadImage(bufferCorregido);
+        
+        const detection = await faceapi.detectSingleFace(img, new faceapi.TinyFaceDetectorOptions({ inputSize: 416, scoreThreshold: 0.3 }))
+            .withFaceLandmarks()
+            .withFaceDescriptor();
+
+        if (!detection) {
+            return res.status(400).json({ status: 'error', mensaje: 'No se detectó rostro' });
+        }
+
+        const snapshot = await db.collection('users').get();
+        let bestMatch = null;
+        let bestDistance = 0.75;
+
+        for (const doc of snapshot.docs) {
+            const user = doc.data();
+            const desc = user.faceDescriptor;
+            if (desc) {
+                const distance = faceapi.euclideanDistance(detection.descriptor, new Float32Array(desc));
+                if (distance < bestDistance) {
+                    bestDistance = distance;
+                    bestMatch = { id: doc.id, ...user };
+                }
+            }
+        }
+
+        if (bestMatch) {
+            res.json({ status: 'success', usuario: bestMatch });
+        } else {
+            res.status(401).json({ status: 'error', mensaje: 'Rostro no reconocido' });
+        }
+    } catch (error) {
+        console.error('Error en biometría:', error);
+        res.status(500).json({ status: 'error', mensaje: 'Error al procesar biometría' });
+    }
+});
+
+// ACTUALIZAR UBICACIÓN -> /api/users/actualizar-ubicacion
+router.post('/actualizar-ubicacion', async (req, res) => {
+    try {
+        const { uid, localidad, provincia } = req.body;
+        
+        if (!uid) {
+            return res.status(400).json({ status: 'error', mensaje: 'Falta el ID del usuario' });
+        }
+
+        await db.collection('users').doc(uid).update({
+            localidad: localidad || '',
+            provincia: provincia || '',
+            ultimaActualizacion: new Date().toISOString()
+        });
+
+        res.json({ status: 'success', mensaje: 'Ubicación actualizada correctamente' });
+    } catch (error) {
+        console.error('Error al actualizar ubicación:', error);
+        res.status(500).json({ status: 'error', mensaje: 'Error al procesar la actualización' });
+    }
+});
+
+// BUSCAR PRODUCTO POR CÓDIGO -> /api/users/productos/buscar
+router.get('/productos/buscar', async (req, res) => {
+    try {
+        const { q } = req.query;
+
+        if (!q) {
+            return res.status(400).json({ status: 'error', mensaje: 'Falta el parámetro de búsqueda (q)' });
+        }
+
+        // Aquí puedes realizar la consulta real a tu colección de productos en Firestore
+        // Ejemplo: const productDoc = await db.collection('productos').where('ean', '==', q).get();
+
+        return res.json({
+            status: 'success',
+            producto: {
+                codigo: q,
+                nombre: 'Producto de prueba',
+                precio: 0
+            }
+        });
+    } catch (error) {
+        console.error('Error al buscar producto:', error);
+        return res.status(500).json({ status: 'error', mensaje: 'Error al buscar el producto' });
+ main
     }
 });
 
