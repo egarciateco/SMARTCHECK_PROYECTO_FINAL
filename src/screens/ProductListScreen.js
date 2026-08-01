@@ -1,322 +1,147 @@
 import React, { useState, useEffect } from 'react';
-import { StyleSheet, View, Text, SafeAreaView, ActivityIndicator, TouchableOpacity, FlatList, Image } from 'react-native';
-import { useNavigation, useRoute } from '@react-navigation/native';
-import { Ionicons } from '@expo/vector-icons';
+import { 
+  View, Text, StyleSheet, FlatList, TouchableOpacity, 
+  TextInput, ActivityIndicator, RefreshControl, Alert, 
+  Keyboard, Image, SafeAreaView 
+} from 'react-native';
+import Header from '../components/Header';
+import ProductCard from '../components/ProductCard';
+import { searchProducts, getProducts } from '../config/api';
 import { useAuth } from '../context/AuthContext';
 
-// Catálogo local completo con todos los productos de respaldo
-const CATALOGO_LOCAL_COMPLETO = [
-    { id: '1', nombre: 'Fideos Tallarín Marolio 500g', marca: 'Marolio', precio: 1100, imagen: 'https://masonline.vtexassets.com/arquivos/ids/245679/Fideos-Tallarin-Marolio-500-G-1-768gesch.jpg' },
-    { id: '2', nombre: 'Fideos Tirabuzón Marolio 500g', marca: 'Marolio', precio: 1100, imagen: 'https://masonline.vtexassets.com/arquivos/ids/245678/Fideos-Mono-Marolio-500-G-1-768gesch.jpg' },
-    { id: '3', nombre: 'Arroz Largo Fino Marolio 1kg', marca: 'Marolio', precio: 1400, imagen: 'https://masonline.vtexassets.com/arquivos/ids/231234/Arroz-Largo-Fino-Marolio-1-Kg-1-768gesch.jpg' },
-    { id: '4', nombre: 'Fideos Tirabuzón Lucchetti 500g', marca: 'Lucchetti', precio: 1350, imagen: 'https://masonline.vtexassets.com/arquivos/ids/212345/Fideos-Tirabuzon-Lucchetti-500-G-1-768gesch.jpg' },
-    { id: '5', nombre: 'Fideos Lucchetti 500g', marca: 'Lucchetti', precio: 1350, imagen: 'https://masonline.vtexassets.com/arquivos/ids/212346/Fideos-Fideo-Lucchetti-500-G-1-768gesch.jpg' },
-    { id: '6', nombre: 'Harina Leudante 0000 Cañuelas 1kg', marca: 'Molino Cañuelas', precio: 980, imagen: 'https://masonline.vtexassets.com/arquivos/ids/221122/Harina-Leudante-Canuelas-1-Kg-1-768gesch.jpg' },
-    { id: '7', nombre: 'Yerba Mate La Merced De Monte 500g', marca: 'La Merced', precio: 3200, imagen: 'https://masonline.vtexassets.com/arquivos/ids/223456/Yerba-Mate-La-Merced-De-Monte-500-G-1-768gesch.jpg' },
-    { id: '8', nombre: 'Leche Entera La Serenísima Sachet 1L', marca: 'La Serenísima', precio: 1450, imagen: 'https://masonline.vtexassets.com/arquivos/ids/232323/Leche-Entera-La-Serenisima-1-Lt-1-768gesch.jpg' },
-    { id: '9', nombre: 'Leche Descremada La Serenísima Sachet 1L', marca: 'La Serenísima', precio: 1450, imagen: 'https://masonline.vtexassets.com/arquivos/ids/232324/Leche-Descremada-La-Serenisima-1-Lt-1-768gesch.jpg' },
-    { id: '10', nombre: 'Gaseosa Coca-Cola Sabor Original 2.25L', marca: 'Coca-Cola', precio: 2800, imagen: 'https://masonline.vtexassets.com/arquivos/ids/234567/Gaseosa-Coca-Cola-Sabor-Original-2-25-Lt-1-768gesch.jpg' }
-];
+const ProductListScreen = ({ navigation, route }) => {
+  const { logout } = useAuth();
+  const [products, setProducts] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
 
-export default function ProductListScreen() {
-    const navigation = useNavigation();
-    const route = useRoute();
-    const { logout } = useAuth();
-    const searchQuery = route.params?.query || '';
+  const { category } = route?.params || {};
 
-    const [loading, setLoading] = useState(true);
-    const [productos, setProductos] = useState([]);
-    const [mensajeAviso, setMensajeAviso] = useState(null);
-    const [selectedId, setSelectedId] = useState(null);
+  useEffect(() => { 
+    let isMounted = true;
+    fetchProducts(isMounted); 
+    return () => { isMounted = false; };
+  }, [category]);
 
-    useEffect(() => {
-        realizarBusquedaLocal();
-    }, [searchQuery]);
+  const handleLogoutFlow = () => {
+    navigation.navigate('Goodbye');
+    setTimeout(logout, 1000);
+  };
 
-    const realizarBusquedaLocal = () => {
-        setLoading(true);
-        setMensajeAviso(null);
+  const fetchProducts = async (isMounted = true) => {
+    try {
+      setLoading(true);
+      const response = await (category && category !== 'all' ? getProducts({ category }) : getProducts());
+      if (isMounted) {
+        setProducts(Array.isArray(response) ? response : (response?.data || []));
+      }
+    } catch (err) {
+      Alert.alert("Error", "No pudimos conectar con la base de datos.");
+    } finally { 
+      if (isMounted) {
+        setLoading(false); 
+        setRefreshing(false); 
+      }
+    }
+  };
 
-        setTimeout(() => {
-            const textoBusqueda = searchQuery.toLowerCase().trim();
-            
-            const resultados = CATALOGO_LOCAL_COMPLETO.filter(item => 
-                item.nombre.toLowerCase().includes(textoBusqueda) || 
-                item.marca.toLowerCase().includes(textoBusqueda)
-            );
+  const handleSearch = async () => {
+    Keyboard.dismiss(); 
+    if (!searchQuery.trim()) { 
+      fetchProducts(); 
+      return; 
+    }
+    try {
+      setLoading(true);
+      const isEan = /^\d{8,14}$/.test(searchQuery.trim());
+      const response = await searchProducts(isEan ? { ean: searchQuery.trim() } : { search: searchQuery.trim() });
+      const results = Array.isArray(response) ? response : (response?.data || []);
+      setProducts(results);
+      if (results.length === 0) Alert.alert("Sin resultados", "No se hallaron coincidencias.");
+    } catch (err) { 
+      Alert.alert("Error", "Problema al conectar con el servidor."); 
+    } finally { 
+      setLoading(false); 
+    }
+  };
 
-            if (resultados.length > 0) {
-                setProductos(resultados);
-            } else {
-                setProductos(CATALOGO_LOCAL_COMPLETO);
-                setMensajeAviso(`No se encontraron coincidencias exactas para "${searchQuery}". Mostrando productos disponibles:`);
-            }
-            setLoading(false);
-        }, 300);
-    };
+  const handleProductPress = (item) => {
+    if (item) navigation.navigate('ProductDetail', { product: item });
+  };
 
-    const handleSelectProduct = (item) => {
-        setSelectedId(item.id);
-        setTimeout(() => {
-            setSelectedId(null);
-            navigation.navigate('ShoppingList', { 
-                itemsSeleccionados: [item],
-                localidadUser: 'Paraná',
-                provinciaUser: 'Entre Ríos'
-            });
-        }, 150);
-    };
-
-    const handleLogoutFlow = () => {
-        navigation.navigate('Goodbye');
-        setTimeout(logout, 1000);
-    };
-
+  if (loading && !refreshing) {
     return (
-        <SafeAreaView style={styles.container}>
-            {/* ENCABEZADO SUPERIOR */}
-            <View style={styles.topHeader}>
-                <Image 
-                    source={require('../../assets/logo.png')} 
-                    style={styles.logo} 
-                    resizeMode="contain" 
-                />
-                <Image 
-                    source={require('../../assets/nombreapp.png')} 
-                    style={styles.appNameImage} 
-                    resizeMode="contain" 
-                />
-                <View style={styles.placeholderRight} />
-            </View>
-
-            {/* FRANJA NEGRA CON TÍTULO EN MAYÚSCULAS AMARILLAS */}
-            <View style={styles.bannerContainer}>
-                <Text style={styles.bannerText}>RESULTADO DE BÚSQUEDA</Text>
-            </View>
-
-            <View style={styles.queryInfoBar}>
-                <Text style={styles.queryText}>Buscando: "{searchQuery}"</Text>
-            </View>
-
-            {mensajeAviso && (
-                <View style={styles.errorBanner}>
-                    <Text style={styles.errorBannerText}>{mensajeAviso}</Text>
-                </View>
-            )}
-
-            <View style={styles.contentContainer}>
-                {loading ? (
-                    <View style={styles.center}>
-                        <ActivityIndicator size="large" color="#00E5FF" />
-                        <Text style={styles.loadingText}>Buscando productos...</Text>
-                    </View>
-                ) : (
-                    <FlatList
-                        data={productos}
-                        keyExtractor={(item) => item.id}
-                        contentContainerStyle={styles.listContainer}
-                        renderItem={({ item }) => {
-                            const isSelected = selectedId === item.id;
-                            return (
-                                <TouchableOpacity 
-                                    style={[styles.card, isSelected && styles.cardSelected]}
-                                    onPress={() => handleSelectProduct(item)}
-                                    activeOpacity={0.8}
-                                >
-                                    {item.imagen ? (
-                                        <Image source={{ uri: item.imagen }} style={styles.productoImg} />
-                                    ) : null}
-                                    <View style={styles.cardInfo}>
-                                        <Text style={[styles.nombreProd, isSelected && styles.nombreProdSelected]} numberOfLines={2}>{item.nombre}</Text>
-                                        <Text style={styles.marcaProd}>Marca: {item.marca}</Text>
-                                        <Text style={styles.precioProd}>Precio ref: ${item.precio}</Text>
-                                    </View>
-                                    <Ionicons name="chevron-forward" size={20} color={isSelected ? '#000' : '#00E5FF'} />
-                                </TouchableOpacity>
-                            );
-                        }}
-                    />
-                )}
-            </View>
-
-            {/* PIE DE PÁGINA FIJO */}
-            <View style={styles.footerContainer}>
-                <View style={styles.goldLine} />
-                <View style={styles.footerButtons}>
-                    <TouchableOpacity onPress={() => navigation.goBack()} style={styles.footerButton}>
-                        <Image 
-                            source={require('../../assets/volver.png')} 
-                            style={styles.footerIcon} 
-                            resizeMode="contain" 
-                        />
-                    </TouchableOpacity>
-                    <TouchableOpacity onPress={handleLogoutFlow} style={styles.footerButton}>
-                        <Image 
-                            source={require('../../assets/salir.png')} 
-                            style={styles.footerIcon} 
-                            resizeMode="contain" 
-                        />
-                    </TouchableOpacity>
-                </View>
-            </View>
-        </SafeAreaView>
+      <View style={styles.centerContainer}>
+        <ActivityIndicator size="large" color="#00ffcc" />
+        <Text style={styles.loadingText}>Cargando catálogo...</Text>
+      </View>
     );
-}
+  }
+
+  return (
+    <SafeAreaView style={styles.container}>
+      {/* Header */}
+      <View style={styles.headerWrapper}>
+        <View style={{ flex: 1 }}>
+          <Header title={category || 'Productos'} onBackPress={() => navigation.goBack()} />
+        </View>
+        <TouchableOpacity style={styles.logoutButton} onPress={handleLogoutFlow}>
+          <Image source={require('../../assets/salir.png')} style={styles.logoutIcon} />
+        </TouchableOpacity>
+      </View>
+
+      {/* Buscador */}
+      <View style={styles.searchContainer}>
+        <TextInput 
+          style={styles.searchInput} 
+          placeholder="Buscar por nombre o EAN..." 
+          placeholderTextColor="#666"
+          value={searchQuery} 
+          onChangeText={setSearchQuery} 
+          onSubmitEditing={handleSearch} 
+        />
+        <TouchableOpacity style={styles.searchButton} onPress={handleSearch}>
+          <Text style={styles.searchButtonText}>🔍</Text>
+        </TouchableOpacity>
+      </View>
+      
+      {/* Lista de productos */}
+      <FlatList
+        data={products}
+        renderItem={({ item }) => <ProductCard product={item} onPress={() => handleProductPress(item)} />}
+        keyExtractor={(item, index) => item?.id?.toString() || index.toString()}
+        numColumns={2}
+        contentContainerStyle={styles.listContent}
+        ListEmptyComponent={
+          <View style={styles.centerContainer}>
+            <Text style={styles.textEmpty}>No hay productos disponibles.</Text>
+            <TouchableOpacity onPress={fetchProducts} style={styles.retryButton}>
+              <Text style={styles.retryText}>Reintentar</Text>
+            </TouchableOpacity>
+          </View>
+        }
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={fetchProducts} colors={['#00ffcc']} />}
+      />
+    </SafeAreaView>
+  );
+};
 
 const styles = StyleSheet.create({
-    container: { 
-        flex: 1, 
-        backgroundColor: '#0B0F19' 
-    },
-    topHeader: {
-        height: 60,
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        paddingHorizontal: 16,
-        backgroundColor: '#111827',
-    },
-    logo: {
-        width: 44,
-        height: 44,
-    },
-    appNameImage: {
-        height: 28,
-        width: 140,
-        resizeMode: 'contain'
-    },
-    placeholderRight: {
-        width: 44,
-    },
-    bannerContainer: {
-        width: '100%',
-        backgroundColor: '#000000',
-        paddingVertical: 10,
-        alignItems: 'center',
-        justifyContent: 'center',
-        borderBottomWidth: 1,
-        borderBottomColor: '#374151',
-    },
-    bannerText: {
-        color: '#FFD700',
-        fontSize: 16,
-        fontWeight: 'bold',
-        letterSpacing: 1.5,
-    },
-    queryInfoBar: { 
-        paddingHorizontal: 16, 
-        paddingVertical: 10, 
-        backgroundColor: '#111827', 
-        borderBottomWidth: 1, 
-        borderBottomColor: '#374151' 
-    },
-    queryText: { 
-        color: '#00E5FF', 
-        fontSize: 13, 
-        fontWeight: '600' 
-    },
-    errorBanner: { 
-        backgroundColor: 'rgba(255, 215, 0, 0.15)', 
-        padding: 8, 
-        marginHorizontal: 16, 
-        marginTop: 8, 
-        borderRadius: 6, 
-        borderWidth: 1, 
-        borderColor: '#FFD700' 
-    },
-    errorBannerText: { 
-        color: '#FFD700', 
-        fontSize: 11, 
-        textAlign: 'center' 
-    },
-    contentContainer: {
-        flex: 1,
-        paddingHorizontal: 12,
-    },
-    center: { 
-        flex: 1, 
-        justifyContent: 'center', 
-        alignItems: 'center' 
-    },
-    loadingText: { 
-        color: '#9CA3AF', 
-        marginTop: 10, 
-        fontSize: 13 
-    },
-    listContainer: { 
-        paddingVertical: 10 
-    },
-    card: { 
-        flexDirection: 'row', 
-        alignItems: 'center', 
-        backgroundColor: '#1F2937', 
-        borderRadius: 12, 
-        padding: 12, 
-        marginBottom: 10, 
-        borderWidth: 1, 
-        borderColor: '#374151',
-        shadowColor: '#00E5FF',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.15,
-        shadowRadius: 4,
-        elevation: 3,
-        gap: 12
-    },
-    cardSelected: {
-        backgroundColor: '#00E5FF',
-        borderColor: '#FFFFFF',
-    },
-    productoImg: { 
-        width: 50, 
-        height: 50, 
-        borderRadius: 8, 
-        backgroundColor: '#111827', 
-        resizeMode: 'cover' 
-    },
-    cardInfo: { 
-        flex: 1 
-    },
-    nombreProd: { 
-        color: '#E5E7EB', 
-        fontSize: 13, 
-        fontWeight: 'bold', 
-        marginBottom: 2 
-    },
-    nombreProdSelected: {
-        color: '#000000'
-    },
-    marcaProd: { 
-        color: '#9CA3AF', 
-        fontSize: 11, 
-        marginBottom: 2 
-    },
-    precioProd: { 
-        color: '#34D399', 
-        fontSize: 12, 
-        fontWeight: '600' 
-    },
-    footerContainer: {
-        width: '100%',
-        backgroundColor: '#111827',
-        paddingBottom: 12,
-    },
-    goldLine: {
-        width: '100%',
-        height: 1.5,
-        backgroundColor: '#D4AF37',
-        marginBottom: 10,
-    },
-    footerButtons: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        paddingHorizontal: 28,
-    },
-    footerButton: {
-        padding: 4,
-    },
-    footerIcon: {
-        width: 36,
-        height: 36,
-        tintColor: '#00E5FF',
-    },
+  container: { flex: 1, backgroundColor: '#001f3f' },
+  listContent: { paddingHorizontal: 10, paddingBottom: 20 },
+  headerWrapper: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#001f3f', paddingVertical: 10 },
+  logoutButton: { padding: 10, marginRight: 10 },
+  logoutIcon: { width: 30, height: 30, resizeMode: 'contain', tintColor: '#fff' },
+  centerContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 20 },
+  loadingText: { marginTop: 10, color: '#fff' },
+  searchContainer: { flexDirection: 'row', padding: 12, backgroundColor: '#000' },
+  searchInput: { flex: 1, backgroundColor: '#fff', borderRadius: 8, padding: 10, borderWidth: 1, borderColor: '#004a91' },
+  searchButton: { backgroundColor: '#00ffcc', padding: 16, marginLeft: 8, borderRadius: 8 },
+  searchButtonText: { color: '#001f3f', fontWeight: 'bold' },
+  retryButton: { marginTop: 15, padding: 12, backgroundColor: '#ffcc00', borderRadius: 8 },
+  retryText: { color: '#001f3f', fontWeight: 'bold' },
+  textEmpty: { color: '#fff', fontSize: 16 }
 });
+
+export default ProductListScreen;

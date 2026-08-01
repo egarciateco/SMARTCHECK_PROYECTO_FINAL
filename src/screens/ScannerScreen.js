@@ -32,7 +32,7 @@ const getLogoSuperLocal = (nombreSuper) => {
 const IMAGEN_DEFAULT_PRODUCTO = 'https://images.carrefour.com.ar/media/catalog/product/s/e/685100_1.jpg';
 
 export default function ScannerScreen({ navigation }) {
-  const { logout } = useAuth();
+  const { user, logout } = useAuth();
   const [hasPermission, requestPermission] = useCameraPermissions();
   const [loading, setLoading] = useState(false);
   const [resultadoEscaneo, setResultadoEscaneo] = useState(null);
@@ -75,7 +75,7 @@ export default function ScannerScreen({ navigation }) {
     if (navigation.canGoBack()) {
       navigation.goBack();
     } else {
-      navigation.navigate('HomeScreen');
+      navigation.navigate('HomeScreen', { user });
     }
   };
 
@@ -90,25 +90,26 @@ export default function ScannerScreen({ navigation }) {
     const codigoEanLimpio = String(data).trim();
     let productoEncontradoFinal = null;
 
-    // 1. CONSULTA OFICIAL AL BACKEND CON FILTRADO DE PRECIOS POR LOCALIDAD (Paraná, Entre Ríos)
+    // CONSULTA ÚNICA Y OFICIAL AL ENDPOINT EXISTENTE DEL BACKEND (/api/users/productos/buscar)
     try {
       const response = await api.get('/api/users/productos/buscar', { 
         params: { 
-          q: codigoEanLimpio, 
+          q: codigoEanLimpio,
           codigo: codigoEanLimpio,
+          ean: codigoEanLimpio,
           localidad: 'Paraná',
           provincia: 'Entre Ríos'
         },
-        timeout: 4000 
+        timeout: 8000 
       });
 
       if (response.data?.status === 'success' && response.data.data?.length > 0) {
-        const listaSucursales = response.data.data;
+        let listaSucursales = response.data.data;
 
-        // Ordenar estrictamente de menor a mayor precio para garantizar el verdadero "Mejor Precio"
+        // Ordenar estrictamente de menor a mayor precio para garantizar el supermercado más barato en Paraná (Coto, Maxiconsumo, etc.)
         listaSucursales.sort((a, b) => {
-          const precioA = parseFloat(String(a.precio || '0').replace('.', '').replace(',', '.'));
-          const precioB = parseFloat(String(b.precio || '0').replace('.', '').replace(',', '.'));
+          const precioA = parseFloat(String(a.precio || '0').replace(/\./g, '').replace(',', '.'));
+          const precioB = parseFloat(String(b.precio || '0').replace(/\./g, '').replace(',', '.'));
           return precioA - precioB;
         });
 
@@ -116,67 +117,24 @@ export default function ScannerScreen({ navigation }) {
 
         productoEncontradoFinal = {
           id: mejorOpcion.id || codigoEanLimpio,
-          nombre: mejorOpcion.nombre || mejorOpcion.descripcion || `Artículo EAN ${codigoEanLimpio}`,
-          marca: mejorOpcion.marca || 'CBSé',
-          medida: mejorOpcion.medida || mejorOpcion.presentacion || '500g',
+          nombre: mejorOpcion.nombre || mejorOpcion.descripcion || `Producto EAN ${codigoEanLimpio}`,
+          marca: mejorOpcion.marca || 'Marca Registrada',
+          medida: mejorOpcion.medida || mejorOpcion.presentacion || '',
           ean: codigoEanLimpio,
-          precio: mejorOpcion.precio ? String(mejorOpcion.precio).replace('.', ',') : '2.399,00',
-          supermercado: mejorOpcion.supermercado || 'Vea',
-          imagen: mejorOpcion.imagen || mejorOpcion.foto || IMAGEN_DEFAULT_PRODUCTO
+          precio: mejorOpcion.precio ? String(mejorOpcion.precio).replace('.', ',') : '0,00',
+          supermercado: mejorOpcion.supermercado || mejorOpcion.comercio || 'Supermercado Local',
+          imagen: mejorOpcion.imagen || mejorOpcion.foto || IMAGEN_DEFAULT_PRODUCTO,
+          sucursalesDisponibles: listaSucursales
         };
       }
     } catch (e) {
-      // Si falla la red principal, procedemos al respaldo inteligente por EAN exacto
+      console.log('Error al conectar con la API de productos:', e.message);
     }
 
-    // 2. RESPALDO INTELIGENTE ESPECÍFICO PARA CASOS DE PRUEBA (Ej: CBSe Hierbas Serranas 500g - EAN 7790710334535)
     if (!productoEncontradoFinal) {
-      if (codigoEanLimpio === '7790710334535') {
-        productoEncontradoFinal = {
-          id: codigoEanLimpio,
-          nombre: 'Yerba Hierbas Serranas 500g',
-          marca: 'CBSé',
-          medida: '500g',
-          ean: codigoEanLimpio,
-          precio: '2.399,00',
-          supermercado: 'Vea',
-          imagen: 'https://masonline.vtexassets.com/arquivos/ids/235678/Yerba-Hierbas-Serranas-CBSe-500-G-1-768gesch.jpg'
-        };
-      } else {
-        // Fallback general basado en Open Food Facts para textos/nombres con validación de precios coherentes locales
-        try {
-          const offResponse = await fetch(`https://world.openfoodfacts.org/api/v0/product/${codigoEanLimpio}.json`);
-          const offData = await offResponse.json();
-
-          if (offData && offData.status === 1 && offData.product) {
-            const pOff = offData.product;
-            productoEncontradoFinal = {
-              id: codigoEanLimpio,
-              nombre: pOff.product_name || pOff.product_name_es || `Producto EAN ${codigoEanLimpio}`,
-              marca: pOff.brands || 'Industria Argentina',
-              medida: pOff.quantity || '500g',
-              ean: codigoEanLimpio,
-              precio: '2.150,00',
-              supermercado: 'Vea',
-              imagen: pOff.image_front_url || pOff.image_url || IMAGEN_DEFAULT_PRODUCTO
-            };
-          }
-        } catch (err) {}
-      }
-    }
-
-    // 3. ÚLTIMO RECURSO SEGURIDAD
-    if (!productoEncontradoFinal) {
-      productoEncontradoFinal = {
-        id: codigoEanLimpio,
-        nombre: `Artículo Verificado (${codigoEanLimpio})`,
-        marca: 'Marca Comercial',
-        medida: '500g',
-        ean: codigoEanLimpio,
-        precio: '2.399,00',
-        supermercado: 'Vea',
-        imagen: IMAGEN_DEFAULT_PRODUCTO
-      };
+      setResultadoEscaneo({ encontrado: false });
+      setLoading(false);
+      return;
     }
 
     setResultadoEscaneo({
@@ -217,13 +175,17 @@ export default function ScannerScreen({ navigation }) {
     >
       <ScrollView contentContainerStyle={styles.scrollContainer} keyboardShouldPersistTaps="handled">
         <View style={styles.header}>
-          <Image source={require('../../assets/logo.png')} style={styles.logo} />
-          <Image source={require('../../assets/nombreapp.png')} style={styles.appName} />
+          <View style={styles.headerLeft}>
+            <Image source={require('../../assets/logo.png')} style={styles.logoGrande} />
+            <Image source={require('../../assets/nombreapp.png')} style={styles.nombreAppGrande} />
+          </View>
         </View>
-        
-        <View style={styles.blackTitleBar}>
-          <Text style={styles.titleText}>ESCÁNER DE CÓDIGOS SMARTCHECK</Text>
+
+        <View style={styles.titleGoldLine} />
+        <View style={styles.blackBanner}>
+          <Text style={styles.bannerText}>ESCÁNER DE CÓDIGOS SMARTCHECK</Text>
         </View>
+        <View style={styles.titleGoldLine} />
 
         <View style={styles.instructionRow}>
           <Text style={styles.instructionText}>Enfoque el código EAN del producto</Text>
@@ -275,7 +237,7 @@ export default function ScannerScreen({ navigation }) {
                   });
                 }}
               >
-                <Text style={styles.textoExito}>¡Mejor Precio Localizado (Precios Claros Paraná)!</Text>
+                <Text style={styles.textoExito}>¡Mejor Precio Localizado en Paraná!</Text>
                 
                 <View style={styles.mejorPrecioContainer}>
                   <Text style={styles.mejorPrecioLabel}>🔥 MEJOR PRECIO ENCONTRADO:</Text>
@@ -304,7 +266,7 @@ export default function ScannerScreen({ navigation }) {
               </TouchableOpacity>
             ) : (
               <View style={styles.resultadoBox}>
-                <Text style={styles.textoErrorNoEncontrado}>Producto No Encontrado</Text>
+                <Text style={styles.textoErrorNoEncontrado}>❌ Producto no encontrado en las sucursales de Paraná.</Text>
               </View>
             )
           ) : (
@@ -335,13 +297,24 @@ const styles = StyleSheet.create({
   scrollContainer: { flexGrow: 1, justifyContent: 'space-between', paddingBottom: 10 },
   center: { flex: 1, backgroundColor: '#001f3f', justifyContent: 'center', alignItems: 'center' },
   
-  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-start', paddingHorizontal: 20, paddingTop: 8, width: '100%', gap: 15 },
-  logo: { width: 50, height: 50, resizeMode: 'contain' },
-  appName: { width: 140, height: 35, resizeMode: 'contain' },
-  blackTitleBar: { backgroundColor: '#000', paddingVertical: 3, width: '100%', marginBottom: 3 },
-  titleText: { color: '#fff', fontSize: 10, fontWeight: 'bold', textAlign: 'center' },
+  header: { 
+    flexDirection: 'row', 
+    alignItems: 'center', 
+    justifyContent: 'space-between', 
+    paddingHorizontal: 15, 
+    paddingVertical: 10,
+    backgroundColor: '#000000',
+    marginBottom: 6
+  },
+  headerLeft: { flexDirection: 'row', alignItems: 'center', flex: 1 },
+  logoGrande: { width: 75, height: 75, resizeMode: 'contain', marginRight: 10 },
+  nombreAppGrande: { width: 190, height: 42, resizeMode: 'contain' },
   
-  instructionRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, marginBottom: 3 },
+  blackBanner: { width: '100%', backgroundColor: '#000000', paddingVertical: 8, alignItems: 'center', justifyContent: 'center' },
+  bannerText: { color: '#FFD700', fontSize: 17, fontWeight: 'bold', letterSpacing: 1, textAlign: 'center' },
+  titleGoldLine: { height: 1, backgroundColor: '#FFD700', width: '100%' },
+  
+  instructionRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, marginVertical: 6 },
   instructionText: { color: '#FFD700', fontSize: 11, fontWeight: 'bold' },
   eanSampleImg: { width: 75, height: 18, resizeMode: 'contain', backgroundColor: '#fff', borderRadius: 3 },
 
@@ -349,12 +322,12 @@ const styles = StyleSheet.create({
   overlayFrame: { ...StyleSheet.absoluteFillObject, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(0,0,0,0.05)' },
   scannerTarget: { width: '92%', height: '88%', borderWidth: 2, borderColor: '#ffcc00', borderRadius: 6, borderStyle: 'dashed' },
   
-  manualSearchContainer: { width: '85%', alignSelf: 'center', marginTop: 5, flexDirection: 'row', gap: 8, alignItems: 'center' },
+  manualSearchContainer: { width: '85%', alignSelf: 'center', marginTop: 8, flexDirection: 'row', gap: 8, alignItems: 'center' },
   inputBusquedaGrande: { flex: 1, backgroundColor: '#0A192F', borderWidth: 1, borderColor: '#00ffff', borderRadius: 6, paddingHorizontal: 12, paddingVertical: 8, color: '#fff', fontSize: 13 },
   btnBuscarManualPequeno: { backgroundColor: '#003366', borderWidth: 1, borderColor: '#FFD700', paddingVertical: 8, paddingHorizontal: 14, borderRadius: 6, alignItems: 'center', justifyContent: 'center' },
   btnBuscarManualText: { color: '#FFD700', fontSize: 12, fontWeight: 'bold' },
 
-  feedbackContainer: { minHeight: 110, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 15, marginTop: 3 },
+  feedbackContainer: { minHeight: 110, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 15, marginTop: 4 },
   instructions: { color: '#aaa', fontSize: 12, textAlign: 'center' },
   resultadoBox: { width: '100%', alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(0,0,0,0.4)', padding: 6, borderRadius: 8, borderWidth: 1, borderColor: '#00ffcc' },
   textoExito: { color: '#00ffcc', fontSize: 11, fontWeight: 'bold', marginBottom: 2, textAlign: 'center' },

@@ -330,9 +330,7 @@ export default function FacialLoginScreen() {
         </CameraView>
 
         {loading && (
-          <View style={styles.standbyWrapperAbsolute}>
-            <Image source={require('../../assets/standby.gif')} style={styles.standbyFullBoxAbsolute} />
-          </View>
+          <Image source={require('../../assets/standby.gif')} style={styles.standbyFullBoxAbsolute} />
         )}
       </View>
 
@@ -431,21 +429,16 @@ const styles = StyleSheet.create({
     borderRadius: 1000, 
     backgroundColor: 'transparent'
   },
-  standbyWrapperAbsolute: {
+  standbyFullBoxAbsolute: {
     position: 'absolute',
     top: 0,
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: '#000',
-    justifyContent: 'center',
-    alignItems: 'center',
+    width: '100%',
+    height: '100%',
+    resizeMode: 'cover',
     zIndex: 10
-  },
-  standbyFullBoxAbsolute: {
-    width: '85%',
-    height: '85%',
-    resizeMode: 'contain'
   },
   footer: { 
     alignItems: 'center', 

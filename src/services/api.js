@@ -36,7 +36,6 @@ export const authService = {
   register: (userData) => api.post('/api/users/register', userData),
   loginBiometria: (formData) => api.post('/api/users/biometria', formData),
   buscarProducto: (codigo) => api.get('/api/users/productos/buscar', { params: { q: codigo } }),
-  getCatalogo: (params) => api.get('/api/users/productos/catalogo', { params }),
 };
 
 export default api;

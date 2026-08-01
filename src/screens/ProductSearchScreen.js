@@ -1,295 +1,245 @@
-import React, { useState, useEffect } from 'react';
-import { 
-    StyleSheet, 
-    Text, 
-    View, 
-    SafeAreaView, 
-    TouchableOpacity, 
-    Image, 
-    ScrollView,
-    Linking,
-    Platform 
-} from 'react-native';
+import React, { useState, useEffect, useRef } from 'react';
+import { View, TextInput, FlatList, TouchableOpacity, Image, Text, StyleSheet, ActivityIndicator, Alert } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import MapView, { Marker, PROVIDER_GOOGLE } from 'react-native-maps'; 
+import * as Location from 'expo-location'; 
 import { useAuth } from '../context/AuthContext';
 import api from '../config/api';
+import ProfileAvatar from '../components/ProfileAvatar'; // Importación correcta
 
-// Diccionario corregido con la ruta correcta para el logo de DIA y el resto de los supermercados
-const LOGOS_SUPER = {
-    carrefour: require('../../assets/logos/carrefour.png'),
-    coto: require('../../assets/logos/coto.png'),
-    changomas: require('../../assets/logos/changomas.png'),
-    disco: require('../../assets/logos/disco.png'),
-    jumbo: require('../../assets/logos/jumbo.png'),
-    vea: require('../../assets/logos/vea.png'),
-    dia: require('../../assets/logos/dia.png'),
-    walmart: require('../../assets/logos/walmart.png'),
-    maxiconsumo: require('../../assets/logos/maxiconsumo.png'),
-};
+export default function ProductSearchScreen({ navigation, route }) {
+  const { user, logout } = useAuth(); 
+  const params = route?.params || {};
+  const mapRef = useRef(null);
+  
+  const initialLat = params.latitud ? parseFloat(params.latitud) : -31.7333;
+  const initialLng = params.longitud ? parseFloat(params.longitud) : -60.5167;
 
-const obtenerLogoSupermercado = (nombreSup) => {
-    const nombreLower = (nombreSup || '').toLowerCase();
-    for (const key of Object.keys(LOGOS_SUPER)) {
-        if (nombreLower.includes(key)) {
-            return LOGOS_SUPER[key];
+  const [productos, setProductos] = useState([]);
+  const [search, setSearch] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [region, setRegion] = useState({
+    latitude: initialLat,
+    longitude: initialLng,
+    latitudeDelta: 0.015,
+    longitudeDelta: 0.012
+  });
+  
+  const [localidadTexto, setLocalidadTexto] = useState('Localizando...');
+  const [provinciaTexto, setProvinciaTexto] = useState('...');
+
+  // EFECTO 1: Geolocalización inicial
+  useEffect(() => {
+    let isMounted = true;
+    const activarGeolocalizacion = async () => {
+      try {
+        const { status } = await Location.requestForegroundPermissionsAsync();
+        if (status !== 'granted') {
+          if (isMounted) {
+            setLocalidadTexto("Paraná");
+            setProvinciaTexto("Entre Ríos");
+          }
+          return;
         }
+
+        const posicionActual = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.High });
+        const { latitude, longitude } = posicionActual.coords;
+        const nuevaRegion = { latitude, longitude, latitudeDelta: 0.015, longitudeDelta: 0.012 };
+
+        if (isMounted) {
+          setRegion(nuevaRegion);
+          if (mapRef.current) mapRef.current.animateToRegion(nuevaRegion, 1200);
+          
+          const direccion = await Location.reverseGeocodeAsync({ latitude, longitude });
+          if (direccion.length > 0) {
+            setLocalidadTexto(direccion[0].city || direccion[0].subregion || "Ubicación Desconocida");
+            setProvinciaTexto(direccion[0].region || "Provincia");
+          }
+        }
+      } catch (error) {
+        if (isMounted) {
+          setLocalidadTexto("Paraná");
+          setProvinciaTexto("Entre Ríos");
+        }
+      }
+    };
+
+    if (!params.latitud && !params.longitud) {
+      activarGeolocalizacion();
+    } else {
+      setLocalidadTexto("Ubicación del Producto");
+      setProvinciaTexto("Comercio");
     }
-    return LOGOS_SUPER['carrefour'];
-};
+    
+    return () => { isMounted = false; };
+  }, []);
 
-export default function ProductSearchScreen({ route, navigation }) {
-    const { logout } = useAuth();
-    const { latitud, longitud, productoEncontrado } = route.params || {};
+  // EFECTO 2: Escucha cambios (vuelve del escáner)
+  useEffect(() => {
+    if (params.latitud && params.longitud) {
+      const regionActualizada = {
+        latitude: parseFloat(params.latitud),
+        longitude: parseFloat(params.longitud),
+        latitudeDelta: 0.008,
+        longitudeDelta: 0.006
+      };
+      setRegion(regionActualizada);
+      if (mapRef.current) mapRef.current.animateToRegion(regionActualizada, 1000);
+      if (params.productoEncontrado) {
+        setProductos([params.productoEncontrado]);
+        setSearch(params.productoEncontrado.nombre);
+      }
+    }
+  }, [params.latitud, params.longitud, params.productoEncontrado]);
 
-    const [productosCercanos, setProductosCercanos] = useState([]);
-    const [loading, setLoading] = useState(true);
+  const handleLogoutFlow = () => {
+    navigation.navigate('Goodbye');
+    setTimeout(logout, 1000);
+  };
 
-    const userLat = latitud || -31.7333;
-    const userLng = longitud || -60.5333;
+  const handleVolver = () => {
+    if (navigation.canGoBack()) {
+      navigation.goBack();
+    } else {
+      navigation.navigate('Home'); // O a la ruta principal que definas
+    }
+  };
 
-    useEffect(() => {
-        buscarSupermercadosCercanos();
-    }, []);
-
-    const buscarSupermercadosCercanos = async () => {
-        try {
-            setLoading(true);
-            const response = await api.get('/api/users/productos/cercanos', {
-                params: { 
-                    lat: userLat, 
-                    lng: userLng,
-                    ean: productoEncontrado?.ean || '' 
-                },
-                timeout: 8000
-            });
-
-            if (response.data && response.data.status === 'success') {
-                setProductosCercanos(response.data.data || []);
-            } else {
-                throw new Error("Sin datos del servidor");
-            }
-        } catch (error) {
-            setProductosCercanos([
-                { id: '1', sucursal: 'Carrefour Hyper', direccion: 'Av. Ramírez 2500, Paraná', lat: -31.7410, lng: -60.5120, distancia: '0.8 km' },
-                { id: '2', sucursal: 'Supermercados Coto', direccion: 'Peatonal San Martín 450, Paraná', lat: -31.7315, lng: -60.5230, distancia: '1.2 km' },
-                { id: '3', sucursal: 'Supermercados DIA', direccion: 'Gualeguaychú 120, Paraná', lat: -31.7380, lng: -60.5190, distancia: '1.5 km' },
-                { id: '4', sucursal: 'Changomas', direccion: 'Circunvalación S/N, Paraná', lat: -31.7550, lng: -60.5050, distancia: '2.5 km' }
-            ]);
-        } finally {
-            setLoading(false);
+  const realizarBusqueda = async () => {
+    if (!search.trim()) return Alert.alert("Atención", "Ingresa un producto."); 
+    
+    setLoading(true);
+    try {
+      const response = await api.get('/productos/buscar', { params: { q: search } });
+      
+      if (response.data?.status === 'success') { 
+        const items = response.data.data || [];
+        setProductos(items);
+        
+        if (items.length > 0 && items[0].latitud) {
+          const proxyRegion = {
+            latitude: parseFloat(items[0].latitud),
+            longitude: parseFloat(items[0].longitud),
+            latitudeDelta: 0.008,
+            longitudeDelta: 0.006
+          };
+          setRegion(proxyRegion);
+          if (mapRef.current) mapRef.current.animateToRegion(proxyRegion, 1000);
+        } else if (items.length === 0) {
+          Alert.alert("Sin resultados", "No se encontraron productos.");
         }
-    };
+      }
+    } catch (error) { 
+      console.error(error);
+      Alert.alert("Error", "No se pudo conectar con el servidor."); 
+    } finally { 
+      setLoading(false); 
+    }
+  };
 
-    // Función para abrir la ruta en auto utilizando mapas nativos (Google Maps / Apple Maps)
-    const abrirRutaEnAuto = (destinoLat, destinoLng, nombreSucursal) => {
-        const dLat = destinoLat || userLat;
-        const dLng = destinoLng || userLng;
-        const label = encodeURIComponent(nombreSucursal);
+  return (
+    <View style={styles.container}>
+      {/* HEADER */}
+      <View style={styles.header}>
+        <Image source={require('../../assets/logo.png')} style={styles.logoGrande} />
+        <Image source={require('../../assets/nombreapp.png')} style={styles.nombreAppGrande} />
+        <TouchableOpacity onPress={() => navigation.navigate('Perfil')}>
+           <ProfileAvatar user={user} size={50} />
+        </TouchableOpacity>
+      </View>
 
-        const url = Platform.select({
-            ios: `maps://app?saddr=${userLat},${userLng}&daddr=${dLat},${dLng}&dirflg=d`,
-            android: `google.navigation:q=${dLat},${dLng}&mode=d`
-        });
+      <View style={styles.franjaNegra}>
+        <Text style={styles.tituloFranja}>¡BIENVENID@, {user?.nombre?.toUpperCase() || 'USUARIO'}!</Text>
+      </View>
+      
+      <View style={styles.searchContainer}>
+        <TextInput 
+          placeholder="Buscar producto..." 
+          placeholderTextColor="#ccc" 
+          style={styles.input} 
+          value={search} 
+          onChangeText={setSearch} 
+          onSubmitEditing={realizarBusqueda} 
+        />
+        <TouchableOpacity style={styles.btnBuscar} onPress={realizarBusqueda}>
+          <Ionicons name="search" size={24} color="#001f3f" />
+        </TouchableOpacity>
+      </View>
+      
+      <TouchableOpacity style={styles.btnScanner} onPress={() => navigation.navigate('Scanner')}>
+        <Image source={require('../../assets/scanner.png')} style={styles.scannerImg} />
+      </TouchableOpacity>
+      
+      <View style={styles.mapSection}>
+        <View style={styles.locationRow}>
+          <Image source={require('../../assets/location.png')} style={styles.locationIcon} />
+          <Text style={styles.locationText}>{localidadTexto} - {provinciaTexto}</Text>
+        </View>
+        <View style={styles.mapCanvasWrapper}>
+          <MapView 
+            ref={mapRef}
+            provider={PROVIDER_GOOGLE} 
+            style={styles.mapCanvas} 
+            region={region}
+            showsUserLocation={true}
+          >
+            <Marker coordinate={{ latitude: region.latitude, longitude: region.longitude }} pinColor="#00ffcc" />
+          </MapView>
+        </View>
+      </View>
 
-        const webFallbackUrl = `https://www.google.com/maps/dir/?api=1&origin=${userLat},${userLng}&destination=${dLat},${dLng}&travelmode=driving`;
-
-        Linking.canOpenURL(url)
-            .then((supported) => {
-                if (supported) {
-                    return Linking.openURL(url);
-                } else {
-                    return Linking.openURL(webFallbackUrl);
-                }
-            })
-            .catch(() => Linking.openURL(webFallbackUrl));
-    };
-
-    return (
-        <SafeAreaView style={styles.container}>
-            {/* Header */}
-            <View style={styles.header}>
-                <TouchableOpacity onPress={() => navigation.goBack()}>
-                    <Text style={styles.backText}>← Volver</Text>
-                </TouchableOpacity>
-                <Text style={styles.headerTitle}>Ubicación y Sucursales</Text>
-                <View style={{ width: 50 }} />
-            </View>
-
-            <ScrollView contentContainerStyle={styles.scrollContainer}>
-                
-                {/* Producto Seleccionado Info */}
-                {productoEncontrado && (
-                    <View style={styles.productCard}>
-                        {productoEncontrado.imagen ? (
-                            <Image source={{ uri: productoEncontrado.imagen }} style={styles.productImg} resizeMode="contain" />
-                        ) : null}
-                        <View style={styles.productInfo}>
-                            <Text style={styles.productName}>{productoEncontrado.descripcion || productoEncontrado.nombre}</Text>
-                            <Text style={styles.productBrand}>Marca: {productoEncontrado.marca || 'N/D'}</Text>
-                            <Text style={styles.productEan}>EAN: {productoEncontrado.ean || productoEncontrado.id || 'N/D'}</Text>
-                        </View>
-                    </View>
-                )}
-
-                {/* Cuadro contenedor con el Mapa integrado adentro */}
-                <View style={styles.sectionContainer}>
-                    <View style={styles.sectionHeaderBox}>
-                        <Text style={styles.sectionHeaderText}>📍 Supermercados Cercanos y Mapa Radar</Text>
-                    </View>
-
-                    {/* Contenedor del Mapa Visual Interactivo */}
-                    <View style={styles.mapContainer}>
-                        <View style={styles.radarCenterPin}>
-                            <Text style={styles.pinText}>🎯 Tu Ubicación</Text>
-                        </View>
-                        {productosCercanos.map((item, index) => (
-                            <View key={index} style={[styles.miniPin, { top: 20 + (index * 35), left: 15 + (index * 55) }]} >
-                                <Text style={styles.miniPinText}>🛒 {item.sucursal.split(' ')[0]}</Text>
-                            </View>
-                        ))}
-                    </View>
-                </View>
-
-                {/* Listado detallado ordenado por cercanía */}
-                <Text style={styles.subTitle}>Listado de sucursales por orden de cercanía</Text>
-
-                {loading ? (
-                    <Text style={styles.loadingText}>Cargando sucursales cercanas...</Text>
-                ) : (
-                    productosCercanos.map((item, index) => (
-                        <View key={item.id || index} style={styles.sucursalCard}>
-                            <Image 
-                                source={obtenerLogoSupermercado(item.sucursal)} 
-                                style={styles.superLogo} 
-                                resizeMode="contain" 
-                            />
-                            
-                            <View style={styles.sucursalInfoContent}>
-                                <Text style={styles.sucursalName}>{item.sucursal}</Text>
-                                <Text style={styles.sucursalAddress}>{item.direccion}</Text>
-                                <Text style={styles.distanciaText}>A {item.distancia} de tu ubicación</Text>
-                            </View>
-
-                            <TouchableOpacity 
-                                style={styles.selectButton}
-                                onPress={() => abrirRutaEnAuto(item.lat, item.lng, item.sucursal)}
-                            >
-                                <Text style={styles.selectButtonText}>Ver Ruta</Text>
-                            </TouchableOpacity>
-                        </View>
-                    ))
-                )}
-
-            </ScrollView>
-        </SafeAreaView>
-    );
+      <View style={styles.listArea}>
+        {loading ? (
+          <ActivityIndicator size="large" color="#00ffcc" />
+        ) : (
+          <FlatList 
+            data={productos} 
+            keyExtractor={(item, index) => index.toString()} 
+            renderItem={({item}) => (
+              <View style={styles.itemRow}>
+                <Text style={styles.itemText}>{item.nombre}</Text>
+              </View>
+            )} 
+            ListEmptyComponent={<Text style={styles.emptyText}>No hay resultados.</Text>} 
+          />
+        )}
+      </View>
+      
+      {/* FOOTER */}
+      <View style={styles.footer}>
+        <TouchableOpacity onPress={handleVolver}>
+          <Image source={require('../../assets/volver.png')} style={styles.iconosFooter} />
+        </TouchableOpacity>
+        <TouchableOpacity onPress={handleLogoutFlow}>
+          <Image source={require('../../assets/salir.png')} style={styles.iconosFooter} />
+        </TouchableOpacity>
+      </View>
+    </View>
+  );
 }
 
 const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: '#0A192F' },
-    header: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        paddingHorizontal: 16,
-        paddingVertical: 12,
-        backgroundColor: '#020C1B',
-        borderBottomWidth: 1,
-        borderBottomColor: '#FFD700',
-    },
-    backText: { color: '#FFD700', fontWeight: 'bold', fontSize: 14 },
-    headerTitle: { color: '#FFD700', fontWeight: 'bold', fontSize: 16 },
-    scrollContainer: { padding: 16, paddingBottom: 40 },
-    productCard: {
-        flexDirection: 'row',
-        backgroundColor: '#112240',
-        borderRadius: 10,
-        padding: 12,
-        marginBottom: 16,
-        alignItems: 'center',
-        borderWidth: 1,
-        borderColor: '#233554'
-    },
-    productImg: { width: 60, height: 60, backgroundColor: '#fff', borderRadius: 8, marginRight: 12 },
-    productInfo: { flex: 1 },
-    productName: { color: '#E6F1FF', fontSize: 14, fontWeight: 'bold', marginBottom: 4 },
-    productBrand: { color: '#8892B0', fontSize: 12, marginBottom: 2 },
-    productEan: { color: '#FFD700', fontSize: 11 },
-    sectionContainer: {
-        borderRadius: 12,
-        overflow: 'hidden',
-        borderWidth: 1.5,
-        borderColor: '#00ffcc',
-        marginBottom: 20,
-        backgroundColor: '#020C1B'
-    },
-    sectionHeaderBox: {
-        backgroundColor: '#003366',
-        paddingVertical: 8,
-        alignItems: 'center',
-        borderBottomWidth: 1,
-        borderBottomColor: '#00ffcc'
-    },
-    sectionHeaderText: { color: '#00ffcc', fontSize: 13, fontWeight: 'bold' },
-    mapContainer: {
-        height: 180,
-        position: 'relative',
-        justifyContent: 'center',
-        alignItems: 'center',
-        backgroundColor: '#071124'
-    },
-    radarCenterPin: {
-        backgroundColor: '#FFD700',
-        paddingHorizontal: 10,
-        paddingVertical: 5,
-        borderRadius: 15,
-        borderWidth: 1,
-        borderColor: '#000'
-    },
-    pinText: { color: '#000', fontWeight: 'bold', fontSize: 11 },
-    miniPin: {
-        position: 'absolute',
-        backgroundColor: '#112240',
-        paddingHorizontal: 8,
-        paddingVertical: 3,
-        borderRadius: 6,
-        borderWidth: 1,
-        borderColor: '#28a745'
-    },
-    miniPinText: { color: '#28a745', fontSize: 10, fontWeight: 'bold' },
-    subTitle: { fontSize: 14, fontWeight: 'bold', color: '#E6F1FF', marginBottom: 12 },
-    loadingText: { color: '#8892B0', textAlign: 'center', marginVertical: 20 },
-    sucursalCard: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        backgroundColor: '#112240',
-        padding: 12,
-        borderRadius: 10,
-        marginBottom: 10,
-        borderWidth: 1,
-        borderColor: '#233554'
-    },
-    superLogo: {
-        width: 48,
-        height: 48,
-        backgroundColor: '#fff',
-        borderRadius: 8,
-        padding: 4,
-        marginRight: 12,
-        resizeMode: 'contain'
-    },
-    sucursalInfoContent: {
-        flex: 1
-    },
-    sucursalName: { color: '#E6F1FF', fontSize: 14, fontWeight: 'bold', marginBottom: 2 },
-    sucursalAddress: { color: '#8892B0', fontSize: 11, marginBottom: 2 },
-    distanciaText: { color: '#00ffcc', fontSize: 11, fontWeight: 'bold' },
-    selectButton: { 
-        backgroundColor: '#28a745', 
-        paddingHorizontal: 12, 
-        paddingVertical: 8, 
-        borderRadius: 6,
-        justifyContent: 'center',
-        alignItems: 'center'
-    },
-    selectButtonText: { color: '#fff', fontSize: 11, fontWeight: 'bold' }
+  container: { flex: 1, backgroundColor: '#001f3f' },
+  header: { flexDirection: 'row', justifyContent: 'space-between', padding: 20, paddingTop: 40, alignItems: 'center' },
+  logoGrande: { width: 70, height: 70, resizeMode: 'contain' },
+  nombreAppGrande: { width: 140, height: 50, resizeMode: 'contain' },
+  franjaNegra: { backgroundColor: '#000', padding: 10, alignItems: 'center' },
+  tituloFranja: { color: '#ffcc00', fontWeight: 'bold', fontSize: 13, letterSpacing: 1 },
+  searchContainer: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 20, marginTop: 15 },
+  input: { flex: 1, backgroundColor: '#002a54', padding: 12, borderRadius: 10, color: '#fff', borderWidth: 1, borderColor: '#004a91' },
+  btnBuscar: { backgroundColor: '#00ffcc', padding: 12, borderRadius: 10, marginLeft: 10 },
+  btnScanner: { alignItems: 'center', marginVertical: 10 },
+  scannerImg: { width: 220, height: 60, resizeMode: 'contain' },
+  mapSection: { marginHorizontal: 20, height: 210, marginTop: 10 },
+  locationRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 5, height: 20 },
+  locationIcon: { width: 16, height: 16, resizeMode: 'contain', marginRight: 5 },
+  locationText: { color: '#fff', fontSize: 13, fontWeight: 'bold' },
+  mapCanvasWrapper: { height: 185, borderRadius: 10, overflow: 'hidden', borderWidth: 2, borderColor: '#00ffcc' },
+  mapCanvas: { ...StyleSheet.absoluteFillObject }, 
+  listArea: { flex: 1, paddingHorizontal: 20, marginTop: 10 },
+  itemRow: { backgroundColor: '#002a54', padding: 15, borderRadius: 10, marginBottom: 5 },
+  itemText: { color: '#fff' },
+  emptyText: { color: '#555', textAlign: 'center', marginTop: 10, fontSize: 12 },
+  footer: { flexDirection: 'row', justifyContent: 'space-between', paddingHorizontal: 40, paddingBottom: 25 },
+  iconosFooter: { width: 45, height: 45, resizeMode: 'contain' }
 });
