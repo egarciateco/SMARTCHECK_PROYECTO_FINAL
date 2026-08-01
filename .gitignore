@@ -5,3 +5,4 @@ node_modules/
 .expo/
 .next/
 dist/
+smartcheck-backend/serviceAccountKey.json

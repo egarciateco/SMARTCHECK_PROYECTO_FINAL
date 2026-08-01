@@ -1,0 +1,218 @@
+[
+  {
+    "ean": "7793180123463",
+    "nombre": "Fideos Tallarín Marolio 500g",
+    "marca": "Marolio",
+    "presentacion": "500g",
+    "categoria": "almacen",
+    "precio": 1100,
+    "imagen": "https://masonline.vtexassets.com/arquivos/ids/245679/Fideos-Tallarin-Marolio-500-G-1-768gesch.jpg"
+  },
+  {
+    "ean": "7790070112233",
+    "nombre": "Fideos Tirabuzón Lucchetti 500g",
+    "marca": "Lucchetti",
+    "presentacion": "500g",
+    "categoria": "almacen",
+    "precio": 1350,
+    "imagen": "https://masonline.vtexassets.com/arquivos/ids/212345/Fideos-Tirabuzon-Lucchetti-500-G-1-768gesch.jpg"
+  },
+  {
+    "ean": "7790070334455",
+    "nombre": "Fideos Matarazzo 500g",
+    "marca": "Matarazzo",
+    "presentacion": "500g",
+    "categoria": "almacen",
+    "precio": 1550,
+    "imagen": "https://masonline.vtexassets.com/arquivos/ids/212350/Fideos-Matarazzo-500g.jpg"
+  },
+  {
+    "ean": "7793180234567",
+    "nombre": "Arroz Largo Fino Marolio 1kg",
+    "marca": "Marolio",
+    "presentacion": "1kg",
+    "categoria": "almacen",
+    "precio": 1400,
+    "imagen": "https://masonline.vtexassets.com/arquivos/ids/231234/Arroz-Largo-Fino-Marolio-1-Kg-1-768gesch.jpg"
+  },
+  {
+    "ean": "7790070445566",
+    "nombre": "Arroz Doble Carolina Gallo 1kg",
+    "marca": "Gallo",
+    "presentacion": "1kg",
+    "categoria": "almacen",
+    "precio": 2100,
+    "imagen": "https://masonline.vtexassets.com/arquivos/ids/231500/Arroz-Gallo-Doble-Carolina-1kg.jpg"
+  },
+  {
+    "ean": "7790742331122",
+    "nombre": "Harina Leudante 0000 Cañuelas 1kg",
+    "marca": "Molino Cañuelas",
+    "presentacion": "1kg",
+    "categoria": "almacen",
+    "precio": 980,
+    "imagen": "https://masonline.vtexassets.com/arquivos/ids/221122/Harina-Leudante-Canuelas-1-Kg-1-768gesch.jpg"
+  },
+  {
+    "ean": "7790742442233",
+    "nombre": "Harina de Trigo 000 Pureza 1kg",
+    "marca": "Pureza",
+    "presentacion": "1kg",
+    "categoria": "almacen",
+    "precio": 1050,
+    "imagen": "https://masonline.vtexassets.com/arquivos/ids/221500/Harina-Pureza-1kg.jpg"
+  },
+  {
+    "ean": "7790342998877",
+    "nombre": "Yerba Mate Playadito 500g",
+    "marca": "Playadito",
+    "presentacion": "500g",
+    "categoria": "almacen",
+    "precio": 2450,
+    "imagen": "https://masonline.vtexassets.com/arquivos/ids/223499/Yerba-Playadito-500g.jpg"
+  },
+  {
+    "ean": "7790342112233",
+    "nombre": "Yerba Mate Amanda 500g",
+    "marca": "Amanda",
+    "presentacion": "500g",
+    "categoria": "almacen",
+    "precio": 2200,
+    "imagen": "https://masonline.vtexassets.com/arquivos/ids/223555/Yerba-Amanda-500g.jpg"
+  },
+  {
+    "ean": "7790360012345",
+    "nombre": "Aceite de Girasol Cocinero 1.5L",
+    "marca": "Cocinero",
+    "presentacion": "1.5L",
+    "categoria": "almacen",
+    "precio": 2900,
+    "imagen": "https://masonline.vtexassets.com/arquivos/ids/214567/Aceite-Girasol-Cocinero-1-5-Lt.jpg"
+  },
+  {
+    "ean": "7790360099887",
+    "nombre": "Aceite de Girasol Natura 1.5L",
+    "marca": "Natura",
+    "presentacion": "1.5L",
+    "categoria": "almacen",
+    "precio": 3100,
+    "imagen": "https://masonline.vtexassets.com/arquivos/ids/214800/Aceite-Natura-1.5L.jpg"
+  },
+  {
+    "ean": "7790742123456",
+    "nombre": "Leche Entera La Serenísima Sachet 1L",
+    "marca": "La Serenísima",
+    "presentacion": "1L",
+    "categoria": "lacteos",
+    "precio": 1450,
+    "imagen": "https://masonline.vtexassets.com/arquivos/ids/232323/Leche-Entera-La-Serenisima-1-Lt-1-768gesch.jpg"
+  },
+  {
+    "ean": "7790742123499",
+    "nombre": "Leche Descremada La Serenísima Sachet 1L",
+    "marca": "La Serenísima",
+    "presentacion": "1L",
+    "categoria": "lacteos",
+    "precio": 1450,
+    "imagen": "https://masonline.vtexassets.com/arquivos/ids/232324/Leche-Descremada-La-Serenisima-1-Lt.jpg"
+  },
+  {
+    "ean": "7790742555666",
+    "nombre": "Queso Untable CasanCrem Clásico 300g",
+    "marca": "CasanCrem",
+    "presentacion": "300g",
+    "categoria": "lacteos",
+    "precio": 2800,
+    "imagen": "https://masonline.vtexassets.com/arquivos/ids/225678/Queso-Untable-Casancrem-300g.jpg"
+  },
+  {
+    "ean": "7790742888999",
+    "nombre": "Yogur Firme Ser Frutilla 190g",
+    "marca": "Ser",
+    "presentacion": "190g",
+    "categoria": "lacteos",
+    "precio": 950,
+    "imagen": "https://masonline.vtexassets.com/arquivos/ids/227890/Yogur-Ser-Frutilla-190g.jpg"
+  },
+  {
+    "ean": "7790895000104",
+    "nombre": "Gaseosa Coca-Cola Sabor Original 2.25L",
+    "marca": "Coca-Cola",
+    "presentacion": "2.25L",
+    "categoria": "bebidas",
+    "precio": 2800,
+    "imagen": "https://masonline.vtexassets.com/arquivos/ids/234567/Gaseosa-Coca-Cola-Sabor-Original-2-25-Lt-1-768gesch.jpg"
+  },
+  {
+    "ean": "7790895000203",
+    "nombre": "Gaseosa Sprite Lima-Limón 2.25L",
+    "marca": "Sprite",
+    "presentacion": "2.25L",
+    "categoria": "bebidas",
+    "precio": 2700,
+    "imagen": "https://masonline.vtexassets.com/arquivos/ids/234570/Gaseosa-Sprite-2-25-Lt.jpg"
+  },
+  {
+    "ean": "7792798000123",
+    "nombre": "Cerveza Heineken Lata 473ml",
+    "marca": "Heineken",
+    "presentacion": "473ml",
+    "categoria": "bebidas",
+    "precio": 1650,
+    "imagen": "https://masonline.vtexassets.com/arquivos/ids/241122/Cerveza-Heineken-Lata-473ml.jpg"
+  },
+  {
+    "ean": "7792798111223",
+    "nombre": "Cerveza Quilmes Stout Lata 473ml",
+    "marca": "Quilmes",
+    "presentacion": "473ml",
+    "categoria": "bebidas",
+    "precio": 1400,
+    "imagen": "https://masonline.vtexassets.com/arquivos/ids/241500/Cerveza-Quilmes-473ml.jpg"
+  },
+  {
+    "ean": "7791234000111",
+    "nombre": "Agua Mineral Villavicencio 1.5L",
+    "marca": "Villavicencio",
+    "presentacion": "1.5L",
+    "categoria": "bebidas",
+    "precio": 1150,
+    "imagen": "https://masonline.vtexassets.com/arquivos/ids/243344/Agua-Villavicencio-1-5L.jpg"
+  },
+  {
+    "ean": "7791290001234",
+    "nombre": "Jabón en Polvo Ala Matic 3kg",
+    "marca": "Ala",
+    "presentacion": "3kg",
+    "categoria": "limpieza",
+    "precio": 5400,
+    "imagen": "https://masonline.vtexassets.com/arquivos/ids/251122/Jabon-En-Polvo-Ala-Matic-3Kg.jpg"
+  },
+  {
+    "ean": "7793456000789",
+    "nombre": "Lavandina Concentrada Ayudín 1L",
+    "marca": "Ayudín",
+    "presentacion": "1L",
+    "categoria": "limpieza",
+    "precio": 1200,
+    "imagen": "https://masonline.vtexassets.com/arquivos/ids/253344/Lavandina-Ayudin-1L.jpg"
+  },
+  {
+    "ean": "7795678000111",
+    "nombre": "Shampoo Pantene Cuidado Clásico 400ml",
+    "marca": "Pantene",
+    "presentacion": "400ml",
+    "categoria": "perfumeria",
+    "precio": 3900,
+    "imagen": "https://masonline.vtexassets.com/arquivos/ids/261122/Shampoo-Pantene-400ml.jpg"
+  },
+  {
+    "ean": "7796789000222",
+    "nombre": "Pasta Dental Colgate Total 12 90g",
+    "marca": "Colgate",
+    "presentacion": "90g",
+    "categoria": "perfumeria",
+    "precio": 2100,
+    "imagen": "https://masonline.vtexassets.com/arquivos/ids/263344/Pasta-Dental-Colgate-90g.jpg"
+  }
+]

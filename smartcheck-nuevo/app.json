@@ -11,12 +11,15 @@
       "resizeMode": "contain",
       "backgroundColor": "#001f3f"
     },
+    "updates": {
+      "enabled": false,
+      "fallbackToCacheTimeout": 0
+    },
     "ios": {
       "supportsTablet": true
     },
     "android": {
       "package": "com.egarciateco.smartcheck",
-      "usesCleartextTraffic": true,
       "adaptiveIcon": {
         "foregroundImage": "./assets/logo.png",
         "backgroundColor": "#001f3f"
@@ -31,7 +34,8 @@
         "googleMaps": {
           "apiKey": "AIzaSyBvTPOu-ccL2aP6pxKKtW4PJKThnOA7zVI"
         }
-      }
+      },
+      "usesCleartextTraffic": true
     },
     "web": {
       "favicon": "./assets/favicon.png"
@@ -42,7 +46,13 @@
       }
     },
     "plugins": [
-      "expo-font"
+      "expo-font",
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "La aplicación necesita acceso a la cámara para el registro y acceso facial."
+        }
+      ]
     ]
   }
 }

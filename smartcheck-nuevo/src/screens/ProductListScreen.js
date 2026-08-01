@@ -1,5 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, TextInput, ActivityIndicator, RefreshControl, Alert, Keyboard, Image } from 'react-native';
+import { 
+  View, Text, StyleSheet, FlatList, TouchableOpacity, 
+  TextInput, ActivityIndicator, RefreshControl, Alert, 
+  Keyboard, Image, SafeAreaView 
+} from 'react-native';
 import Header from '../components/Header';
 import ProductCard from '../components/ProductCard';
 import { searchProducts, getProducts } from '../config/api';
@@ -14,31 +18,40 @@ const ProductListScreen = ({ navigation, route }) => {
 
   const { category } = route?.params || {};
 
-  useEffect(() => { fetchProducts(); }, [category]);
+  useEffect(() => { 
+    let isMounted = true;
+    fetchProducts(isMounted); 
+    return () => { isMounted = false; };
+  }, [category]);
 
   const handleLogoutFlow = () => {
     navigation.navigate('Goodbye');
-    setTimeout(() => {
-      logout();
-    }, 1000);
+    setTimeout(logout, 1000);
   };
 
-  const fetchProducts = async () => {
+  const fetchProducts = async (isMounted = true) => {
     try {
       setLoading(true);
       const response = await (category && category !== 'all' ? getProducts({ category }) : getProducts());
-      setProducts(Array.isArray(response) ? response : (response?.data || []));
+      if (isMounted) {
+        setProducts(Array.isArray(response) ? response : (response?.data || []));
+      }
     } catch (err) {
       Alert.alert("Error", "No pudimos conectar con la base de datos.");
     } finally { 
-      setLoading(false); 
-      setRefreshing(false); 
+      if (isMounted) {
+        setLoading(false); 
+        setRefreshing(false); 
+      }
     }
   };
 
   const handleSearch = async () => {
     Keyboard.dismiss(); 
-    if (!searchQuery.trim()) { fetchProducts(); return; }
+    if (!searchQuery.trim()) { 
+      fetchProducts(); 
+      return; 
+    }
     try {
       setLoading(true);
       const isEan = /^\d{8,14}$/.test(searchQuery.trim());
@@ -48,7 +61,9 @@ const ProductListScreen = ({ navigation, route }) => {
       if (results.length === 0) Alert.alert("Sin resultados", "No se hallaron coincidencias.");
     } catch (err) { 
       Alert.alert("Error", "Problema al conectar con el servidor."); 
-    } finally { setLoading(false); }
+    } finally { 
+      setLoading(false); 
+    }
   };
 
   const handleProductPress = (item) => {
@@ -65,7 +80,8 @@ const ProductListScreen = ({ navigation, route }) => {
   }
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container}>
+      {/* Header */}
       <View style={styles.headerWrapper}>
         <View style={{ flex: 1 }}>
           <Header title={category || 'Productos'} onBackPress={() => navigation.goBack()} />
@@ -75,42 +91,46 @@ const ProductListScreen = ({ navigation, route }) => {
         </TouchableOpacity>
       </View>
 
+      {/* Buscador */}
       <View style={styles.searchContainer}>
         <TextInput 
-            style={styles.searchInput} 
-            placeholder="Buscar por nombre o EAN..." 
-            placeholderTextColor="#666"
-            value={searchQuery} 
-            onChangeText={setSearchQuery} 
-            onSubmitEditing={handleSearch} 
+          style={styles.searchInput} 
+          placeholder="Buscar por nombre o EAN..." 
+          placeholderTextColor="#666"
+          value={searchQuery} 
+          onChangeText={setSearchQuery} 
+          onSubmitEditing={handleSearch} 
         />
         <TouchableOpacity style={styles.searchButton} onPress={handleSearch}>
-            <Text style={styles.searchButtonText}>🔍</Text>
+          <Text style={styles.searchButtonText}>🔍</Text>
         </TouchableOpacity>
       </View>
       
+      {/* Lista de productos */}
       <FlatList
         data={products}
         renderItem={({ item }) => <ProductCard product={item} onPress={() => handleProductPress(item)} />}
-        keyExtractor={(item, index) => item?.id || index.toString()}
+        keyExtractor={(item, index) => item?.id?.toString() || index.toString()}
         numColumns={2}
+        contentContainerStyle={styles.listContent}
         ListEmptyComponent={
           <View style={styles.centerContainer}>
             <Text style={styles.textEmpty}>No hay productos disponibles.</Text>
             <TouchableOpacity onPress={fetchProducts} style={styles.retryButton}>
-                <Text style={styles.retryText}>Reintentar</Text>
+              <Text style={styles.retryText}>Reintentar</Text>
             </TouchableOpacity>
           </View>
         }
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={fetchProducts} colors={['#00ffcc']} />}
       />
-    </View>
+    </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#001f3f' },
-  headerWrapper: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#001f3f' },
+  listContent: { paddingHorizontal: 10, paddingBottom: 20 },
+  headerWrapper: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#001f3f', paddingVertical: 10 },
   logoutButton: { padding: 10, marginRight: 10 },
   logoutIcon: { width: 30, height: 30, resizeMode: 'contain', tintColor: '#fff' },
   centerContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 20 },
@@ -121,7 +141,7 @@ const styles = StyleSheet.create({
   searchButtonText: { color: '#001f3f', fontWeight: 'bold' },
   retryButton: { marginTop: 15, padding: 12, backgroundColor: '#ffcc00', borderRadius: 8 },
   retryText: { color: '#001f3f', fontWeight: 'bold' },
-  textEmpty: { color: '#fff' }
+  textEmpty: { color: '#fff', fontSize: 16 }
 });
 
 export default ProductListScreen;
