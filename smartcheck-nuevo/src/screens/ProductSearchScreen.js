@@ -4,13 +4,12 @@ import { Ionicons } from '@expo/vector-icons';
 import MapView, { Marker, PROVIDER_GOOGLE } from 'react-native-maps'; 
 import * as Location from 'expo-location'; 
 import { useAuth } from '../context/AuthContext';
-
-const API_URL = 'https://smartcheck-proyecto-final.onrender.com';
+import api from '../config/api';
+import ProfileAvatar from '../components/ProfileAvatar'; // Importación correcta
 
 export default function ProductSearchScreen({ navigation, route }) {
   const { user, logout } = useAuth(); 
   const params = route?.params || {};
-  
   const mapRef = useRef(null);
   
   const initialLat = params.latitud ? parseFloat(params.latitud) : -31.7333;
@@ -19,92 +18,73 @@ export default function ProductSearchScreen({ navigation, route }) {
   const [productos, setProductos] = useState([]);
   const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(false);
-
   const [region, setRegion] = useState({
     latitude: initialLat,
     longitude: initialLng,
     latitudeDelta: 0.015,
     longitudeDelta: 0.012
   });
+  
   const [localidadTexto, setLocalidadTexto] = useState('Localizando...');
   const [provinciaTexto, setProvinciaTexto] = useState('...');
 
-  // EFECTO 1: Geolocalización inicial al abrir la app
+  // EFECTO 1: Geolocalización inicial
   useEffect(() => {
-    const activarGeolocalizacionEnVivo = async () => {
+    let isMounted = true;
+    const activarGeolocalizacion = async () => {
       try {
         const { status } = await Location.requestForegroundPermissionsAsync();
         if (status !== 'granted') {
-          Alert.alert(
-            "Permiso denegado",
-            "SmartCheck mostrará la ubicación por defecto al no tener acceso al GPS."
-          );
-          setLocalidadTexto("Paraná");
-          setProvinciaTexto("Entre Ríos");
+          if (isMounted) {
+            setLocalidadTexto("Paraná");
+            setProvinciaTexto("Entre Ríos");
+          }
           return;
         }
 
-        const posicionActual = await Location.getCurrentPositionAsync({
-          accuracy: Location.Accuracy.High,
-        });
-
+        const posicionActual = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.High });
         const { latitude, longitude } = posicionActual.coords;
-        const nuevaRegion = {
-          latitude,
-          longitude,
-          latitudeDelta: 0.015,
-          longitudeDelta: 0.012
-        };
+        const nuevaRegion = { latitude, longitude, latitudeDelta: 0.015, longitudeDelta: 0.012 };
 
-        setRegion(nuevaRegion);
-
-        if (mapRef.current) {
-          mapRef.current.animateToRegion(nuevaRegion, 1200);
-        }
-
-        const direccionTraduccion = await Location.reverseGeocodeAsync({ latitude, longitude });
-        if (direccionTraduccion.length > 0) {
-          const datosDireccion = direccionTraduccion[0];
-          const loc = datosDireccion.city || datosDireccion.subregion || "Ubicación Desconocida";
-          const prov = datosDireccion.region || "Provincia";
+        if (isMounted) {
+          setRegion(nuevaRegion);
+          if (mapRef.current) mapRef.current.animateToRegion(nuevaRegion, 1200);
           
-          setLocalidadTexto(loc);
-          setProvinciaTexto(prov);
+          const direccion = await Location.reverseGeocodeAsync({ latitude, longitude });
+          if (direccion.length > 0) {
+            setLocalidadTexto(direccion[0].city || direccion[0].subregion || "Ubicación Desconocida");
+            setProvinciaTexto(direccion[0].region || "Provincia");
+          }
         }
       } catch (error) {
-        console.error("❌ Error de telemetría GPS:", error);
-        setLocalidadTexto("Paraná");
-        setProvinciaTexto("Entre Ríos");
+        if (isMounted) {
+          setLocalidadTexto("Paraná");
+          setProvinciaTexto("Entre Ríos");
+        }
       }
     };
 
     if (!params.latitud && !params.longitud) {
-      activarGeolocalizacionEnVivo();
+      activarGeolocalizacion();
     } else {
       setLocalidadTexto("Ubicación del Producto");
       setProvinciaTexto("Comercio");
     }
+    
+    return () => { isMounted = false; };
   }, []);
 
-  // NUEVO EFECTO 2: Escucha cambios cuando volvés del Escáner
+  // EFECTO 2: Escucha cambios (vuelve del escáner)
   useEffect(() => {
     if (params.latitud && params.longitud) {
-      const nuevaLat = parseFloat(params.latitud);
-      const nuevaLng = parseFloat(params.longitud);
-
       const regionActualizada = {
-        latitude: nuevaLat,
-        longitude: nuevaLng,
+        latitude: parseFloat(params.latitud),
+        longitude: parseFloat(params.longitud),
         latitudeDelta: 0.008,
         longitudeDelta: 0.006
       };
-
       setRegion(regionActualizada);
-
-      if (mapRef.current) {
-        mapRef.current.animateToRegion(regionActualizada, 1000);
-      }
-
+      if (mapRef.current) mapRef.current.animateToRegion(regionActualizada, 1000);
       if (params.productoEncontrado) {
         setProductos([params.productoEncontrado]);
         setSearch(params.productoEncontrado.nombre);
@@ -114,41 +94,43 @@ export default function ProductSearchScreen({ navigation, route }) {
 
   const handleLogoutFlow = () => {
     navigation.navigate('Goodbye');
-    setTimeout(() => {
-      logout();
-    }, 1000);
+    setTimeout(logout, 1000);
+  };
+
+  const handleVolver = () => {
+    if (navigation.canGoBack()) {
+      navigation.goBack();
+    } else {
+      navigation.navigate('Home'); // O a la ruta principal que definas
+    }
   };
 
   const realizarBusqueda = async () => {
-    if (!search.trim()) { 
-      Alert.alert("Atención", "Por favor, ingresa un nombre o código de producto."); 
-      return; 
-    }
+    if (!search.trim()) return Alert.alert("Atención", "Ingresa un producto."); 
     
     setLoading(true);
-    
     try {
-      const response = await fetch(`${API_URL}/api/users/productos/buscar?q=${encodeURIComponent(search)}`);
-      const result = await response.json();
-      if (result.status === 'success') { 
-        setProductos(result.data || []); 
+      const response = await api.get('/productos/buscar', { params: { q: search } });
+      
+      if (response.data?.status === 'success') { 
+        const items = response.data.data || [];
+        setProductos(items);
         
-        if (result.data && result.data.length > 0 && result.data[0].latitud) {
+        if (items.length > 0 && items[0].latitud) {
           const proxyRegion = {
-            latitude: parseFloat(result.data[0].latitud),
-            longitude: parseFloat(result.data[0].longitud),
+            latitude: parseFloat(items[0].latitud),
+            longitude: parseFloat(items[0].longitud),
             latitudeDelta: 0.008,
             longitudeDelta: 0.006
           };
           setRegion(proxyRegion);
           if (mapRef.current) mapRef.current.animateToRegion(proxyRegion, 1000);
+        } else if (items.length === 0) {
+          Alert.alert("Sin resultados", "No se encontraron productos.");
         }
-
-        if (result.data.length === 0) Alert.alert("Sin resultados", "No se encontraron productos."); 
-      } else { 
-        Alert.alert("Error", "No se pudo realizar la búsqueda."); 
       }
     } catch (error) { 
+      console.error(error);
       Alert.alert("Error", "No se pudo conectar con el servidor."); 
     } finally { 
       setLoading(false); 
@@ -157,13 +139,15 @@ export default function ProductSearchScreen({ navigation, route }) {
 
   return (
     <View style={styles.container}>
+      {/* HEADER */}
       <View style={styles.header}>
         <Image source={require('../../assets/logo.png')} style={styles.logoGrande} />
         <Image source={require('../../assets/nombreapp.png')} style={styles.nombreAppGrande} />
-        <TouchableOpacity onPress={() => navigation.navigate('Profile')}>
-          {user?.foto ? <Image source={{ uri: user.foto }} style={styles.userAvatar} /> : <Ionicons name="person-circle" size={50} color="#fff" />}
+        <TouchableOpacity onPress={() => navigation.navigate('Perfil')}>
+           <ProfileAvatar user={user} size={50} />
         </TouchableOpacity>
       </View>
+
       <View style={styles.franjaNegra}>
         <Text style={styles.tituloFranja}>¡BIENVENID@, {user?.nombre?.toUpperCase() || 'USUARIO'}!</Text>
       </View>
@@ -220,8 +204,10 @@ export default function ProductSearchScreen({ navigation, route }) {
           />
         )}
       </View>
+      
+      {/* FOOTER */}
       <View style={styles.footer}>
-        <TouchableOpacity onPress={() => navigation.goBack()}>
+        <TouchableOpacity onPress={handleVolver}>
           <Image source={require('../../assets/volver.png')} style={styles.iconosFooter} />
         </TouchableOpacity>
         <TouchableOpacity onPress={handleLogoutFlow}>
@@ -237,7 +223,6 @@ const styles = StyleSheet.create({
   header: { flexDirection: 'row', justifyContent: 'space-between', padding: 20, paddingTop: 40, alignItems: 'center' },
   logoGrande: { width: 70, height: 70, resizeMode: 'contain' },
   nombreAppGrande: { width: 140, height: 50, resizeMode: 'contain' },
-  userAvatar: { width: 50, height: 50, borderRadius: 25, borderWidth: 2, borderColor: '#00ffcc' },
   franjaNegra: { backgroundColor: '#000', padding: 10, alignItems: 'center' },
   tituloFranja: { color: '#ffcc00', fontWeight: 'bold', fontSize: 13, letterSpacing: 1 },
   searchContainer: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 20, marginTop: 15 },

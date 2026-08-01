@@ -1,69 +1,43 @@
 import * as tf from '@tensorflow/tfjs';
 import '@tensorflow/tfjs-react-native';
-import { bundleResourceIO } from '@tensorflow/tfjs-react-native';
+import { decodeJpeg } from '@tensorflow/tfjs-react-native';
+import * as faceLandmarksDetection from '@tensorflow-models/face-landmarks-detection';
 
-// 1. IMPORTACIONES DE ASSETS
-const modelJson = require('../../assets/models/model.json');
-const modelWeights1 = require('../../assets/models/face_recognition_model-shard1.bin');
-const modelWeights2 = require('../../assets/models/face_recognition_model-shard2.bin');
+let detector = null;
 
-export let model = null;
-
-// 2. Inicialización
 export const initializeTensorFlow = async () => {
-  try {
-    await tf.ready();
-    console.log("✅ TensorFlow.js inicializado correctamente");
-    return true;
-  } catch (error) {
-    console.error("❌ Error al inicializar TensorFlow:", error);
-    return false;
-  }
-};
+    if (detector) return detector;
 
-// 3. Carga del modelo (Ajustado para LayersModel)
-export const loadModel = async () => {
-  if (model) return model;
-  
-  try {
-    console.log("📂 Cargando modelo de reconocimiento facial...");
-
-    // DEBUG: Comprobamos si las importaciones son válidas
-    if (!modelJson || !modelWeights1 || !modelWeights2) {
-      throw new Error(`Importaciones fallidas: JSON=${!!modelJson}, W1=${!!modelWeights1}, W2=${!!modelWeights2}`);
+    try {
+        await tf.ready();
+        
+        detector = await faceLandmarksDetection.createDetector(
+            faceLandmarksDetection.SupportedModels.MediaPipeFaceMesh,
+            {
+                runtime: 'tfjs',
+                modelType: 'lite',
+                maxFaces: 1
+            }
+        );
+        
+        console.log("✅ Modelo de IA cargado correctamente.");
+        return detector;
+    } catch (error) {
+        console.error("❌ ERROR CRÍTICO en initializeTensorFlow:", error);
+        return null;
     }
-
-    // CAMBIO CLAVE: Usamos loadLayersModel en lugar de loadGraphModel
-    model = await tf.loadLayersModel(bundleResourceIO(modelJson, [modelWeights1, modelWeights2]));
-    
-    console.log("✅ Modelo cargado exitosamente");
-    return model;
-  } catch (error) {
-    console.error("❌ ERROR CRÍTICO al cargar el modelo:", error.message);
-    return null;
-  }
 };
 
-// 4. Conversión de Imagen a Tensor
-export const imageToTensor = (rawImageData) => {
-  return tf.tidy(() => {
-    const imgTensor = tf.browser.fromPixels(rawImageData);
-    const resized = tf.image.resizeBilinear(imgTensor, [224, 224]);
-    const normalized = resized.div(255.0).expandDims(0);
-    return normalized;
-  });
+export const imageToTensor = async (imageUri) => {
+    try {
+        const response = await fetch(imageUri);
+        const imageData = await response.arrayBuffer();
+        const imageTensor = decodeJpeg(new Uint8Array(imageData));
+        return imageTensor;
+    } catch (error) {
+        console.error("Error convirtiendo a tensor:", error);
+        return null;
+    }
 };
 
-// 5. Limpieza
-export const disposeModel = () => {
-  if (model) {
-    model.dispose();
-    model = null;
-    console.log("🗑️ Modelo liberado de memoria");
-  }
-};
-
-// 6. Verificación (67 líneas totales)
-export const isModelLoaded = () => {
-  return model !== null;
-};
+export { detector };

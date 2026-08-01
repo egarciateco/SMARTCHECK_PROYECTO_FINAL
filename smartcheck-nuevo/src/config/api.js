@@ -1,55 +1,63 @@
 import axios from 'axios';
 import axiosRetry from 'axios-retry';
 
-// La URL de tu backend en la nube
+// --- CONFIGURACIÓN CENTRAL ---
 const api = axios.create({
   baseURL: 'https://smartcheck-proyecto-final.onrender.com', 
-  timeout: 60000, // 60 segundos de espera para que el servidor responda
+  // 60 segundos de timeout para permitir que Render despierte del modo suspensión (Cold Start)
+  timeout: 60000, 
 });
 
-// --- CONFIGURACIÓN DE REINTENTOS AUTOMÁTICOS ---
-// Esto hará que si el servidor está "durmiendo" y falla la primera vez, 
-// la app vuelva a intentar conectarse automáticamente.
+// --- CONFIGURACIÓN DE REINTENTOS INTELIGENTES ---
 axiosRetry(api, { 
-  retries: 3, 
+  retries: 2, 
   retryDelay: (retryCount) => {
-    console.log(`⚠️ Servidor ocupado o durmiendo, reintentando... Intento: ${retryCount}`);
-    return retryCount * 2000; // Espera 2, 4, 6 segundos
+    console.log(`⚠️ Servidor despertando ocupado, reintentando... Intento: ${retryCount}`);
+    return retryCount * 2000;
   },
   retryCondition: (error) => {
-    // Reintenta si hay error de red o timeout
-    return axiosRetry.isNetworkOrIdempotentRequestError(error);
+    // Solo permitimos reintentos automáticos en peticiones GET
+    const isGetMethod = error.config?.method?.toLowerCase() === 'get';
+    return isGetMethod && axiosRetry.isNetworkOrIdempotentRequestError(error);
   }
 });
 
 // --- INTERCEPTORES DE DEBUG ---
 api.interceptors.request.use(request => {
-  // Aseguramos que la URL se imprima bien sumando baseURL y url
-  const fullUrl = request.baseURL ? request.baseURL + request.url : request.url;
-  console.log('🚀 ENVIANDO PETICIÓN A:', fullUrl);
+  const fullUrl = (request.baseURL || '') + (request.url || '');
+  console.log('🚀 [API] Enviando petición a:', fullUrl);
   return request;
 });
 
-api.interceptors.response.use(response => {
-  return response;
-}, error => {
-  console.error('❌ ERROR DETECTADO:', error.message);
-  
-  if (error.response) {
-    if (typeof error.response.data === 'string') {
-      console.error('El servidor devolvió contenido inesperado (posible HTML):', error.response.data.substring(0, 100));
+api.interceptors.response.use(
+  response => response, 
+  error => {
+    console.log('⚠️ [API] Respuesta con error controlado en:', error.config?.url);
+    
+    if (error.response) {
+      console.log('⚠️ Status:', error.response.status);
+      if (typeof error.response.data === 'string') {
+        console.log('⚠️ Contenido recibido:', error.response.data.substring(0, 150));
+      } else {
+        console.log('⚠️ Detalles:', error.response.data);
+      }
     } else {
-      console.error('Detalles del error:', error.response.data);
+      console.log('❌ Error de red o Timeout:', error.message);
     }
+    return Promise.reject(error);
   }
-  
-  return Promise.reject(error);
-});
-// ------------------------------
+);
 
+// --- SERVICIOS CON RUTAS EXPLÍCITAS ---
 export const authService = {
-  register: (userData, config) => api.post('/api/users/register', userData, config),
-  login: (credentials, config) => api.post('/api/users/biometria', credentials, config),
+  register: (formData) => api.post('/api/users/register', formData),
+  loginBiometric: (formData) => api.post('/api/users/biometria', formData),
+  // 🚀 NUEVO: Método integrado para el registro facial usando Axios (con headers automáticos para FormData)
+  registerFacial: (formData) => api.post('/api/users/register-facial', formData, {
+    headers: {
+      'Content-Type': 'multipart/form-data',
+    },
+  }),
 };
 
 export default api;

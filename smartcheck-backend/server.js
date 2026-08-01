@@ -1,64 +1,84 @@
 ﻿const express = require('express');
 const cors = require('cors');
 const admin = require('firebase-admin');
-const dotenv = require('dotenv');
-const helmet = require('helmet'); 
-const morgan = require('morgan');
-
-dotenv.config();
 
 const app = express();
+app.use(cors());
+app.use(express.json());
 
-// 1. Seguridades
-app.use(helmet()); 
-app.use(morgan('dev')); 
-
-app.use(cors({
-  origin: '*', 
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization']
-}));
-
-// 2. Body Parsers
-app.use(express.json({ limit: '10mb' }));
-app.use(express.urlencoded({ extended: true, limit: '10mb' }));
-
-// 3. Firebase
-let serviceAccount;
-try {
+// Inicialización de Firebase Admin SDK
+if (!admin.apps.length) {
+  let serviceAccount;
   if (process.env.FIREBASE_SERVICE_ACCOUNT) {
     serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
   } else {
     serviceAccount = require('./serviceAccountKey.json');
   }
+
   admin.initializeApp({
     credential: admin.credential.cert(serviceAccount)
   });
-  console.log("✅ Firebase inicializado correctamente");
-} catch (error) {
-  console.error("❌ ERROR AL INICIALIZAR FIREBASE:", error);
-  process.exit(1); 
 }
 
-// 4. Rutas
-const usersRouter = require('./routes/users');
-app.use('/api/users', usersRouter);
+const db = admin.firestore();
 
-// --- INTEGRACIÓN BIOMETRÍA ---
-const biometriaRouter = require('./routes/biometria');
-app.use('/api/biometria', biometriaRouter);
-// -----------------------------
+// ==========================================
+// RUTAS DE ADMINISTRADOR
+// ==========================================
 
-app.get('/', (req, res) => {
-  res.status(200).send("🚀 Servidor SMARTCHECK Backend Online");
+// Verificar contraseña del Administrador
+app.post('/api/admin/verify-password', async (req, res) => {
+  try {
+    const { password } = req.body;
+    const configRef = db.collection('config').doc('admin_settings');
+    const doc = await configRef.get();
+
+    let storedPassword = "00192";
+
+    if (doc.exists && doc.data().password) {
+      storedPassword = String(doc.data().password);
+    } else {
+      await configRef.set({ password: "00192" });
+    }
+
+    if (String(password) === storedPassword) {
+      return res.json({ status: "éxito", access: true });
+    } else {
+      return res.status(401).json({ status: "error", mensaje: "Contraseña incorrecta" });
+    }
+  } catch (error) {
+    return res.status(500).json({ status: "error", mensaje: error.message });
+  }
 });
 
-app.use((err, req, res, next) => {
-  console.error("🔥 Error no controlado:", err.stack);
-  res.status(500).json({ status: 'error', mensaje: 'Error interno del servidor' });
+// Cambiar la contraseña del Administrador
+app.post('/api/admin/change-password', async (req, res) => {
+  try {
+    const { currentPassword, newPassword } = req.body;
+    const configRef = db.collection('config').doc('admin_settings');
+    const doc = await configRef.get();
+
+    let storedPassword = doc.exists && doc.data().password ? String(doc.data().password) : "00192";
+
+    if (String(currentPassword) !== storedPassword) {
+      return res.status(400).json({ status: "error", mensaje: "La contraseña actual es incorrecta" });
+    }
+
+    await configRef.set({ password: String(newPassword) }, { merge: true });
+    return res.json({ status: "éxito", mensaje: "Contraseña actualizada correctamente" });
+  } catch (error) {
+    return res.status(500).json({ status: "error", mensaje: error.message });
+  }
 });
 
-const PORT = process.env.PORT || 10000;
+// ==========================================
+// MONTAR RUTAS DE USUARIOS / PRODUCTOS
+// ==========================================
+// Asegúrate de que la ruta del archivo router (ej: './routes/users' o './users') coincida con tu estructura de carpetas
+const userRoutes = require('./routes/users'); 
+app.use('/api/users', userRoutes);
+
+const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
-  console.log(`🚀 Servidor corriendo en el puerto ${PORT}`);
+  console.log(`Servidor activo en el puerto ${PORT}`);
 });

@@ -1,83 +1,102 @@
-﻿import React, { useState, useEffect } from 'react';
-import { 
-  StyleSheet, 
-  Text, 
-  View, 
-  Image, 
-  TouchableOpacity 
-} from 'react-native';
+﻿import React, { useState, useEffect, useRef } from 'react';
+import { StyleSheet, Text, View, Image, TouchableOpacity } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
+import { useAuth } from '../context/AuthContext';
 import { Audio } from 'expo-av';
 
 export default function WelcomeScreen() {
   const navigation = useNavigation();
+  const { user } = useAuth();
   const [loading, setLoading] = useState(true);
-  const [dots, setDots] = useState('.');
+  const soundInstance = useRef(null);
 
   useEffect(() => {
-    if (loading) {
-      const interval = setInterval(() => {
-        setDots(prev => {
-          if (prev === '.') return '..';
-          if (prev === '..') return '...';
-          return '.';
-        });
-      }, 500);
-      return () => clearInterval(interval);
-    }
-  }, [loading]);
+    let isMounted = true;
 
-  useEffect(() => {
-    const timer = setTimeout(async () => {
-      setLoading(false);
+    const setupAudioAndPlay = async () => {
       try {
-        const { sound } = await Audio.Sound.createAsync(require('../../assets/exito.mp3'));
-        await sound.playAsync();
-        sound.setOnPlaybackStatusUpdate(status => {
-          if (status.didJustFinish) sound.unloadAsync();
+        // 1. Configuración obligatoria de audio para Android/iOS
+        await Audio.setAudioModeAsync({
+          allowsRecordingIOS: false,
+          playsInSilentModeIOS: true,
+          staysActiveInBackground: false,
+          shouldDuckAndroid: true,
+          playThroughEarpieceAndroid: false,
         });
+
+        // 2. Cargar el archivo de sonido
+        const { sound } = await Audio.Sound.createAsync(
+          require('../../assets/exito.mp3'),
+          { shouldPlay: false }
+        );
+
+        if (!isMounted) {
+          await sound.unloadAsync();
+          return;
+        }
+
+        soundInstance.current = sound;
+
+        // 3. Temporizador de 2 segundos para mostrar el GIF de carga y luego reproducir
+        setTimeout(async () => {
+          if (!isMounted) return;
+          setLoading(false);
+          
+          try {
+            if (soundInstance.current) {
+              await soundInstance.current.playAsync();
+            }
+          } catch (playError) {
+            console.log("Aviso: No se pudo reproducir el audio:", playError.message);
+          }
+        }, 2000);
+
       } catch (error) {
-        console.log("Error al reproducir audio:", error);
+        console.log("Aviso: Error al configurar el audio:", error.message);
+        setTimeout(() => {
+          if (isMounted) setLoading(false);
+        }, 2000);
       }
-    }, 3000);
-    
-    return () => clearTimeout(timer);
+    };
+
+    setupAudioAndPlay();
+
+    return () => {
+      isMounted = false;
+      if (soundInstance.current) {
+        soundInstance.current.unloadAsync().catch(() => {});
+      }
+    };
   }, []);
+
+  // Seguridad: Si hay usuario, retornamos una vista vacía en lugar de null para evitar que el navegador colapse
+  if (user) {
+    return <View style={styles.container} />;
+  }
 
   return (
     <View style={styles.container}>
-      {/* Encabezado fijo */}
       <View style={styles.header}>
         <Image source={require('../../assets/logo.png')} style={styles.logo} />
         <Image source={require('../../assets/nombreapp.png')} style={styles.nombreApp} />
       </View>
 
-      {/* Sección central dinámica */}
       <View style={styles.middleSection}>
         {loading ? (
           <View style={styles.containerCarga}>
             <Image source={require('../../assets/espera.gif')} style={styles.gifStyle} />
-            <Text style={styles.loadingText}>
-              Verificando conexión{dots} Espere por favor...
-            </Text>
+            <Text style={styles.loadingText}>Verificando conexión...</Text>
           </View>
         ) : (
           <View style={styles.containerListo}>
             <Text style={styles.readyText}>¡SISTEMA LISTO!</Text>
-            <TouchableOpacity 
-              style={styles.buttonContainer} 
-              onPress={() => navigation.navigate('Login')}
-            >
-              <Image 
-                source={require('../../assets/btningreso.png')} 
-                style={styles.btnIngresoImage} 
-              />
+            <TouchableOpacity onPress={() => navigation.navigate('Login')}>
+              <Image source={require('../../assets/btningreso.png')} style={styles.btnIngresoImage} />
             </TouchableOpacity>
           </View>
         )}
       </View>
 
-      {/* Pie de página */}
       <View style={styles.footer}>
         <Text style={styles.footerText}>SmartCheck v1.0</Text>
       </View>
@@ -86,81 +105,17 @@ export default function WelcomeScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { 
-    flex: 1, 
-    backgroundColor: '#001f3f', 
-    alignItems: 'center', 
-    justifyContent: 'space-between',
-    paddingVertical: 30,
-    // Marco dorado
-    borderWidth: 1,
-    borderColor: '#FFD700',
-    margin: 10,
-    borderRadius: 15
-  },
-  header: { 
-    alignItems: 'center', 
-    marginTop: 40 
-  },
-  logo: { 
-    width: 140, // Agrandado
-    height: 140, // Agrandado
-    resizeMode: 'contain' 
-  },
-  nombreApp: { 
-    width: 260, // Agrandado
-    height: 80, // Agrandado
-    resizeMode: 'contain', 
-    marginTop: 10 
-  },
-  middleSection: { 
-    flex: 1, 
-    justifyContent: 'center', 
-    alignItems: 'center',
-    width: '100%' 
-  },
-  containerCarga: { 
-    alignItems: 'center',
-    justifyContent: 'center' 
-  },
-  gifStyle: { 
-    width: 150, 
-    height: 150, 
-    resizeMode: 'contain' 
-  },
-  loadingText: { 
-    marginTop: 20, 
-    fontSize: 16, 
-    color: '#00ffcc', 
-    fontWeight: 'bold',
-    textAlign: 'center' 
-  },
-  containerListo: { 
-    alignItems: 'center',
-    width: '100%',
-    paddingHorizontal: 20
-  },
-  readyText: { 
-    color: '#fff', 
-    fontSize: 24, 
-    fontWeight: 'bold', 
-    marginBottom: 30 
-  },
-  buttonContainer: {
-    width: '100%',
-    alignItems: 'center',
-    justifyContent: 'center'
-  },
-  btnIngresoImage: { 
-    width: 280, 
-    height: 70, 
-    resizeMode: 'contain' 
-  },
-  footer: { 
-    marginBottom: 20 
-  },
-  footerText: { 
-    color: '#888', 
-    fontSize: 12 
-  }
+  container: { flex: 1, backgroundColor: '#001f3f', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 30, borderWidth: 1, borderColor: '#FFD700', margin: 10, borderRadius: 15 },
+  header: { alignItems: 'center', marginTop: 40 },
+  logo: { width: 140, height: 140, resizeMode: 'contain' },
+  nombreApp: { width: 260, height: 80, resizeMode: 'contain' },
+  middleSection: { flex: 1, justifyContent: 'center', alignItems: 'center', width: '100%' },
+  containerCarga: { alignItems: 'center' },
+  gifStyle: { width: 150, height: 150, resizeMode: 'contain' },
+  loadingText: { marginTop: 20, fontSize: 16, color: '#00ffcc', fontWeight: 'bold' },
+  containerListo: { alignItems: 'center', width: '100%' },
+  readyText: { color: '#fff', fontSize: 24, fontWeight: 'bold', marginBottom: 30 },
+  btnIngresoImage: { width: 280, height: 70, resizeMode: 'contain' },
+  footer: { marginBottom: 20 },
+  footerText: { color: '#888', fontSize: 12 }
 });
