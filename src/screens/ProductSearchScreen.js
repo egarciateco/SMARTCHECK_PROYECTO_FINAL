@@ -1,96 +1,26 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { View, TextInput, FlatList, TouchableOpacity, Image, Text, StyleSheet, ActivityIndicator, Alert } from 'react-native';
+import { View, TextInput, FlatList, TouchableOpacity, Image, Text, StyleSheet, ActivityIndicator, Alert, SafeAreaView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import MapView, { Marker, PROVIDER_GOOGLE } from 'react-native-maps'; 
-import * as Location from 'expo-location'; 
 import { useAuth } from '../context/AuthContext';
 import api from '../config/api';
-import ProfileAvatar from '../components/ProfileAvatar'; // Importación correcta
 
 export default function ProductSearchScreen({ navigation, route }) {
-  const { user, logout } = useAuth(); 
+  const { logout } = useAuth(); 
   const params = route?.params || {};
-  const mapRef = useRef(null);
-  
-  const initialLat = params.latitud ? parseFloat(params.latitud) : -31.7333;
-  const initialLng = params.longitud ? parseFloat(params.longitud) : -60.5167;
+  const searchTimeoutRef = useRef(null);
 
   const [productos, setProductos] = useState([]);
   const [search, setSearch] = useState('');
+  const [suggestions, setSuggestions] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [region, setRegion] = useState({
-    latitude: initialLat,
-    longitude: initialLng,
-    latitudeDelta: 0.015,
-    longitudeDelta: 0.012
-  });
-  
-  const [localidadTexto, setLocalidadTexto] = useState('Localizando...');
-  const [provinciaTexto, setProvinciaTexto] = useState('...');
 
-  // EFECTO 1: Geolocalización inicial
   useEffect(() => {
-    let isMounted = true;
-    const activarGeolocalizacion = async () => {
-      try {
-        const { status } = await Location.requestForegroundPermissionsAsync();
-        if (status !== 'granted') {
-          if (isMounted) {
-            setLocalidadTexto("Paraná");
-            setProvinciaTexto("Entre Ríos");
-          }
-          return;
-        }
-
-        const posicionActual = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.High });
-        const { latitude, longitude } = posicionActual.coords;
-        const nuevaRegion = { latitude, longitude, latitudeDelta: 0.015, longitudeDelta: 0.012 };
-
-        if (isMounted) {
-          setRegion(nuevaRegion);
-          if (mapRef.current) mapRef.current.animateToRegion(nuevaRegion, 1200);
-          
-          const direccion = await Location.reverseGeocodeAsync({ latitude, longitude });
-          if (direccion.length > 0) {
-            setLocalidadTexto(direccion[0].city || direccion[0].subregion || "Ubicación Desconocida");
-            setProvinciaTexto(direccion[0].region || "Provincia");
-          }
-        }
-      } catch (error) {
-        if (isMounted) {
-          setLocalidadTexto("Paraná");
-          setProvinciaTexto("Entre Ríos");
-        }
-      }
-    };
-
-    if (!params.latitud && !params.longitud) {
-      activarGeolocalizacion();
-    } else {
-      setLocalidadTexto("Ubicación del Producto");
-      setProvinciaTexto("Comercio");
+    if (params.productoEncontrado) {
+      const processed = procesarProducto(params.productoEncontrado);
+      setProductos([processed]);
+      setSearch(processed.nombreFormateado);
     }
-    
-    return () => { isMounted = false; };
-  }, []);
-
-  // EFECTO 2: Escucha cambios (vuelve del escáner)
-  useEffect(() => {
-    if (params.latitud && params.longitud) {
-      const regionActualizada = {
-        latitude: parseFloat(params.latitud),
-        longitude: parseFloat(params.longitud),
-        latitudeDelta: 0.008,
-        longitudeDelta: 0.006
-      };
-      setRegion(regionActualizada);
-      if (mapRef.current) mapRef.current.animateToRegion(regionActualizada, 1000);
-      if (params.productoEncontrado) {
-        setProductos([params.productoEncontrado]);
-        setSearch(params.productoEncontrado.nombre);
-      }
-    }
-  }, [params.latitud, params.longitud, params.productoEncontrado]);
+  }, [params.productoEncontrado]);
 
   const handleLogoutFlow = () => {
     navigation.navigate('Goodbye');
@@ -101,36 +31,137 @@ export default function ProductSearchScreen({ navigation, route }) {
     if (navigation.canGoBack()) {
       navigation.goBack();
     } else {
-      navigation.navigate('Home'); // O a la ruta principal que definas
+      navigation.navigate('HomeScreen');
     }
   };
 
+  // Conversor robusto de precios (maneja números, strings con $, puntos y comas)
+  const parsearPrecio = (val) => {
+    if (typeof val === 'number') return val;
+    if (!val) return 0;
+    const clean = String(val)
+      .replace(/[^0-9,.-]+/g, "")
+      .replace(/\./g, "")
+      .replace(',', '.');
+    const num = parseFloat(clean);
+    return isNaN(num) ? 0 : num;
+  };
+
+  // Validador y armador de URL de imágenes (maneja absolutas y relativas del backend)
+  const obtenerUrlImagen = (path) => {
+    if (!path) return null;
+    if (typeof path !== 'string') return null;
+    if (path.startsWith('http://') || path.startsWith('https://')) {
+      return path;
+    }
+    const baseUrl = api.defaults?.baseURL || '';
+    if (!baseUrl) return path;
+
+    if (baseUrl.endsWith('/') && path.startsWith('/')) {
+      return baseUrl.slice(0, -1) + path;
+    }
+    if (!baseUrl.endsWith('/') && !path.startsWith('/')) {
+      return baseUrl + '/' + path;
+    }
+    return baseUrl + path;
+  };
+
+  const procesarProducto = (prod) => {
+    let mejorPrecio = 0;
+    let mejorSuper = 'No especificado';
+
+    // Buscar en listas de precios o comercios asociados
+    const listaPrecios = prod.precios || prod.comercios || prod.preciosComercios || prod.comparisons || prod.preciosSupermercados || [];
+    if (Array.isArray(listaPrecios) && listaPrecios.length > 0) {
+      const ordenados = [...listaPrecios].sort((a, b) => {
+        const pA = parsearPrecio(a.precio || a.valor || a.price || a.costo);
+        const pB = parsearPrecio(b.precio || b.valor || b.price || b.costo);
+        return pA - pB;
+      });
+      if (ordenados[0]) {
+        mejorPrecio = parsearPrecio(ordenados[0].precio || ordenados[0].valor || ordenados[0].price || ordenados[0].costo);
+        mejorSuper = ordenados[0].supermercado || ordenados[0].nombreComercio || ordenados[0].comercio || ordenados[0].supermarket || ordenados[0].nombre || 'Supermercado Local';
+      }
+    }
+
+    // Si no encontró en la lista, buscar precio directo en el objeto principal
+    if (!mejorPrecio || mejorPrecio === 0) {
+      mejorPrecio = parsearPrecio(prod.precio || prod.precioActual || prod.price || prod.valor || prod.precioVenta);
+    }
+
+    if (mejorSuper === 'No especificado' || !mejorSuper) {
+      mejorSuper = prod.supermercadoMasBarato || prod.supermercado || prod.comercio || prod.nombreComercio || 'Supermercado Local';
+    }
+
+    const precioFormateado = mejorPrecio > 0 
+      ? `$ ${mejorPrecio.toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` 
+      : (prod.precio || prod.price || '$ 0.00');
+
+    const rawImage = prod.imagen || prod.image || prod.foto || prod.urlImagen || prod.img || null;
+
+    return {
+      ...prod,
+      nombreFormateado: prod.name || prod.nombre || prod.titulo || prod.title || 'Producto sin nombre',
+      marcaFormateada: prod.marca || prod.brand || prod.marcaProducto || 'Genérica',
+      precioFormateado: precioFormateado,
+      supermercadoFormateado: mejorSuper,
+      imagenFormateada: obtenerUrlImagen(rawImage)
+    };
+  };
+
+  const handleSearchInputChange = (text) => {
+    setSearch(text);
+
+    if (searchTimeoutRef.current) {
+      clearTimeout(searchTimeoutRef.current);
+    }
+
+    if (!text.trim() || text.trim().length < 2) {
+      setSuggestions([]);
+      return;
+    }
+
+    searchTimeoutRef.current = setTimeout(async () => {
+      try {
+        const response = await api.get('/api/productos/autocompletar', { params: { q: text } });
+        const json = response.data;
+        if (json.status === 'success' && Array.isArray(json.data)) {
+          setSuggestions(json.data);
+        } else {
+          setSuggestions([]);
+        }
+      } catch (error) {
+        console.error('Error al obtener sugerencias de autocompletar:', error);
+        setSuggestions([]);
+      }
+    }, 300);
+  };
+
+  const handleSelectSuggestion = (item) => {
+    setSearch(item.name || item.nombre || '');
+    setSuggestions([]);
+    const productoProcesado = procesarProducto(item);
+    setProductos([productoProcesado]);
+  };
+
   const realizarBusqueda = async () => {
-    if (!search.trim()) return Alert.alert("Atención", "Ingresa un producto."); 
+    if (!search.trim()) return Alert.alert("Atención", "Ingresa un producto a buscar."); 
     
+    setSuggestions([]); 
     setLoading(true);
     try {
-      const response = await api.get('/productos/buscar', { params: { q: search } });
+      const response = await api.get('/api/productos/buscar', { params: { q: search } });
+      const json = response.data;
+      const rawItems = json?.data || json?.productos || json || [];
+      const items = Array.isArray(rawItems) ? rawItems.map(procesarProducto) : [];
+
+      setProductos(items);
       
-      if (response.data?.status === 'success') { 
-        const items = response.data.data || [];
-        setProductos(items);
-        
-        if (items.length > 0 && items[0].latitud) {
-          const proxyRegion = {
-            latitude: parseFloat(items[0].latitud),
-            longitude: parseFloat(items[0].longitud),
-            latitudeDelta: 0.008,
-            longitudeDelta: 0.006
-          };
-          setRegion(proxyRegion);
-          if (mapRef.current) mapRef.current.animateToRegion(proxyRegion, 1000);
-        } else if (items.length === 0) {
-          Alert.alert("Sin resultados", "No se encontraron productos.");
-        }
+      if (items.length === 0) {
+        Alert.alert("Sin resultados", "No se encontraron productos con ese nombre.");
       }
     } catch (error) { 
-      console.error(error);
+      console.error("Error en búsqueda manual:", error);
       Alert.alert("Error", "No se pudo conectar con el servidor."); 
     } finally { 
       setLoading(false); 
@@ -138,108 +169,166 @@ export default function ProductSearchScreen({ navigation, route }) {
   };
 
   return (
-    <View style={styles.container}>
-      {/* HEADER */}
+    <SafeAreaView style={styles.container}>
+      {/* Header sin foto a la derecha */}
       <View style={styles.header}>
         <Image source={require('../../assets/logo.png')} style={styles.logoGrande} />
         <Image source={require('../../assets/nombreapp.png')} style={styles.nombreAppGrande} />
-        <TouchableOpacity onPress={() => navigation.navigate('Perfil')}>
-           <ProfileAvatar user={user} size={50} />
-        </TouchableOpacity>
       </View>
 
+      {/* Franja con título */}
       <View style={styles.franjaNegra}>
-        <Text style={styles.tituloFranja}>¡BIENVENID@, {user?.nombre?.toUpperCase() || 'USUARIO'}!</Text>
+        <Text style={styles.tituloFranja}>¡BÚSQUEDA MANUAL DE PRODUCTOS!</Text>
       </View>
       
-      <View style={styles.searchContainer}>
-        <TextInput 
-          placeholder="Buscar producto..." 
-          placeholderTextColor="#ccc" 
-          style={styles.input} 
-          value={search} 
-          onChangeText={setSearch} 
-          onSubmitEditing={realizarBusqueda} 
-        />
-        <TouchableOpacity style={styles.btnBuscar} onPress={realizarBusqueda}>
-          <Ionicons name="search" size={24} color="#001f3f" />
-        </TouchableOpacity>
-      </View>
-      
-      <TouchableOpacity style={styles.btnScanner} onPress={() => navigation.navigate('Scanner')}>
-        <Image source={require('../../assets/scanner.png')} style={styles.scannerImg} />
-      </TouchableOpacity>
-      
-      <View style={styles.mapSection}>
-        <View style={styles.locationRow}>
-          <Image source={require('../../assets/location.png')} style={styles.locationIcon} />
-          <Text style={styles.locationText}>{localidadTexto} - {provinciaTexto}</Text>
+      {/* Campo de búsqueda y lupa más abajo, alineados */}
+      <View style={styles.searchSectionWrapper}>
+        <View style={styles.searchRow}>
+          <TextInput 
+            placeholder="Ej: Aceite, Leche, Fideos..." 
+            placeholderTextColor="#666" 
+            style={styles.input} 
+            value={search} 
+            onChangeText={handleSearchInputChange} 
+            onSubmitEditing={() => {
+              setSuggestions([]);
+              realizarBusqueda();
+            }} 
+          />
+          
+          <TouchableOpacity style={styles.btnBuscarLupa} onPress={() => {
+            setSuggestions([]);
+            realizarBusqueda();
+          }}>
+            <Image source={require('../../assets/lupa.png')} style={styles.lupaImg} />
+          </TouchableOpacity>
         </View>
-        <View style={styles.mapCanvasWrapper}>
-          <MapView 
-            ref={mapRef}
-            provider={PROVIDER_GOOGLE} 
-            style={styles.mapCanvas} 
-            region={region}
-            showsUserLocation={true}
-          >
-            <Marker coordinate={{ latitude: region.latitude, longitude: region.longitude }} pinColor="#00ffcc" />
-          </MapView>
-        </View>
-      </View>
 
-      <View style={styles.listArea}>
+        {suggestions.length > 0 && (
+          <View style={styles.suggestionsContainer}>
+            <FlatList
+              data={suggestions}
+              keyExtractor={(item, index) => item.id?.toString() || index.toString()}
+              keyboardShouldPersistTaps="handled"
+              renderItem={({ item }) => {
+                const proc = procesarProducto(item);
+                return (
+                  <TouchableOpacity 
+                    style={styles.suggestionItem} 
+                    onPress={() => handleSelectSuggestion(item)}
+                  >
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.suggestionText} numberOfLines={1}>{proc.nombreFormateado}</Text>
+                      <Text style={styles.suggestionSubText}>{proc.marcaFormateada} • <Text style={{ color: '#00ffcc' }}>{proc.supermercadoFormateado}</Text></Text>
+                    </View>
+                    <Text style={styles.suggestionPrice}>{proc.precioFormateado}</Text>
+                  </TouchableOpacity>
+                );
+              }}
+            />
+          </View>
+        )}
+      </View>
+      
+      {/* Línea fina dorada debajo de la búsqueda */}
+      <View style={styles.lineaDoradaSuperior} />
+
+      {/* Recuadro de resultados / espacio vacío */}
+      <View style={styles.resultsContainerBox}>
         {loading ? (
-          <ActivityIndicator size="large" color="#00ffcc" />
+          <ActivityIndicator size="large" color="#ffcc00" style={{ marginTop: 20 }} />
         ) : (
           <FlatList 
             data={productos} 
-            keyExtractor={(item, index) => index.toString()} 
+            keyExtractor={(item, index) => item.id?.toString() || index.toString()} 
             renderItem={({item}) => (
               <View style={styles.itemRow}>
-                <Text style={styles.itemText}>{item.nombre}</Text>
+                {item.imagenFormateada ? (
+                  <Image source={{ uri: item.imagenFormateada }} style={styles.itemImage} resizeMode="contain" />
+                ) : (
+                  <View style={styles.itemPlaceholder}><Ionicons name="cube" size={20} color="#666" /></View>
+                )}
+                <View style={styles.itemInfo}>
+                  <Text style={styles.itemText} numberOfLines={1}>{item.nombreFormateado}</Text>
+                  <Text style={styles.itemBrand}>Marca: {item.marcaFormateada}</Text>
+                  <Text style={styles.itemSuper}>📍 {item.supermercadoFormateado}</Text>
+                </View>
+                <View style={styles.itemPriceBox}>
+                  <Text style={styles.itemPrice}>{item.precioFormateado}</Text>
+                </View>
               </View>
             )} 
-            ListEmptyComponent={<Text style={styles.emptyText}>No hay resultados.</Text>} 
+            ListEmptyComponent={<Text style={styles.emptyText}>Escribe un producto arriba para buscar...</Text>} 
           />
         )}
       </View>
       
-      {/* FOOTER */}
+      {/* Línea dorada antes del footer */}
+      <View style={styles.lineaDorada} />
+
+      {/* Footer con botones más grandes */}
       <View style={styles.footer}>
-        <TouchableOpacity onPress={handleVolver}>
+        <TouchableOpacity onPress={handleVolver} style={styles.footerButtonTouch}>
           <Image source={require('../../assets/volver.png')} style={styles.iconosFooter} />
         </TouchableOpacity>
-        <TouchableOpacity onPress={handleLogoutFlow}>
+        <TouchableOpacity onPress={handleLogoutFlow} style={styles.footerButtonTouch}>
           <Image source={require('../../assets/salir.png')} style={styles.iconosFooter} />
         </TouchableOpacity>
       </View>
-    </View>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#001f3f' },
-  header: { flexDirection: 'row', justifyContent: 'space-between', padding: 20, paddingTop: 40, alignItems: 'center' },
-  logoGrande: { width: 70, height: 70, resizeMode: 'contain' },
-  nombreAppGrande: { width: 140, height: 50, resizeMode: 'contain' },
-  franjaNegra: { backgroundColor: '#000', padding: 10, alignItems: 'center' },
+  header: { flexDirection: 'row', justifyContent: 'flex-start', paddingHorizontal: 15, paddingVertical: 10, alignItems: 'center', backgroundColor: '#000' },
+  logoGrande: { width: 65, height: 65, resizeMode: 'contain', marginRight: 10 },
+  nombreAppGrande: { width: 160, height: 45, resizeMode: 'contain' },
+  franjaNegra: { backgroundColor: '#000', padding: 8, alignItems: 'center', borderTopWidth: 1, borderBottomWidth: 1, borderColor: '#ffcc00' },
   tituloFranja: { color: '#ffcc00', fontWeight: 'bold', fontSize: 13, letterSpacing: 1 },
-  searchContainer: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 20, marginTop: 15 },
-  input: { flex: 1, backgroundColor: '#002a54', padding: 12, borderRadius: 10, color: '#fff', borderWidth: 1, borderColor: '#004a91' },
-  btnBuscar: { backgroundColor: '#00ffcc', padding: 12, borderRadius: 10, marginLeft: 10 },
-  btnScanner: { alignItems: 'center', marginVertical: 10 },
-  scannerImg: { width: 220, height: 60, resizeMode: 'contain' },
-  mapSection: { marginHorizontal: 20, height: 210, marginTop: 10 },
-  locationRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 5, height: 20 },
-  locationIcon: { width: 16, height: 16, resizeMode: 'contain', marginRight: 5 },
-  locationText: { color: '#fff', fontSize: 13, fontWeight: 'bold' },
-  mapCanvasWrapper: { height: 185, borderRadius: 10, overflow: 'hidden', borderWidth: 2, borderColor: '#00ffcc' },
-  mapCanvas: { ...StyleSheet.absoluteFillObject }, 
-  listArea: { flex: 1, paddingHorizontal: 20, marginTop: 10 },
-  itemRow: { backgroundColor: '#002a54', padding: 15, borderRadius: 10, marginBottom: 5 },
-  itemText: { color: '#fff' },
-  emptyText: { color: '#555', textAlign: 'center', marginTop: 10, fontSize: 12 },
-  footer: { flexDirection: 'row', justifyContent: 'space-between', paddingHorizontal: 40, paddingBottom: 25 },
-  iconosFooter: { width: 45, height: 45, resizeMode: 'contain' }
+  searchSectionWrapper: { paddingHorizontal: 15, marginTop: 15, marginBottom: 10, zIndex: 999 },
+  searchRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  input: { flex: 1, backgroundColor: '#fff', padding: 12, borderRadius: 8, color: '#000', borderWidth: 1, borderColor: '#ccc', fontSize: 14, height: 48 },
+  suggestionsContainer: {
+    position: 'absolute',
+    top: 56,
+    left: 15,
+    right: 15,
+    backgroundColor: '#002a54',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#004a91',
+    maxHeight: 220,
+    zIndex: 1000,
+    elevation: 5,
+  },
+  suggestionItem: {
+    padding: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: '#003b75',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  suggestionText: { color: '#fff', fontSize: 13, fontWeight: 'bold' },
+  suggestionSubText: { color: '#aaa', fontSize: 11, marginTop: 2 },
+  suggestionPrice: { color: '#00ffcc', fontSize: 13, fontWeight: 'bold' },
+  btnBuscarLupa: { backgroundColor: '#002a54', padding: 8, borderRadius: 8, borderWidth: 1, borderColor: '#ffcc00', justifyContent: 'center', alignItems: 'center', height: 48, width: 48 },
+  lupaImg: { width: 28, height: 28, resizeMode: 'contain' },
+  lineaDoradaSuperior: { height: 1.5, backgroundColor: '#ffcc00', width: '100%', marginBottom: 10 },
+  resultsContainerBox: { flex: 1, marginHorizontal: 15, marginBottom: 8, borderWidth: 1, borderColor: '#ffcc00', borderRadius: 12, padding: 10, backgroundColor: '#001a33' },
+  itemRow: { backgroundColor: '#002a54', padding: 10, borderRadius: 8, marginBottom: 6, flexDirection: 'row', alignItems: 'center', borderWidth: 1, borderColor: '#004a91' },
+  itemImage: { width: 45, height: 45, borderRadius: 6, backgroundColor: '#FFF', marginRight: 10 },
+  itemPlaceholder: { width: 45, height: 45, borderRadius: 6, backgroundColor: '#113a65', justifyContent: 'center', alignItems: 'center', marginRight: 10 },
+  itemInfo: { flex: 1, justifyContent: 'center' },
+  itemText: { color: '#fff', fontSize: 13, fontWeight: 'bold' },
+  itemBrand: { color: '#aaa', fontSize: 11 },
+  itemSuper: { color: '#FFD700', fontSize: 11, fontWeight: '600', marginTop: 2 },
+  itemPriceBox: { justifyContent: 'center', alignItems: 'flex-end', paddingLeft: 8 },
+  itemPrice: { color: '#00ffcc', fontSize: 14, fontWeight: 'bold' },
+  emptyText: { color: '#888', textAlign: 'center', marginTop: 15, fontSize: 12 },
+  lineaDorada: { height: 1.5, backgroundColor: '#ffcc00', width: '100%', marginBottom: 10 },
+  footer: { flexDirection: 'row', justifyContent: 'space-between', paddingHorizontal: 40, paddingBottom: 15, paddingTop: 5 },
+  footerButtonTouch: { padding: 5 },
+  iconosFooter: { width: 45, height: 45, resizeMode: 'contain', tintColor: '#00BFFF' }
 });

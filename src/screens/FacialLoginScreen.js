@@ -1,10 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { 
   StyleSheet, Text, View, TouchableOpacity, Image, 
-  Alert, SafeAreaView, BackHandler 
+  Alert, SafeAreaView, BackHandler, ActivityIndicator 
 } from 'react-native';
-import { Camera, CameraView } from 'expo-camera';
-import { useNavigation, useRoute } from '@react-navigation/native';
+import { CameraView, useCameraPermissions } from 'expo-camera';
+import { useNavigation, useRoute, useIsFocused } from '@react-navigation/native';
 import { Audio } from 'expo-av';
 import * as ImageManipulator from 'expo-image-manipulator';
 import { authService } from '../config/api';
@@ -16,19 +16,17 @@ export default function FacialLoginScreen() {
   const { login, registerFormData, clearRegisterData } = useAuth();
   const cameraRef = useRef(null);
 
-  const [hasPermission, setHasPermission] = useState(null);
+  const [permission, requestPermission] = useCameraPermissions();
   const [loading, setLoading] = useState(false);
   const [isCapturing, setIsCapturing] = useState(false);
+
+  // Control de foco para liberar y reiniciar la cámara correctamente al navegar
+  const isFocused = useIsFocused();
 
   const isFromRegister = route.params?.returnScreen === 'RegisterScreen';
 
   useEffect(() => {
     let isMounted = true;
-
-    (async () => {
-      const { status } = await Camera.requestCameraPermissionsAsync();
-      if (isMounted) setHasPermission(status === 'granted');
-    })();
 
     const timer = setTimeout(async () => {
       try {
@@ -183,7 +181,7 @@ export default function FacialLoginScreen() {
 
         let response;
         try {
-          response = await fetch('https://smartcheck-proyecto-final.onrender.com/api/users/register-facial', {
+          response = await fetch('https://smartcheck-proyecto.onrender.com/api/users/register-facial', {
             method: 'POST',
             body: formData,
             signal: controller.signal,
@@ -204,10 +202,8 @@ export default function FacialLoginScreen() {
           throw new Error(data.mensaje || 'Error en el registro facial');
         }
 
-        // 🔊 REPRODUCIR AUDIO DE ÉXITO
         await reproducirAudioReconocida().catch(() => {});
 
-        // CONSTRUIR O TOMAR OBJETO DE USUARIO Y LOGUEAR AUTOMÁTICAMENTE
         const usuarioNuevo = data.usuario || {
           uid: data.uid || data.userId,
           nombre: (registerFormData.nombre || '').trim(),
@@ -220,11 +216,9 @@ export default function FacialLoginScreen() {
         };
 
         await login(usuarioNuevo);
-
         clearRegisterData();
         setLoading(false);
 
-        // REDIRECCIÓN DIRECTA A HOMESCREEN
         Alert.alert(
           "¡Registro Exitoso!", 
           `Bienvenid@, ${usuarioNuevo.nombre || ''}. Tu cuenta ha sido creada con éxito.`,
@@ -244,9 +238,9 @@ export default function FacialLoginScreen() {
       const response = await authService.loginBiometric(formData);
 
       if (response && response.data && response.data.status === 'success') {
-        const usuarioLogueado = response.data.usuario;
+        // CAMBIO AQUÍ: Usamos response.data.user (o response.data directamente)
+        const usuarioLogueado = response.data.user || response.data; 
         
-        // 🔊 REPRODUCIR AUDIO DE ÉXITO
         await reproducirAudioReconocida().catch(() => {});
 
         await login(usuarioLogueado);
@@ -254,7 +248,7 @@ export default function FacialLoginScreen() {
 
         Alert.alert(
           "¡Éxito!", 
-          `Bienvenid@ de nuevo, ${usuarioLogueado.nombre || ''}`,
+          `Bienvenid@ de nuevo, ${usuarioLogueado.nombre || 'Usuario'}`,
           [
             {
               text: "Continuar",
@@ -291,14 +285,22 @@ export default function FacialLoginScreen() {
     BackHandler.exitApp();
   };
 
-  if (hasPermission === null) {
-    return <View style={styles.container} />;
+  // Manejo de permisos con verificación segura
+  if (!permission) {
+    return (
+      <View style={[styles.container, styles.centerMessage]}>
+        <ActivityIndicator size="large" color="#FFD700" />
+      </View>
+    );
   }
   
-  if (hasPermission === false) {
+  if (!permission.granted) {
     return (
-      <View style={styles.container}>
+      <View style={[styles.container, styles.centerMessage]}>
         <Text style={styles.errorText}>No hay acceso a la cámara. Habilítalo en los ajustes.</Text>
+        <TouchableOpacity style={styles.permissionButton} onPress={requestPermission}>
+          <Text style={styles.permissionButtonText}>Conceder Permiso</Text>
+        </TouchableOpacity>
       </View>
     );
   }
@@ -321,13 +323,16 @@ export default function FacialLoginScreen() {
 
       {/* CÁMARA */}
       <View style={styles.cameraContainer}>
-        <CameraView 
-          ref={cameraRef} 
-          style={styles.camera} 
-          facing="front"
-        >
-          <View style={styles.overlayOval} />
-        </CameraView>
+        {/* Usamos isFocused para garantizar que la cámara se desmonte y monte correctamente */}
+        {isFocused && (
+          <CameraView 
+            ref={cameraRef} 
+            style={styles.camera} 
+            facing="front"
+          >
+            <View style={styles.overlayOval} />
+          </CameraView>
+        )}
 
         {loading && (
           <Image source={require('../../assets/standby.gif')} style={styles.standbyFullBoxAbsolute} />
@@ -368,6 +373,11 @@ const styles = StyleSheet.create({
     flex: 1, 
     backgroundColor: '#001f3f', 
     justifyContent: 'space-between' 
+  },
+  centerMessage: {
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20
   },
   headerRow: { 
     flexDirection: 'row', 
@@ -479,7 +489,18 @@ const styles = StyleSheet.create({
   errorText: { 
     color: '#fff', 
     textAlign: 'center', 
-    marginTop: 50, 
-    fontSize: 16 
+    fontSize: 16,
+    marginBottom: 15
+  },
+  permissionButton: {
+    backgroundColor: '#FFD700',
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    borderRadius: 8
+  },
+  permissionButtonText: {
+    color: '#000',
+    fontWeight: 'bold',
+    fontSize: 14
   }
 });

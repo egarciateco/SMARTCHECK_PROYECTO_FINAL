@@ -15,65 +15,74 @@ export default function ProfileScreen({ navigation }) {
   const [ubicacionTexto, setUbicacionTexto] = useState('Cargando ubicación...');
   const [visitasLocales, setVisitasLocales] = useState(1);
 
+  const userId = user?.id || user?.uid || user?._id;
+
   useLayoutEffect(() => {
     navigation.setOptions({ headerShown: false });
   }, [navigation]);
 
+  // ⚡ 1. Sincronización inmediata de perfil y visitas (Independiente del GPS)
   useEffect(() => {
-    const gestionarVisitas = async () => {
-      try {
-        const idUsuario = user?.id || user?.uid || user?._id || userData?.id;
-        if (!idUsuario) return;
+    if (!userId) return;
 
-        const storageKey = `@app_visitas_${idUsuario}`;
-        const sesionActivaKey = `@sesion_contabilizada_${idUsuario}`;
+    const sincronizarPerfilYVisitas = async () => {
+      try {
+        let servidorVisitas = user?.visitas || userData?.visitas || 1;
         
+        try {
+          const response = await api.get(`/api/users/usuario/${userId}`);
+          if (response.data && response.data.usuario) {
+            const usuarioServidor = response.data.usuario;
+            setUserData(usuarioServidor);
+            servidorVisitas = usuarioServidor.visitas || usuarioServidor.cantidadVisitas || servidorVisitas;
+          }
+        } catch (err) {
+          console.log("Aviso: No se pudo actualizar perfil desde la API, usando datos locales:", err.message);
+        }
+
+        const storageKey = `@app_visitas_${userId}`;
+        const sesionActivaKey = `@sesion_contabilizada_${userId}`;
+        
+        const localStoredVisitas = parseInt(await AsyncStorage.getItem(storageKey) || '0', 10);
         const yaContabilizado = await AsyncStorage.getItem(sesionActivaKey);
-        let visitasGuardadas = await AsyncStorage.getItem(storageKey);
-        let baseVisitas = visitasGuardadas ? parseInt(visitasGuardadas, 10) : (user?.visitas || userData?.visitas || 1);
+        
+        let visitasActuales = Math.max(servidorVisitas, localStoredVisitas);
 
         if (!yaContabilizado) {
-          baseVisitas += 1;
-          await AsyncStorage.setItem(storageKey, baseVisitas.toString());
+          visitasActuales += 1;
+          await AsyncStorage.setItem(storageKey, visitasActuales.toString());
           await AsyncStorage.setItem(sesionActivaKey, 'true');
 
           try {
-            await api.post(`/api/users/incrementar-visitas/${idUsuario}`, { visitas: baseVisitas });
+            const resApi = await api.post(`/api/users/incrementar-visitas/${userId}`, { visitas: visitasActuales });
+            if (resApi.data) {
+              const nuevaVisitaServidor = resApi.data.visitas || resApi.data.cantidadVisitas;
+              if (nuevaVisitaServidor) {
+                visitasActuales = Math.max(visitasActuales, nuevaVisitaServidor);
+                await AsyncStorage.setItem(storageKey, visitasActuales.toString());
+              }
+            }
           } catch (apiErr) {
             console.log("No se pudo actualizar visitas en la API, usando respaldo local:", apiErr.message);
           }
         }
 
-        setVisitasLocales(baseVisitas);
+        setVisitasLocales(visitasActuales);
+
       } catch (error) {
-        console.log("Error actualizando visitas locales:", error.message);
+        console.log("Error en sincronización de perfil y visitas:", error.message);
       }
     };
 
-    gestionarVisitas();
-  }, [user, userData?.id]);
+    sincronizarPerfilYVisitas();
+  }, [userId]);
 
+  // 🗺️ 2. Gestión de ubicación separada en segundo plano
   useEffect(() => {
-    const fetchUserProfile = async () => {
-      try {
-        const idUsuario = user?.id || user?.uid || user?._id;
-        if (idUsuario) {
-          const response = await api.get(`/api/users/usuario/${idUsuario}`);
-          if (response.data && response.data.usuario) {
-            setUserData(response.data.usuario);
-            await resolverUbicacion(response.data.usuario);
-            return;
-          }
-        }
-      } catch (error) {
-        console.log("Aviso: No se pudo actualizar desde la API, usando datos locales:", error.message);
-      }
-      if (user) {
-        await resolverUbicacion(user);
-      }
+    const inicializarUbicacion = async () => {
+      if (user) await resolverUbicacion(user);
     };
-
-    fetchUserProfile();
+    inicializarUbicacion();
   }, [user]);
 
   const resolverUbicacion = async (item) => {
@@ -181,12 +190,17 @@ export default function ProfileScreen({ navigation }) {
   };
 
   const handleSalir = async () => {
-    const idUsuario = user?.id || user?.uid || user?._id;
-    if (idUsuario) {
-      await AsyncStorage.removeItem(`@sesion_contabilizada_${idUsuario}`);
+    try {
+      if (userId) {
+        await AsyncStorage.removeItem(`@sesion_contabilizada_${userId}`);
+      }
+      await logout();
+      if (Platform.OS === 'android') {
+        BackHandler.exitApp();
+      }
+    } catch (error) {
+      console.log("Error al salir:", error);
     }
-    await logout();
-    BackHandler.exitApp();
   };
 
   const nombreUsuario = userData?.nombre || user?.nombre || 'Usuario';
@@ -203,17 +217,22 @@ export default function ProfileScreen({ navigation }) {
 
   return (
     <View style={styles.container}>
-      <View style={styles.header}>
-        <View style={styles.headerLeft}>
-          <Image source={require('../../assets/logo.png')} style={styles.logoGrande} />
-          <Image source={require('../../assets/nombreapp.png')} style={styles.nombreAppGrande} />
+      <View style={styles.topHeaderContainer}>
+        <View style={styles.header}>
+          <View style={styles.headerLeft}>
+            <Image source={require('../../assets/logo.png')} style={styles.logoGrande} />
+            <Image source={require('../../assets/nombreapp.png')} style={styles.nombreAppGrande} />
+          </View>
         </View>
-      </View>
 
-      <View style={styles.blackBanner}>
-        <Text style={styles.bannerText}>MI PERFIL</Text>
+        <View style={styles.titleGoldLine} />
+
+        <View style={styles.blackBanner}>
+          <Text style={styles.bannerText}>MI PERFIL</Text>
+        </View>
+
+        <View style={styles.titleGoldLine} />
       </View>
-      <View style={styles.titleGoldLine} />
 
       <View style={styles.profileHeaderSection}>
         <View style={styles.nameContainer}>
@@ -232,7 +251,7 @@ export default function ProfileScreen({ navigation }) {
         </View>
       </View>
 
-      <View style={styles.titleGoldLine} />
+      <View style={styles.titleGoldLineStandard} />
 
       <View style={styles.detailsBox}>
         <View style={styles.dataRow}>
@@ -307,30 +326,36 @@ export default function ProfileScreen({ navigation }) {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#001f3f', justifyContent: 'space-between', paddingBottom: 15 },
   
+  topHeaderContainer: {
+    backgroundColor: '#000000',
+    width: '100%',
+  },
   header: { 
     flexDirection: 'row', 
     alignItems: 'center', 
     justifyContent: 'space-between', 
     paddingHorizontal: 15, 
-    paddingTop: 10,
-    paddingBottom: 4 
+    paddingVertical: 12,
+    backgroundColor: '#000000' 
   },
   headerLeft: { flexDirection: 'row', alignItems: 'center', flex: 1 },
-  logoGrande: { width: 50, height: 50, resizeMode: 'contain', marginRight: 10 },
-  nombreAppGrande: { width: 190, height: 42, resizeMode: 'contain' },
+  logoGrande: { width: 72, height: 72, resizeMode: 'contain', marginRight: 12 },
+  nombreAppGrande: { width: 215, height: 48, resizeMode: 'contain' },
   
-  blackBanner: { width: '100%', backgroundColor: '#000000', paddingVertical: 10, alignItems: 'center', justifyContent: 'center', marginTop: 4 },
+  blackBanner: { width: '100%', backgroundColor: '#000000', paddingVertical: 10, alignItems: 'center', justifyContent: 'center' },
   bannerText: { color: '#FFD700', fontSize: 17, fontWeight: 'bold', letterSpacing: 1, textAlign: 'center' },
-  titleGoldLine: { height: 1, backgroundColor: '#FFD700', width: '100%', marginTop: 6, marginBottom: 6 },
+  titleGoldLine: { height: 1, backgroundColor: '#FFD700', width: '100%', margin: 0 },
+  titleGoldLineStandard: { height: 1, backgroundColor: '#FFD700', width: '100%', marginVertical: 6 },
   
   profileHeaderSection: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 18, marginVertical: 4 },
   nameContainer: { flex: 1, marginRight: 10 },
   userNameText: { color: '#00fa9a', fontSize: 17, fontWeight: 'bold' },
   
   avatarContainer: { marginLeft: 5 },
-  avatarImage: { width: 62, height: 62, borderRadius: 31, borderWidth: 2, borderColor: '#FFD700', resizeMode: 'cover' },
-  initialsCircle: { width: 62, height: 62, borderRadius: 31, backgroundColor: '#003366', borderWidth: 2, borderColor: '#FFD700', justifyContent: 'center', alignItems: 'center' },
-  initialsText: { color: '#FFD700', fontSize: 19, fontWeight: 'bold' },
+  // 🔍 Foto más grande optimizada (pasó de 62 a 92)
+  avatarImage: { width: 92, height: 92, borderRadius: 46, borderWidth: 2, borderColor: '#FFD700', resizeMode: 'cover' },
+  initialsCircle: { width: 92, height: 92, borderRadius: 46, backgroundColor: '#003366', borderWidth: 2, borderColor: '#FFD700', justifyContent: 'center', alignItems: 'center' },
+  initialsText: { color: '#FFD700', fontSize: 24, fontWeight: 'bold' },
   
   detailsBox: { 
     backgroundColor: '#000', 

@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation, useRoute } from '@react-navigation/native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import api from '../config/api';
 
 export default function ChangoComparativoScreen() {
@@ -52,7 +53,70 @@ export default function ChangoComparativoScreen() {
 
   const changoAgrupado = agruparPorRubroYMarca();
 
-  // Guardar historial de compra conectando con el backend real
+  // 🛡️ EXTRACCIÓN UNIVERSAL Y BLINDADA DEL UID (CORREGIDA CONTRA "undefined")
+  const obtenerUidUniversal = async () => {
+    // 1. Revisar si viene por parámetros de navegación
+    if (route.params?.uid) return String(route.params.uid);
+
+    const posiblesClaves = ['@smartcheck_user', 'user_uid', 'uid', 'userId', 'user', 'usuario', 'userData'];
+
+    for (const clave of posiblesClaves) {
+      try {
+        const valorCrudo = await AsyncStorage.getItem(clave);
+        
+        // Filtramos nulos, vacíos y la cadena literal "undefined" o "null"
+        if (
+          !valorCrudo || 
+          valorCrudo === 'undefined' || 
+          valorCrudo === 'null' || 
+          valorCrudo === '"undefined"' || 
+          valorCrudo === '"null"'
+        ) {
+          continue;
+        }
+
+        let parsed;
+        try {
+          parsed = JSON.parse(valorCrudo);
+        } catch (e) {
+          // Si no es JSON, se evalúa como texto plano si tiene longitud válida
+          if (typeof valorCrudo === 'string' && valorCrudo.trim().length > 3) {
+            return valorCrudo.trim();
+          }
+          continue;
+        }
+
+        if (parsed && typeof parsed === 'object') {
+          // Búsqueda exhaustiva en todas las propiedades posibles del objeto de usuario
+          const uidEncontrado = 
+            parsed.id || 
+            parsed.uid || 
+            parsed._id || 
+            parsed.userId || 
+            parsed.user_uid || 
+            parsed?.usuario?.id || 
+            parsed?.usuario?.uid || 
+            parsed?.usuario?._id || 
+            parsed?.usuario?.userId ||
+            parsed?.user?.id || 
+            parsed?.user?.uid || 
+            parsed?.user?._id ||
+            parsed?.user?.userId ||
+            parsed?.data?.id ||
+            parsed?.data?.uid;
+
+          if (uidEncontrado) {
+            return String(uidEncontrado);
+          }
+        }
+      } catch (err) {
+        console.log(`Error leyendo clave ${clave} al guardar:`, err);
+      }
+    }
+    return null;
+  };
+
+  // Guardar historial de compra conectando con el backend de forma segura
   const guardarHistorialCompra = async () => {
     if (itemsChango.length === 0) {
       Alert.alert("Chango Vacío", "No hay productos en el chango para guardar.");
@@ -61,8 +125,17 @@ export default function ChangoComparativoScreen() {
 
     try {
       setGuardando(true);
+      const uidUsuario = await obtenerUidUniversal();
+
+      if (!uidUsuario) {
+        Alert.alert("Aviso", "No se pudo extraer el ID de usuario desde la sesión. Verifique haber iniciado sesión correctamente.");
+        setGuardando(false);
+        return;
+      }
+
       const fechaActual = new Date().toISOString().split('T')[0];
       const payload = {
+        uid: uidUsuario,
         fecha: fechaActual,
         total: totalOptimizado,
         itemsCount: totalItemsCount,
@@ -74,7 +147,7 @@ export default function ChangoComparativoScreen() {
 
       Alert.alert(
         "¡Compra Guardada con Éxito!", 
-        `Fecha: ${fechaActual}\nSupermercado más conveniente asignado por producto.\nEl próximo mes podrás repetir esta compra con 1 solo toque.`,
+        `Fecha: ${fechaActual}\nSupermercado más conveniente asignado por producto.\nYa puedes ver este chango en 'Mis Changos Guardados'.`,
         [{ text: "OK", onPress: () => navigation.navigate('MisChangos') }]
       );
     } catch (error) {

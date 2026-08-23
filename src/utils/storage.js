@@ -8,17 +8,18 @@ export const storage = {
    */
   saveUser: async (userData) => {
     try {
-      if (!userData || !userData.email) {
-        console.error('❌ Datos de usuario inválidos');
+      if (!userData || (!userData.email && !userData.uid && !userData.id)) {
+        console.error('❌ Datos de usuario inválidos (se requiere email, uid o id)');
         return false;
       }
       
       const safeUserData = {
-        id: userData.id || userData._id,
-        email: userData.email.toLowerCase().trim(),
-        nombre: userData.nombre,
-        apellido: userData.apellido,
-        sexo: userData.sexo,
+        id: userData.id || userData._id || userData.uid || null,
+        uid: userData.uid || userData.id || null,
+        email: userData.email ? userData.email.toLowerCase().trim() : '',
+        nombre: userData.nombre || '',
+        apellido: userData.apellido || '',
+        sexo: userData.sexo || '',
         fechaNacimiento: userData.fechaNacimiento || null,
         dia: userData.dia || null,
         mes: userData.mes || null,
@@ -47,12 +48,12 @@ export const storage = {
     try {
       const jsonValue = await AsyncStorage.getItem(STORAGE_KEY);
       
-      // 1. Verificación básica: Si es null o la cadena "undefined"
-      if (jsonValue === null || jsonValue === 'undefined') {
+      // Verificación estricta de valores vacíos, nulos o la cadena literal "undefined"
+      if (!jsonValue || jsonValue === 'undefined' || jsonValue === 'null' || jsonValue.trim() === '') {
         return null;
       }
       
-      // 2. Intento de parseo seguro
+      // Intento de parseo seguro
       try {
         const userData = JSON.parse(jsonValue);
         return userData;
@@ -114,7 +115,7 @@ export const storage = {
    */
   isAuthenticated: async () => {
     const user = await storage.getUser();
-    return user !== null && user.email !== undefined;
+    return user !== null && (user.email !== undefined || user.uid !== undefined);
   }
 };
 

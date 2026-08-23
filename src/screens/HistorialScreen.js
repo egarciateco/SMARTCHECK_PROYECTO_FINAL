@@ -1,163 +1,203 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  StyleSheet, 
-  Text, 
-  View, 
-  FlatList, 
-  TouchableOpacity, 
-  SafeAreaView, 
-  Image,
-  ActivityIndicator,
-  Alert
-} from 'react-native';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, SafeAreaView, ActivityIndicator, Alert, Image } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useAuth } from '../context/AuthContext';
 
-export default function HistorialScreen({ navigation, route }) {
-  const { userData } = route.params || {};
-  const uidUsuario = userData?.uid || 'USUARIO_TEST_UID';
+// Formato estricto argentino: 1.234.567,89 (puntos para miles, coma para centavos)
+const formatPrecio = (val) => {
+  const num = Number(val || 0);
+  const parts = num.toFixed(2).split('.');
+  parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+  return `${parts[0]},${parts[1]}`;
+};
 
+export default function HistorialScreen({ navigation }) {
+  const { user } = useAuth();
   const [historial, setHistorial] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  // Simulación de carga del historial desde el backend
   useEffect(() => {
-    fetchHistorialCompras();
+    fetchHistorial();
   }, []);
 
-  const fetchHistorialCompras = async () => {
+  const fetchHistorial = async () => {
     try {
-      setLoading(true);
-      // Ajusta la URL según tu endpoint de backend
-      const response = await fetch(`https://tu-api.com/api/users/historial-compras/${uidUsuario}`);
-      const data = await response.json();
+      const uid = user?.uid || user?.id;
+      if (!uid) {
+        setLoading(false);
+        return;
+      }
 
-      if (data.status === 'success') {
-        setHistorial(data.historial || []);
+      const response = await fetch(`http://192.168.1.7:3000/api/users/historial-compras/${uid}`);
+      
+      if (!response.ok) {
+        throw new Error(`Error en el servidor: ${response.status}`);
+      }
+
+      const text = await response.text();
+      const json = text ? JSON.parse(text) : [];
+      
+      const historialData = json.data || json;
+
+      if (Array.isArray(historialData)) {
+        setHistorial(historialData);
       } else {
-        // Si el backend devuelve un array directo o estructura diferente
-        setHistorial(data.data || []);
+        setHistorial([]);
       }
     } catch (error) {
-      console.error('Error al obtener historial:', error);
-      Alert.alert('Error', 'No se pudo cargar el historial de compras.');
+      console.error("Error al cargar el historial:", error);
+      Alert.alert("Atención", "No se pudo conectar con el servidor para recuperar el historial.");
     } finally {
       setLoading(false);
     }
   };
 
-  const renderItemHistorial = ({ item }) => (
-    <View style={styles.historyCard}>
-      <View style={styles.cardHeader}>
-        <View style={styles.dateContainer}>
-          <Ionicons name="calendar-outline" size={16} color="#D4AF37" />
-          <Text style={styles.dateText}>{item.fecha || 'Fecha desconocida'}</Text>
+  const renderItem = ({ item }) => {
+    const fechaTexto = String(item?.fecha || 'Fecha no registrada');
+    const cantidadItems = item?.itemsCount || (Array.isArray(item?.items) ? item.items.length : 0);
+    const totalMonto = item?.total != null ? formatPrecio(item.total) : '0,00';
+
+    return (
+      <TouchableOpacity 
+        style={styles.card} 
+        onPress={() => navigation.navigate('DetalleHistorialScreen', { compra: item })}
+      >
+        <View style={styles.cardHeader}>
+          <View style={styles.dateContainer}>
+            <Ionicons name="calendar-outline" size={16} color="#00E5FF" style={styles.calendarIcon} />
+            <Text style={styles.dateText}>{fechaTexto}</Text>
+          </View>
+          <Text style={styles.itemsCountText}>{cantidadItems} ítems</Text>
         </View>
-        <Text style={styles.totalText}>${item.total?.toLocaleString('es-AR')}</Text>
-      </View>
 
-      <View style={styles.divider} />
+        <View style={styles.divider} />
 
-      <View style={styles.cardBody}>
-        <Text style={styles.infoText}>
-          Ítems comprados: <Text style={{ color: '#E5E7EB' }}>{item.itemsCount || item.items?.length || 0}</Text>
-        </Text>
-      </View>
-    </View>
-  );
+        <View style={styles.cardBody}>
+          <Text style={styles.totalLabel}>Total de la compra:</Text>
+          <Text style={styles.totalValue}>${totalMonto}</Text>
+        </View>
+      </TouchableOpacity>
+    );
+  };
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* Header Superior */}
-      <View style={styles.topHeader}>
-        <Image 
-          source={require('../../assets/logo.png')} 
-          style={styles.logo} 
-          resizeMode="contain" 
-        />
-        <Image 
-          source={require('../../assets/nombreapp.png')} 
-          style={styles.appNameImage} 
-          resizeMode="contain" 
-        />
-        <View style={styles.placeholderRight} />
+      {/* Header con Logo y Nombre de la App */}
+      <View style={styles.header}>
+        <Image source={require('../../assets/logo.png')} style={styles.logoImage} resizeMode="contain" />
+        <Image source={require('../../assets/nombreapp.png')} style={styles.appNameImage} resizeMode="contain" />
+        <View style={styles.headerSpacer} />
       </View>
 
-      <View style={styles.titleContainer}>
-        <Text style={styles.screenTitle}>HISTORIAL DE CHANGOS</Text>
+      {/* Franja Negra con Título */}
+      <View style={styles.franjaNegra}>
+        <Text style={styles.tituloFranja}>REGISTRO DE CHANGOS GUARDADOS</Text>
       </View>
 
-      {/* Contenido Principal */}
-      <View style={styles.contentContainer}>
-        {loading ? (
-          <View style={styles.centerContainer}>
-            <ActivityIndicator size="large" color="#D4AF37" />
-            <Text style={styles.loadingText}>Cargando tus compras...</Text>
-          </View>
-        ) : historial.length === 0 ? (
-          <View style={styles.centerContainer}>
-            <Ionicons name="receipt-outline" size={56} color="#9CA3AF" />
-            <Text style={styles.emptyText}>No tenés changos guardados</Text>
-            <Text style={styles.emptySubText}>Tus compras guardadas aparecerán aquí.</Text>
-          </View>
-        ) : (
-          <FlatList
-            data={historial}
-            keyExtractor={(item, index) => item.id || `historial-${index}`}
-            renderItem={renderItemHistorial}
-            contentContainerStyle={styles.listContainer}
-          />
-        )}
-      </View>
-
-      {/* Footer Fijo */}
-      <View style={styles.footerContainer}>
-        <View style={styles.goldLine} />
-        <View style={styles.footerButtons}>
-          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.footerButton}>
-            <Image 
-              source={require('../../assets/volver.png')} 
-              style={styles.footerIcon} 
-              resizeMode="contain" 
-            />
-          </TouchableOpacity>
-          <TouchableOpacity onPress={() => navigation.navigate('CategorySelection')} style={styles.footerButton}>
-            <Image 
-              source={require('../../assets/salir.png')} 
-              style={styles.footerIcon} 
-              resizeMode="contain" 
-            />
-          </TouchableOpacity>
+      {/* CONTENIDO */}
+      {loading ? (
+        <View style={styles.centerContainer}>
+          <ActivityIndicator size="large" color="#00E5FF" />
+          <Text style={styles.loadingText}>Cargando historial...</Text>
         </View>
+      ) : historial.length === 0 ? (
+        <View style={styles.centerContainer}>
+          <Ionicons name="cart-outline" size={64} color="#555" />
+          <Text style={styles.emptyText}>No tenés compras guardadas todavía.</Text>
+        </View>
+      ) : (
+        <FlatList
+          data={historial}
+          keyExtractor={(item, index) => (item?.id ? String(item.id) : String(index))}
+          renderItem={renderItem}
+          contentContainerStyle={styles.listContainer}
+        />
+      )}
+
+      {/* LÍNEA DORADA ANTES DEL FOOTER */}
+      <View style={styles.lineaDorada} />
+
+      {/* Footer con Volver y Salir */}
+      <View style={styles.footer}>
+        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.footerButton}>
+          <Image source={require('../../assets/volver.png')} style={styles.footerIconCelestial} resizeMode="contain" />
+          <Text style={styles.footerText}>Volver</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity onPress={() => navigation.navigate('HomeScreen')} style={styles.footerButton}>
+          <Image source={require('../../assets/salir.png')} style={styles.footerIconCelestial} resizeMode="contain" />
+          <Text style={styles.footerText}>Salir</Text>
+        </TouchableOpacity>
       </View>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#0B0F19' },
-  topHeader: { height: 60, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, backgroundColor: '#111827' },
-  logo: { width: 44, height: 44 },
-  appNameImage: { height: 28, width: 140 },
-  placeholderRight: { width: 44 },
-  titleContainer: { paddingHorizontal: 16, paddingTop: 16, paddingBottom: 8 },
-  screenTitle: { color: '#FFD700', fontSize: 14, fontWeight: 'bold', letterSpacing: 1 },
-  contentContainer: { flex: 1, paddingHorizontal: 16 },
-  listContainer: { paddingBottom: 16, paddingTop: 8 },
-  historyCard: { backgroundColor: '#1F2937', borderRadius: 10, padding: 14, marginBottom: 12, borderWidth: 1, borderColor: '#374151' },
-  cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 },
+  container: { flex: 1, backgroundColor: '#001f3f' },
+  
+  header: { 
+    flexDirection: 'row', 
+    justifyContent: 'space-between', 
+    alignItems: 'center', 
+    backgroundColor: '#000', 
+    paddingHorizontal: 15, 
+    paddingVertical: 12 
+  },
+  logoImage: { width: 48, height: 48 },
+  appNameImage: { width: 170, height: 32 },
+  headerSpacer: { width: 48 },
+
+  franjaNegra: { 
+    backgroundColor: '#000', 
+    paddingVertical: 8, 
+    alignItems: 'center', 
+    borderTopWidth: 1, 
+    borderBottomWidth: 1, 
+    borderColor: '#ffcc00' 
+  },
+  tituloFranja: { color: '#ffcc00', fontWeight: 'bold', fontSize: 12, letterSpacing: 1.1 },
+
+  centerContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 20 },
+  loadingText: { color: '#DDD', marginTop: 10, fontSize: 14 },
+  emptyText: { color: '#AAA', marginTop: 10, fontSize: 14, textAlign: 'center' },
+
+  listContainer: { padding: 15, gap: 12 },
+
+  card: { 
+    backgroundColor: '#000', 
+    borderWidth: 1, 
+    borderColor: '#00E5FF', 
+    borderRadius: 8, 
+    padding: 14 
+  },
+  cardHeader: { 
+    flexDirection: 'row', 
+    justifyContent: 'space-between', 
+    alignItems: 'center' 
+  },
   dateContainer: { flexDirection: 'row', alignItems: 'center' },
-  dateText: { color: '#E5E7EB', fontSize: 13, fontWeight: '600', marginLeft: 6 },
-  totalText: { color: '#10B981', fontSize: 15, fontWeight: 'bold' },
-  divider: { height: 1, backgroundColor: '#374151', marginVertical: 6 },
-  cardBody: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 4 },
-  infoText: { color: '#9CA3AF', fontSize: 12 },
-  centerContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 20 },
-  loadingText: { color: '#9CA3AF', fontSize: 13, marginTop: 10 },
-  emptyText: { color: '#E5E7EB', fontSize: 16, fontWeight: 'bold', marginTop: 12 },
-  emptySubText: { color: '#9CA3AF', fontSize: 12, textAlign: 'center', marginTop: 4 },
-  footerContainer: { width: '100%', backgroundColor: '#111827', paddingBottom: 12 },
-  goldLine: { width: '100%', height: 1.5, backgroundColor: '#D4AF37', marginBottom: 10 },
-  footerButtons: { flexDirection: 'row', justifyContent: 'space-between', paddingHorizontal: 28 },
-  footerButton: { padding: 4 },
-  footerIcon: { width: 36, height: 36, tintColor: '#00E5FF' }
+  calendarIcon: { marginRight: 6 },
+  dateText: { color: '#FFF', fontSize: 14, fontWeight: 'bold' },
+  itemsCountText: { color: '#00E5FF', fontSize: 12, fontWeight: 'bold', backgroundColor: '#002233', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 4 },
+
+  divider: { height: 1, backgroundColor: '#222', marginVertical: 10 },
+
+  cardBody: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  totalLabel: { color: '#AAA', fontSize: 13 },
+  totalValue: { color: '#ffcc00', fontSize: 18, fontWeight: 'bold' },
+
+  lineaDorada: { height: 1.5, backgroundColor: '#ffcc00', width: '100%' },
+
+  footer: { 
+    flexDirection: 'row', 
+    justifyContent: 'space-between', 
+    backgroundColor: '#000', 
+    paddingHorizontal: 40, 
+    paddingVertical: 12, 
+    alignItems: 'center' 
+  },
+  footerButton: { alignItems: 'center', justifyContent: 'center' },
+  footerIconCelestial: { width: 36, height: 36, tintColor: '#00E5FF', marginBottom: 2 },
+  footerText: { color: '#FFF', fontSize: 11 }
 });

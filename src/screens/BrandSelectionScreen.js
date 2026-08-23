@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   StyleSheet, 
   Text, 
@@ -6,71 +6,46 @@ import {
   FlatList, 
   TouchableOpacity, 
   SafeAreaView, 
-  Image 
+  Image,
+  ActivityIndicator
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
-const MARCAS_POR_RUBRO = {
-  almacen: [
-    { nombre: 'Lucchetti', dominio: 'lucchetti.com.ar' },
-    { nombre: 'Terrabusi', dominio: 'terrabusi.com.ar' },
-    { nombre: 'Gallo', dominio: 'arrozgallo.com.ar' },
-    { nombre: 'Doña Petrona', dominio: 'donapetrona.com.ar' },
-    { nombre: 'Canale', dominio: 'canale.com.ar' },
-    { nombre: 'Jorgito', dominio: 'alfajoresjorgito.com.ar' },
-    { nombre: 'Águila', dominio: 'chocolatesaguila.com.ar' },
-    { nombre: 'Marolio', dominio: 'marolio.com.ar' },
-    { nombre: 'Oreo', dominio: 'oreo.com.ar' }
-  ],
-  bebidas: [
-    { nombre: 'Pepsi', dominio: 'pepsi.com' },
-    { nombre: 'Coca-Cola', dominio: 'cocacola.com.ar' },
-    { nombre: 'Sprite', dominio: 'sprite.com' },
-    { nombre: 'Fanta', dominio: 'fanta.com' },
-    { nombre: 'Cepita', dominio: 'cepita.com.ar' },
-    { nombre: 'Citric', dominio: 'citric.com.ar' },
-    { nombre: 'Quilmes', dominio: 'quilmes.com.ar' },
-    { nombre: 'Schneider', dominio: 'schneider.com.ar' }
-  ],
-  carnes: [
-    { nombre: 'Paty', dominio: 'paty.com.ar' },
-    { nombre: 'Vienissima', dominio: 'vienissima.com.ar' }
-  ],
-  congelados: [
-    { nombre: 'Sadia', dominio: 'sadia.com.br' },
-    { nombre: 'Green Life', dominio: 'greenlife.com' }
-  ],
-  lacteos: [
-    { nombre: 'La Serenísima', dominio: 'laserenisima.com.ar' },
-    { nombre: 'Sancor', dominio: 'sancor.com' }
-  ],
-  limpieza: [
-    { nombre: 'Ala', dominio: 'ala.com.ar' }
-  ]
-};
-
 export default function BrandSelectionScreen({ navigation, route }) {
-  const { rubroSeleccionado = 'almacen' } = route.params || {};
-  const [rubroActivo, setRubroActivo] = useState(rubroSeleccionado.toLowerCase());
-  const [logosRotos, setLogosRotos] = useState({});
+  const { rubroSeleccionado = 'Almacén' } = route.params || {};
+  const [marcas, setMarcas] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  const marcasActuales = MARCAS_POR_RUBRO[rubroActivo] || [];
+  useEffect(() => {
+    if (rubroSeleccionado) {
+      fetchMarcasPorRubro(rubroSeleccionado);
+    }
+  }, [rubroSeleccionado]);
 
-  const handleLogoError = (nombreMarca) => {
-    setLogosRotos(prev => ({ ...prev, [nombreMarca]: true }));
+  const fetchMarcasPorRubro = async (categoria) => {
+    try {
+      setLoading(true);
+      const encodedCategoria = encodeURIComponent(categoria);
+      const response = await fetch(`http://192.168.1.7:5000/api/rubros/${encodedCategoria}/marcas`);
+      const json = await response.json();
+      if (json.status === 'success') {
+        setMarcas(json.data);
+      }
+    } catch (error) {
+      console.error('Error al obtener marcas:', error);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const seleccionarMarca = (marca) => {
     navigation.navigate('ProductSelectionScreen', { 
-      categoriaSeleccionada: rubroActivo, 
+      categoriaSeleccionada: rubroSeleccionado, 
       marcaSeleccionada: marca.nombre 
     });
   };
 
   const renderMarcaItem = ({ item }) => {
-    const logoUrl = `https://api.companyenrich.com/logo/${item.dominio}`;
-    const tieneError = logosRotos[item.nombre];
-
     return (
       <TouchableOpacity 
         style={styles.brandCard} 
@@ -78,16 +53,7 @@ export default function BrandSelectionScreen({ navigation, route }) {
         activeOpacity={0.8}
       >
         <View style={styles.brandLogoWrapper}>
-          {tieneError ? (
-            <Ionicons name="image-outline" size={28} color="#9CA3AF" />
-          ) : (
-            <Image 
-              source={{ uri: logoUrl }} 
-              style={styles.brandLogoImage} 
-              resizeMode="contain" 
-              onError={() => handleLogoError(item.nombre)}
-            />
-          )}
+          <Ionicons name="pricetag-outline" size={22} color="#00E5FF" />
         </View>
         <Text style={styles.brandNameText} numberOfLines={1}>
           {item.nombre}
@@ -98,95 +64,60 @@ export default function BrandSelectionScreen({ navigation, route }) {
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* Header Superior */}
       <View style={styles.topHeader}>
-        <Image 
-          source={require('../../assets/logo.png')} 
-          style={styles.logo} 
-          resizeMode="contain" 
-        />
-        <Image 
-          source={require('../../assets/nombreapp.png')} 
-          style={styles.appNameImage} 
-          resizeMode="contain" 
-        />
+        <Image source={require('../../assets/logo.png')} style={styles.logo} resizeMode="contain" />
+        <Image source={require('../../assets/nombreapp.png')} style={styles.appNameImage} resizeMode="contain" />
         <View style={styles.placeholderRight} />
       </View>
 
-      {/* BARRA DE NAVEGACIÓN HORIZONTAL CON LOS 3 BOTONES DE IMAGEN */}
       <View style={styles.stepBarContainer}>
-        <TouchableOpacity 
-          style={[styles.stepButton, styles.stepInactive]} 
-          onPress={() => navigation.navigate('CategorySelection')}
-          activeOpacity={0.9}
-        >
-          <Image 
-            source={require('../../assets/btnrubro.png')} 
-            style={styles.stepImage} 
-            resizeMode="contain" 
-          />
+        <TouchableOpacity style={[styles.stepButton, styles.stepInactive]} onPress={() => navigation.navigate('CategorySelection')} activeOpacity={0.9}>
+          <Image source={require('../../assets/btnrubro.png')} style={styles.stepImage} resizeMode="contain" />
         </TouchableOpacity>
-
-        <TouchableOpacity 
-          style={[styles.stepButton, styles.stepActive]} 
-          activeOpacity={0.9}
-        >
-          <Image 
-            source={require('../../assets/btnmarca.png')} 
-            style={styles.stepImage} 
-            resizeMode="contain" 
-          />
+        <TouchableOpacity style={[styles.stepButton, styles.stepActive]} activeOpacity={0.9}>
+          <Image source={require('../../assets/btnmarca.png')} style={styles.stepImage} resizeMode="contain" />
         </TouchableOpacity>
-
-        <TouchableOpacity 
-          style={[styles.stepButton, styles.stepInactive]} 
-          onPress={() => navigation.navigate('ProductSelectionScreen', { categoriaSeleccionada: rubroActivo })}
-          activeOpacity={0.9}
-        >
-          <Image 
-            source={require('../../assets/btntipo.png')} 
-            style={styles.stepImage} 
-            resizeMode="contain" 
-          />
+        <TouchableOpacity style={[styles.stepButton, styles.stepInactive]} onPress={() => navigation.navigate('ProductSelectionScreen', { categoriaSeleccionada: rubroSeleccionado })} activeOpacity={0.9}>
+          <Image source={require('../../assets/btntipo.png')} style={styles.stepImage} resizeMode="contain" />
         </TouchableOpacity>
       </View>
 
-      {/* Grilla de Marcas */}
+      <View style={styles.bannerContainer}>
+        <Text style={styles.bannerText}>SELECCIONÁ UNA MARCA: {rubroSeleccionado.toUpperCase()}</Text>
+      </View>
+
       <View style={styles.contentContainer}>
-        {marcasActuales.length === 0 ? (
+        {loading ? (
           <View style={styles.centerContainer}>
-            <Ionicons name="alert-circle-outline" size={48} color="#9CA3AF" />
-            <Text style={styles.emptyText}>No hay marcas configuradas para este rubro.</Text>
+            <ActivityIndicator size="large" color="#FFD700" />
+            <Text style={styles.emptyText}>Cargando marcas...</Text>
+          </View>
+        ) : marcas.length === 0 ? (
+          <View style={styles.centerContainer}>
+            <Ionicons name="alert-circle-outline" size={36} color="#9CA3AF" />
+            <Text style={styles.emptyText}>No hay marcas registradas para este rubro.</Text>
           </View>
         ) : (
           <FlatList
-            data={marcasActuales}
-            keyExtractor={(item) => item.nombre}
+            data={marcas}
+            keyExtractor={(item) => item.id}
             renderItem={renderMarcaItem}
             numColumns={2}
             contentContainerStyle={styles.gridContainer}
             columnWrapperStyle={styles.rowWrapper}
+            showsVerticalScrollIndicator={false}
           />
         )}
       </View>
 
-      {/* Footer Fijo */}
       <View style={styles.footerContainer}>
         <View style={styles.goldLine} />
         <View style={styles.footerButtons}>
           <TouchableOpacity onPress={() => navigation.goBack()} style={styles.footerButton}>
-            <Image 
-              source={require('../../assets/volver.png')} 
-              style={styles.footerIcon} 
-              resizeMode="contain" 
-            />
+            <Image source={require('../../assets/volver.png')} style={styles.footerIcon} resizeMode="contain" />
           </TouchableOpacity>
-          <TouchableOpacity onPress={() => navigation.navigate('Home')} style={styles.footerButton}>
-            <Image 
-              source={require('../../assets/salir.png')} 
-              style={styles.footerIcon} 
-              resizeMode="contain" 
-            />
+          <TouchableOpacity onPress={() => navigation.navigate('HomeScreen')} style={styles.footerButton}>
+            <Image source={require('../../assets/salir.png')} style={styles.footerIcon} resizeMode="contain" />
           </TouchableOpacity>
         </View>
       </View>
@@ -196,37 +127,78 @@ export default function BrandSelectionScreen({ navigation, route }) {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#0B0F19' },
-  topHeader: { height: 60, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, backgroundColor: '#111827' },
-  logo: { width: 44, height: 44 },
-  appNameImage: { height: 28, width: 140 },
-  placeholderRight: { width: 44 },
+  topHeader: { 
+    height: 44, 
+    flexDirection: 'row', 
+    alignItems: 'center', 
+    justifyContent: 'space-between', 
+    paddingHorizontal: 12, 
+    backgroundColor: '#111827' 
+  },
+  logo: { width: 30, height: 30 },
+  appNameImage: { height: 20, width: 100 },
+  placeholderRight: { width: 30 },
   stepBarContainer: {
     flexDirection: 'row',
     width: '100%',
     backgroundColor: '#000000',
-    paddingVertical: 6,
-    paddingHorizontal: 8,
+    paddingVertical: 2,
+    paddingHorizontal: 4,
     justifyContent: 'space-between',
     alignItems: 'center',
     borderBottomWidth: 1,
     borderBottomColor: '#374151',
   },
-  stepButton: { flex: 1, marginHorizontal: 3 },
+  stepButton: { 
+    flex: 1, 
+    marginHorizontal: 1,
+    height: 26,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
   stepActive: { opacity: 1 },
-  stepInactive: { opacity: 0.5 },
-  stepImage: { width: '100%', height: undefined, aspectRatio: 3.2 },
-  contentContainer: { flex: 1, paddingHorizontal: 16, paddingTop: 12 },
-  gridContainer: { paddingBottom: 16 },
-  rowWrapper: { justifyContent: 'space-between', marginBottom: 12 },
-  brandCard: { width: '48%', backgroundColor: '#1F2937', borderRadius: 14, padding: 16, alignItems: 'center', borderWidth: 1, borderColor: '#374151', elevation: 3 },
-  brandLogoWrapper: { width: 70, height: 70, borderRadius: 35, backgroundColor: '#FFFFFF', justifyContent: 'center', alignItems: 'center', marginBottom: 10, padding: 8, overflow: 'hidden' },
-  brandLogoImage: { width: '100%', height: '100%' },
-  brandNameText: { color: '#E5E7EB', fontSize: 14, fontWeight: 'bold', textAlign: 'center' },
+  stepInactive: { opacity: 0.4 },
+  stepImage: { width: '100%', height: '100%' },
+  bannerContainer: { 
+    width: '100%', 
+    backgroundColor: '#000000', 
+    paddingVertical: 4, 
+    alignItems: 'center', 
+    justifyContent: 'center', 
+    borderBottomWidth: 1, 
+    borderBottomColor: '#374151' 
+  },
+  bannerText: { color: '#FFD700', fontSize: 11, fontWeight: 'bold', letterSpacing: 1 },
+  contentContainer: { flex: 1, paddingHorizontal: 8, paddingTop: 6 },
+  gridContainer: { paddingBottom: 8 },
+  rowWrapper: { justifyContent: 'space-between', marginBottom: 6 },
+  brandCard: { 
+    width: '48%', 
+    backgroundColor: '#1F2937', 
+    borderRadius: 8, 
+    padding: 10, 
+    alignItems: 'center', 
+    borderWidth: 1, 
+    borderColor: '#374151', 
+    elevation: 2 
+  },
+  brandLogoWrapper: { 
+    width: 44, 
+    height: 44, 
+    borderRadius: 22, 
+    backgroundColor: '#111827', 
+    justifyContent: 'center', 
+    alignItems: 'center', 
+    marginBottom: 6, 
+    borderWidth: 1, 
+    borderColor: '#374151' 
+  },
+  brandNameText: { color: '#E5E7EB', fontSize: 13, fontWeight: 'bold', textAlign: 'center' },
   centerContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 20 },
-  emptyText: { marginTop: 10, color: '#9CA3AF', fontSize: 13, textAlign: 'center' },
-  footerContainer: { width: '100%', backgroundColor: '#111827', paddingBottom: 12 },
-  goldLine: { width: '100%', height: 1.5, backgroundColor: '#D4AF37', marginBottom: 10 },
-  footerButtons: { flexDirection: 'row', justifyContent: 'space-between', paddingHorizontal: 28 },
-  footerButton: { padding: 4 },
-  footerIcon: { width: 36, height: 36, tintColor: '#00E5FF' }
+  emptyText: { marginTop: 8, color: '#9CA3AF', fontSize: 12, textAlign: 'center' },
+  footerContainer: { width: '100%', backgroundColor: '#111827', paddingBottom: 4 },
+  goldLine: { width: '100%', height: 1, backgroundColor: '#D4AF37', marginBottom: 4 },
+  footerButtons: { flexDirection: 'row', justifyContent: 'space-between', paddingHorizontal: 24 },
+  footerButton: { padding: 2 },
+  footerIcon: { width: 24, height: 24, tintColor: '#00E5FF' }
 });

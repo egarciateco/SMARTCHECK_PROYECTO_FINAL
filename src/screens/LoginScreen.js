@@ -6,14 +6,13 @@ import {
 import { useNavigation } from '@react-navigation/native';
 import { signInWithEmailAndPassword } from 'firebase/auth';
 import { auth } from '../services/firebaseConfig';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export default function LoginScreen() {
   const navigation = useNavigation();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [loading, setLoading] = useState(false);
 
   useLayoutEffect(() => navigation.setOptions({ headerShown: false }), [navigation]);
@@ -22,14 +21,23 @@ export default function LoginScreen() {
     if (!email.trim() || !password) {
       return Alert.alert("Error", "Por favor ingresa tu email y contraseña.");
     }
-    if (password.length > 0 && password !== confirmPassword) {
-      return Alert.alert("Error", "Las contraseñas no coinciden.");
-    }
+    
     try {
       setLoading(true);
       const cleanEmail = email.trim().toLowerCase();
-      await signInWithEmailAndPassword(auth, cleanEmail, password);
       
+      // 1. Autenticación con Firebase Auth
+      const userCredential = await signInWithEmailAndPassword(auth, cleanEmail, password);
+      const user = userCredential.user;
+
+      // 🛡️ 2. GUARDADO OBLIGATORIO EN ASYNCSTORAGE
+      const userDataToStore = {
+        uid: user.uid,
+        email: user.email,
+      };
+      await AsyncStorage.setItem('@smartcheck_user', JSON.stringify(userDataToStore));
+      await AsyncStorage.setItem('user_uid', user.uid); // Respaldo adicional
+
       Alert.alert("¡Éxito!", "Sesión iniciada correctamente.");
       navigation.replace('HomeScreen');
     } catch (error) {
@@ -84,26 +92,9 @@ export default function LoginScreen() {
               </TouchableOpacity>
             </View>
 
-            {password.length > 0 ? (
-              <View style={styles.inputContainer}>
-                <Image source={require('../../assets/candado.png')} style={styles.largeEmoji} />
-                <TextInput 
-                  style={styles.input} 
-                  placeholder="Confirmar Contraseña" 
-                  placeholderTextColor="#999999"
-                  secureTextEntry={!showConfirmPassword} 
-                  value={confirmPassword} 
-                  onChangeText={setConfirmPassword} 
-                />
-                <TouchableOpacity onPress={() => setShowConfirmPassword(!showConfirmPassword)}>
-                  <Image source={showConfirmPassword ? require('../../assets/eye.png') : require('../../assets/eyeoff.png')} style={styles.eyeIcon} />
-                </TouchableOpacity>
-              </View>
-            ) : (
-              <TouchableOpacity style={styles.verificarBtn} onPress={() => navigation.navigate('FacialLogin')}>
-                <Image source={require('../../assets/verificar.png')} style={styles.verificarImg} />
-              </TouchableOpacity>
-            )}
+            <TouchableOpacity style={styles.verificarBtn} onPress={() => navigation.navigate('FacialLogin')}>
+              <Image source={require('../../assets/verificar.png')} style={styles.verificarImg} />
+            </TouchableOpacity>
           </View>
 
           <TouchableOpacity style={styles.finalBtn} onPress={handleLogin} disabled={loading}>

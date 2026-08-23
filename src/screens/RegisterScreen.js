@@ -81,10 +81,45 @@ export default function RegisterScreen() {
 
   const isFaceLoginActive = areStandardFieldsComplete && authMode === 'photo';
 
+  // Función de validación de fecha estricta en el frontend
+  const validarFechaFrontend = (dStr, mStr, aStr) => {
+    const d = parseInt(dStr, 10);
+    const m = parseInt(mStr, 10);
+    const a = parseInt(aStr, 10);
+
+    if (isNaN(d) || isNaN(m) || isNaN(a)) return false;
+    if (m < 1 || m > 12) return false;
+    if (d < 1 || d > 31) return false;
+    
+    const currentYear = new Date().getFullYear();
+    if (a < 1900 || a > currentYear) return false;
+
+    // Verificar si el día existe realmente en el mes/año dado (ej: 31/02 no existe, bisiestos, etc.)
+    const dateObj = new Date(a, m - 1, d);
+    if (
+      dateObj.getFullYear() !== a ||
+      dateObj.getMonth() !== m - 1 ||
+      dateObj.getDate() !== d
+    ) {
+      return false;
+    }
+
+    return true;
+  };
+
   const handleRegister = async () => {
     if (!areStandardFieldsComplete) {
       return Alert.alert("Error", "Por favor completa todos los campos obligatorios.");
     }
+
+    // Validación estricta de la fecha antes de proceder con cualquier método
+    if (!validarFechaFrontend(dia, mes, anio)) {
+      return Alert.alert(
+        "Atención",
+        "La fecha de nacimiento ingresada es errónea. Por favor, vuelva a ingresarla correctamente."
+      );
+    }
+
     if (authMode === null) {
       return Alert.alert("Error", "Por favor selecciona un método de registro (con contraseña o con foto).");
     }
@@ -141,17 +176,14 @@ export default function RegisterScreen() {
           });
         }
 
-        const response = await fetch('https://smartcheck-proyecto-final.onrender.com/api/users/register-facial', {
+        const response = await fetch('https://smartcheck-proyecto.onrender.com/api/users/register-facial', {
           method: 'POST',
           body: formData,
-          headers: {
-            'Content-Type': 'multipart/form-data',
-          },
         });
 
         const data = await response.json();
 
-        if (!response.ok) {
+        if (!response.ok || data.success === false) {
           throw new Error(data.mensaje || 'Error en el registro facial');
         }
 
@@ -161,7 +193,7 @@ export default function RegisterScreen() {
       }
     } catch (error) {
       console.error("Error en registro:", error);
-      Alert.alert("Error", error.message || "No se pudo completar el registro.");
+      Alert.alert("Atención", error.message || "No se pudo completar el registro.");
     } finally {
       setLoading(false);
     }

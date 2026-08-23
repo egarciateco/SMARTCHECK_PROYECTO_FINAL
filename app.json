@@ -16,7 +16,10 @@
       "fallbackToCacheTimeout": 0
     },
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "infoPlist": {
+        "NSLocationWhenInUseUsageDescription": "Necesitamos tu ubicación para mostrarte los supermercados más cercanos a tu posición actual."
+      }
     },
     "android": {
       "package": "com.egarciateco.smartcheck",
@@ -51,6 +54,12 @@
         "expo-camera",
         {
           "cameraPermission": "La aplicación necesita acceso a la cámara para el registro y acceso facial."
+        }
+      ],
+      [
+        "expo-location",
+        {
+          "locationAlwaysAndWhenInUsePermission": "Permitir que SmartCheck acceda a tu ubicación para encontrar los supermercados más cercanos."
         }
       ]
     ]

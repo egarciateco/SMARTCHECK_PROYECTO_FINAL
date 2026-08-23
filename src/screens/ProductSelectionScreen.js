@@ -47,38 +47,97 @@ const MARCAS_POR_RUBRO = {
     { nombre: 'Sancor', dominio: 'sancor.com' }
   ],
   limpieza: [
-    { nombre: 'Ala', dominio: 'ala.com.ar' }
+    { nombre: 'Ala', dominio: 'ala.com.ar' },
+    { nombre: 'Ayudín', dominio: 'ayudin.com.ar' }
+  ],
+  perfumeria: [
+    { nombre: 'Sedal', dominio: 'sedal.com.ar' },
+    { nombre: 'Rexona', dominio: 'rexona.com.ar' }
+  ],
+  panaderia: [
+    { nombre: 'Fargo', dominio: 'fargo.com.ar' }
+  ],
+  desayuno: [
+    { nombre: 'Playadito', dominio: 'yerbaplayadito.com.ar' },
+    { nombre: 'La Virginia', dominio: 'lavirginia.com.ar' }
+  ],
+  bebes: [
+    { nombre: 'Huggies', dominio: 'huggies.com.ar' }
+  ],
+  mascotas: [
+    { nombre: 'Dog Chow', dominio: 'dogchow.com.ar' }
+  ],
+  'frutas y verduras': [
+    { nombre: 'Frescos', dominio: 'coto.com.ar' }
   ]
 };
 
-// --- CATÁLOGO MAESTRO VERIFICADO DE PRODUCTOS ---
+// --- CATÁLOGO MAESTRO VERIFICADO DE PRODUCTOS PARA LAS 12 CATEGORÍAS ---
 const CATALOGO_EXCEL_VERIFICADO = [
-  // PEPSI
+  // BEBIDAS
   { id: '1', ean: '7791813828464', marca: 'pepsi', nombre: 'Gaseosa cola Pepsi Black pet 2 lts', tipo: 'bebidas', medida: 'Botella 2L', superMasBarato: 'Coto', precioMasBarato: 4170 },
   { id: '2', ean: '7791813828419', marca: 'pepsi', nombre: 'Gaseosa Cola Pepsi Black Descartable 1.5 lt', tipo: 'bebidas', medida: 'Botella 1.5L', superMasBarato: 'Coto', precioMasBarato: 1750 },
   { id: '3', ean: '7791813888468', marca: 'pepsi', nombre: 'Gaseosa cola regular Pepsi pet N 2 lts.', tipo: 'bebidas', medida: 'Botella 2L', superMasBarato: 'Coto', precioMasBarato: 4729 },
   { id: '4', ean: '7791813888413', marca: 'pepsi', nombre: 'Gaseosa cola regular Pepsi N pet 1.5 lts.', tipo: 'bebidas', medida: 'Botella 1.5L', superMasBarato: 'Changomas', precioMasBarato: 1650 },
   { id: '5', ean: '7791813888376', marca: 'pepsi', nombre: 'Gaseosa cola Pepsi regular en lata 354 ml', tipo: 'bebidas', medida: 'Lata 354ml', superMasBarato: 'Dia', precioMasBarato: 1150 },
-  
-  // COCA-COLA Y DERIVADOS
   { id: '6', ean: '7790895000123', marca: 'coca-cola', nombre: 'Gaseosa Coca-Cola Sabor Original 2.25L', tipo: 'bebidas', medida: 'Botella 2.25L', superMasBarato: 'Changomas', precioMasBarato: 2700 },
   { id: '7', ean: '7790895651038', marca: 'coca-cola', nombre: 'Pack gaseosa Coca Cola zero 2.25 lts + Coca Cola zero 2.25 lts', tipo: 'bebidas', medida: 'Pack 2x2.25L', superMasBarato: 'Coto', precioMasBarato: 4900 },
   { id: '8', ean: '7790895648908', marca: 'sprite', nombre: 'Gaseosa Sprite Lima Limón 2.25 L', tipo: 'bebidas', medida: 'Botella 2.25L', superMasBarato: 'Carrefour', precioMasBarato: 2650 },
   { id: '9', ean: '7790895648656', marca: 'fanta', nombre: 'Gaseosa Fanta Naranja 2.25 L', tipo: 'bebidas', medida: 'Botella 2.25L', superMasBarato: 'Dia', precioMasBarato: 2650 },
   { id: '10', ean: '7790895012345', marca: 'cepita', nombre: 'Jugo de Naranja Cepita 1 Litro', tipo: 'bebidas', medida: 'Tetra 1L', superMasBarato: 'Coto', precioMasBarato: 1800 },
   { id: '11', ean: '7798123456789', marca: 'citric', nombre: 'Jugo Citric Exprimido de Naranja 1 Litro', tipo: 'bebidas', medida: 'Botella 1L', superMasBarato: 'Changomas', precioMasBarato: 2400 },
+  { id: '29', ean: '7796670001234', marca: 'quilmes', nombre: 'Cerveza Quilmes Stout / Rubia Botella 1 Litro', tipo: 'bebidas', medida: 'Botella 1L', superMasBarato: 'Carrefour', precioMasBarato: 2150 },
+  { id: '30', ean: '7797780001234', marca: 'schneider', nombre: 'Cerveza Schneider Lager Lata 473 ml', tipo: 'bebidas', medida: 'Lata 473ml', superMasBarato: 'Dia', precioMasBarato: 1250 },
 
-  // OREO Y ALMACÉN
+  // ALMACÉN
   { id: '12', ean: '7794600009435', marca: 'oreo', nombre: 'Galletitas Oreo Chocolate Paquete 111 G', tipo: 'almacén', medida: 'Paquete 111g', superMasBarato: 'Coto', precioMasBarato: 3212 },
   { id: '13', ean: '7790070336385', marca: 'lucchetti', nombre: 'Fideos Spaghetti N°7 500 Grs Lucchetti', tipo: 'almacén', medida: 'Paquete 500g', superMasBarato: 'Dia', precioMasBarato: 890 },
   { id: '14', ean: '7790070211306', marca: 'marolio', nombre: 'Aceite de Girasol Marolio Botella 1.5L', tipo: 'almacén', medida: 'Botella 1.5L', superMasBarato: 'Coto', precioMasBarato: 1950 },
+  { id: '23', ean: '7794000123456', marca: 'terrabusi', nombre: 'Galletitas Variedad Terrabusi 400g', tipo: 'almacén', medida: 'Paquete 400g', superMasBarato: 'Dia', precioMasBarato: 3500 },
+  { id: '24', ean: '7791120001234', marca: 'gallo', nombre: 'Arroz Largo Fino Gallo 1 Kg', tipo: 'almacén', medida: 'Paquete 1Kg', superMasBarato: 'Coto', precioMasBarato: 1650 },
+  { id: '25', ean: '7792230001234', marca: 'doña petrona', nombre: 'Harina de Trigo 000 Doña Petrona 1 Kg', tipo: 'almacén', medida: 'Paquete 1Kg', superMasBarato: 'Carrefour', precioMasBarato: 980 },
+  { id: '26', ean: '7793340001234', marca: 'canale', nombre: 'Puré de Tomate Canale 520g', tipo: 'almacén', medida: 'Tetra 520g', superMasBarato: 'Changomas', precioMasBarato: 850 },
+  { id: '27', ean: '7794450001234', marca: 'jorgito', nombre: 'Alfajor de Chocolate Jorgito x 6 unidades', tipo: 'almacén', medida: 'Caja x6', superMasBarato: 'Dia', precioMasBarato: 2900 },
+  { id: '28', ean: '7795560001234', marca: 'águila', nombre: 'Chocolate Taza Águila 150g', tipo: 'almacén', medida: 'Barra 150g', superMasBarato: 'Coto', precioMasBarato: 2100 },
 
-  // LA SERENÍSIMA Y LÁCTEOS
+  // LÁCTEOS
   { id: '15', ean: '7793940001019', marca: 'la serenísima', nombre: 'Leche Clásica Sachet La Serenísima 1L', tipo: 'lácteos', medida: 'Sachet 1L', superMasBarato: 'Dia', precioMasBarato: 1190 },
   { id: '16', ean: '7790742326607', marca: 'la serenísima', nombre: 'Queso Untable Sabores Jamon 180 Gr La Serenísima', tipo: 'lácteos', medida: 'Pote 180g', superMasBarato: 'Coto', precioMasBarato: 2450 },
+  { id: '22', ean: '7790350001234', marca: 'sancor', nombre: 'Queso Crema Sancor Muzzarella 400g', tipo: 'lácteos', medida: 'Pote 400g', superMasBarato: 'Coto', precioMasBarato: 2890 },
+
+  // CARNES
+  { id: '18', ean: '7790580123456', marca: 'paty', nombre: 'Hamburguesas vacuna Paty x 4 unidades 320g', tipo: 'carnes', medida: 'Caja 320g', superMasBarato: 'Coto', precioMasBarato: 3800 },
+  { id: '19', ean: '7790580654321', marca: 'vienissima', nombre: 'Salchichas Vienissima x 6 unidades 190g', tipo: 'carnes', medida: 'Paquete 190g', superMasBarato: 'Dia', precioMasBarato: 1950 },
+
+  // FRUTAS Y VERDURAS
+  { id: '31', ean: '7790000000011', marca: 'frescos', nombre: 'Manzana Roja Seleccionada x Kg', tipo: 'frutas y verduras', medida: '1 Kg', superMasBarato: 'Carrefour', precioMasBarato: 1400 },
+  { id: '32', ean: '7790000000022', marca: 'frescos', nombre: 'Banana Ecuador x Kg', tipo: 'frutas y verduras', medida: '1 Kg', superMasBarato: 'Coto', precioMasBarato: 1850 },
+  { id: '33', ean: '7790000000033', marca: 'frescos', nombre: 'Papa Negra Bolsa x 5 Kg', tipo: 'frutas y verduras', medida: 'Bolsa 5Kg', superMasBarato: 'Changomas', precioMasBarato: 3200 },
 
   // LIMPIEZA
-  { id: '17', ean: '7790520002154', marca: 'ala', nombre: 'Jabón Líquido para Ropa Ala Doy Pack 3 Litros', tipo: 'limpieza', medida: 'Doy Pack 3L', superMasBarato: 'Carrefour', precioMasBarato: 4500 }
+  { id: '17', ean: '7790520002154', marca: 'ala', nombre: 'Jabón Líquido para Ropa Ala Doy Pack 3 Litros', tipo: 'limpieza', medida: 'Doy Pack 3L', superMasBarato: 'Carrefour', precioMasBarato: 4500 },
+  { id: '34', ean: '7790520111111', marca: 'ayudín', nombre: 'Lavandina Tradicional Ayudín 2 Litros', tipo: 'limpieza', medida: 'Botella 2L', superMasBarato: 'Dia', precioMasBarato: 1100 },
+
+  // PERFUMERÍA
+  { id: '35', ean: '7791230001111', marca: 'sedal', nombre: 'Shampoo Sedal Ceramidas 650 ml', tipo: 'perfumería', medida: 'Botella 650ml', superMasBarato: 'Coto', precioMasBarato: 3400 },
+  { id: '36', ean: '7791230002222', marca: 'rexona', nombre: 'Desodorante Aerosol Rexona Men Invisible 150ml', tipo: 'perfumería', medida: 'Aerosol 150ml', superMasBarato: 'Changomas', precioMasBarato: 2300 },
+
+  // CONGELADOS
+  { id: '20', ean: '7891515234567', marca: 'sadia', nombre: 'Medallones de Pollo Sadia x 4 unidades 300g', tipo: 'congelados', medida: 'Caja 300g', superMasBarato: 'Carrefour', precioMasBarato: 3100 },
+  { id: '21', ean: '7798001122334', marca: 'green life', nombre: 'Mix de Verduras Congeladas Green Life 500g', tipo: 'congelados', medida: 'Bolsa 500g', superMasBarato: 'Changomas', precioMasBarato: 2200 },
+
+  // PANADERÍA
+  { id: '37', ean: '7794560001111', marca: 'fargo', nombre: 'Pan Lactal Blanco Grande Fargo 560g', tipo: 'panadería', medida: 'Paquete 560g', superMasBarato: 'Coto', precioMasBarato: 2750 },
+
+  // DESAYUNO
+  { id: '38', ean: '7797890001111', marca: 'playadito', nombre: 'Yerba Mate con Palo Playadito 1 Kg', tipo: 'desayuno', medida: 'Paquete 1Kg', superMasBarato: 'Dia', precioMasBarato: 3950 },
+  { id: '39', ean: '7797890002222', marca: 'la virginia', nombre: 'Café Molido Suave La Virginia 500g', tipo: 'desayuno', medida: 'Paquete 500g', superMasBarato: 'Carrefour', precioMasBarato: 4800 },
+
+  // BEBÉS
+  { id: '40', ean: '7798880001111', marca: 'huggies', nombre: 'Pañales Huggies Protect Plus G x 36 unidades', tipo: 'bebés', medida: 'Pack x36', superMasBarato: 'Coto', precioMasBarato: 9500 },
+
+  // MASCOTAS
+  { id: '41', ean: '7799990001111', marca: 'dog chow', nombre: 'Alimento Balanceado Perros Adultos Dog Chow 3 Kg', tipo: 'mascotas', medida: 'Bolsa 3Kg', superMasBarato: 'Changomas', precioMasBarato: 8200 }
 ];
 
 // Dominios de supermercados para logotipos
@@ -115,6 +174,24 @@ const obtenerImagenPorArticulo = (nombre, tipo) => {
   if (n.includes('jabón') || n.includes('limpieza') || n.includes('lavandina') || n.includes('detergente')) {
     return 'https://images.unsplash.com/photo-1584184866819-7437b4f33b7c?w=500&auto=format&fit=crop&q=60';
   }
+  if (n.includes('manzana') || n.includes('banana') || n.includes('papa') || t.includes('frutas')) {
+    return 'https://images.unsplash.com/photo-1610832958506-aa56368176cf?w=500&auto=format&fit=crop&q=60';
+  }
+  if (n.includes('shampoo') || n.includes('desodorante') || t.includes('perfumería')) {
+    return 'https://images.unsplash.com/photo-1535585209827-a15fcdbc4c2d?w=500&auto=format&fit=crop&q=60';
+  }
+  if (n.includes('pan') || t.includes('panadería')) {
+    return 'https://images.unsplash.com/photo-1509440159596-0249088772ff?w=500&auto=format&fit=crop&q=60';
+  }
+  if (n.includes('yerba') || n.includes('café') || t.includes('desayuno')) {
+    return 'https://images.unsplash.com/photo-1514432324607-a09d9b4aefdd?w=500&auto=format&fit=crop&q=60';
+  }
+  if (n.includes('pañal') || t.includes('bebé')) {
+    return 'https://images.unsplash.com/photo-1515488042361-ee00e0ddd4e4?w=500&auto=format&fit=crop&q=60';
+  }
+  if (n.includes('perro') || n.includes('gato') || t.includes('mascota')) {
+    return 'https://images.unsplash.com/photo-1583511655857-d19b40a7a54e?w=500&auto=format&fit=crop&q=60';
+  }
   
   return 'https://images.unsplash.com/photo-1542838132-92c53300491e?w=500&auto=format&fit=crop&q=60';
 };
@@ -129,44 +206,130 @@ export default function ProductSelectionScreen({ navigation, route }) {
   const [imagenesRotas, setImagenesRotas] = useState({});
 
   useEffect(() => {
-    try {
-      setLoading(true);
-      const marcaFiltro = marcaSeleccionada 
-        ? marcaSeleccionada.toLowerCase().trim().normalize("NFD").replace(/[\u0300-\u036f]/g, "") 
-        : '';
+    const fetchProductosDesdeBackend = async () => {
+      try {
+        setLoading(true);
+        
+        // URL corregida hacia Render (o reemplázala por tu IP local si lo pruebas en desarrollo)
+        const response = await fetch('https://tudominio-en-render.onrender.com/api/productos');
+        const data = await response.json();
 
-      const catFiltro = catActiva 
-        ? catActiva.toLowerCase().trim().normalize("NFD").replace(/[\u0300-\u036f]/g, "") 
-        : '';
+        // Soporte tanto para arreglos directos como para objetos con propiedad productos
+        let catalogoBase = CATALOGO_EXCEL_VERIFICADO; 
+        if (Array.isArray(data)) {
+          catalogoBase = data;
+        } else if (data.success && data.productos && data.productos.length > 0) {
+          catalogoBase = data.productos;
+        }
 
-      let listaFiltrada = CATALOGO_EXCEL_VERIFICADO.filter(item => {
-        const itemMarcaNorm = item.marca.toLowerCase().trim().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-        const itemTipoNorm = (item.tipo || '').toLowerCase().trim().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+        const marcaFiltro = marcaSeleccionada 
+          ? marcaSeleccionada.toLowerCase().trim().normalize("NFD").replace(/[\u0300-\u036f]/g, "") 
+          : '';
 
-        const matchMarca = !marcaFiltro || itemMarcaNorm === marcaFiltro;
-        const matchCat = !catFiltro || itemTipoNorm.includes(catFiltro) || catFiltro.includes(itemTipoNorm);
+        const catFiltro = catActiva 
+          ? catActiva.toLowerCase().trim().normalize("NFD").replace(/[\u0300-\u036f]/g, "") 
+          : '';
 
-        return matchMarca && matchCat;
-      });
+        let listaFiltrada = catalogoBase.filter(item => {
+          const itemMarcaNorm = (item.marca || '').toLowerCase().trim().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+          const itemTipoNorm = (item.tipo || '').toLowerCase().trim().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
 
-      const productosFormateados = listaFiltrada.map((item) => {
-        const superKey = item.superMasBarato ? item.superMasBarato.toLowerCase().trim() : 'coto';
-        const superDomain = SUPER_DOMINIOS[superKey] || 'coto.com.ar';
+          const matchMarca = !marcaFiltro || itemMarcaNorm.includes(marcaFiltro) || marcaFiltro.includes(itemMarcaNorm);
+          const matchCat = !catFiltro || itemTipoNorm.includes(catFiltro) || catFiltro.includes(itemTipoNorm);
 
-        return {
-          ...item,
-          cantidad: 1, // Inicializamos cantidad predeterminada en 1 para el comparativo
-          imagenAsignada: obtenerImagenPorArticulo(item.nombre, item.tipo),
-          logoSuper: `https://api.companyenrich.com/logo/${superDomain}`
-        };
-      });
+          return matchMarca && matchCat;
+        });
 
-      setProductos(productosFormateados);
-    } catch (error) {
-      console.error('Error al filtrar productos:', error);
-    } finally {
-      setLoading(false);
-    }
+        // Fallback robusto si la combinación específica no arroja resultados directos
+        if (listaFiltrada.length === 0 && marcaFiltro) {
+          listaFiltrada = catalogoBase.filter(item => {
+            const itemMarcaNorm = (item.marca || '').toLowerCase().trim().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+            return itemMarcaNorm.includes(marcaFiltro) || marcaFiltro.includes(itemMarcaNorm);
+          });
+        }
+
+        if (listaFiltrada.length === 0 && catFiltro) {
+          listaFiltrada = catalogoBase.filter(item => {
+            const itemTipoNorm = (item.tipo || '').toLowerCase().trim().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+            return itemTipoNorm.includes(catFiltro) || catFiltro.includes(itemTipoNorm);
+          });
+        }
+
+        if (listaFiltrada.length === 0) {
+          listaFiltrada = catalogoBase;
+        }
+
+        const productosFormateados = listaFiltrada.map((item) => {
+          const superKey = item.superMasBarato ? item.superMasBarato.toLowerCase().trim() : 'coto';
+          const superDomain = SUPER_DOMINIOS[superKey] || 'coto.com.ar';
+
+          return {
+            ...item,
+            cantidad: 1, 
+            imagenAsignada: obtenerImagenPorArticulo(item.nombre, item.tipo),
+            logoSuper: `https://api.companyenrich.com/logo/${superDomain}`
+          };
+        });
+
+        setProductos(productosFormateados);
+      } catch (error) {
+        console.error('Error al obtener productos del backend:', error);
+        // En caso de fallo de red, usamos el catálogo estático como respaldo
+        const marcaFiltro = marcaSeleccionada 
+          ? marcaSeleccionada.toLowerCase().trim().normalize("NFD").replace(/[\u0300-\u036f]/g, "") 
+          : '';
+
+        const catFiltro = catActiva 
+          ? catActiva.toLowerCase().trim().normalize("NFD").replace(/[\u0300-\u036f]/g, "") 
+          : '';
+
+        let listaFiltrada = CATALOGO_EXCEL_VERIFICADO.filter(item => {
+          const itemMarcaNorm = (item.marca || '').toLowerCase().trim().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+          const itemTipoNorm = (item.tipo || '').toLowerCase().trim().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+
+          const matchMarca = !marcaFiltro || itemMarcaNorm.includes(marcaFiltro) || marcaFiltro.includes(itemMarcaNorm);
+          const matchCat = !catFiltro || itemTipoNorm.includes(catFiltro) || catFiltro.includes(itemTipoNorm);
+
+          return matchMarca && matchCat;
+        });
+
+        if (listaFiltrada.length === 0 && marcaFiltro) {
+          listaFiltrada = CATALOGO_EXCEL_VERIFICADO.filter(item => {
+            const itemMarcaNorm = (item.marca || '').toLowerCase().trim().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+            return itemMarcaNorm.includes(marcaFiltro) || marcaFiltro.includes(itemMarcaNorm);
+          });
+        }
+
+        if (listaFiltrada.length === 0 && catFiltro) {
+          listaFiltrada = CATALOGO_EXCEL_VERIFICADO.filter(item => {
+            const itemTipoNorm = (item.tipo || '').toLowerCase().trim().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+            return itemTipoNorm.includes(catFiltro) || catFiltro.includes(itemTipoNorm);
+          });
+        }
+
+        if (listaFiltrada.length === 0) {
+          listaFiltrada = CATALOGO_EXCEL_VERIFICADO;
+        }
+
+        const productosFormateados = listaFiltrada.map((item) => {
+          const superKey = item.superMasBarato ? item.superMasBarato.toLowerCase().trim() : 'coto';
+          const superDomain = SUPER_DOMINIOS[superKey] || 'coto.com.ar';
+
+          return {
+            ...item,
+            cantidad: 1, 
+            imagenAsignada: obtenerImagenPorArticulo(item.nombre, item.tipo),
+            logoSuper: `https://api.companyenrich.com/logo/${superDomain}`
+          };
+        });
+
+        setProductos(productosFormateados);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchProductosDesdeBackend();
   }, [catActiva, marcaSeleccionada]);
 
   const handleAgregarAlCarrito = (producto) => {

@@ -1,360 +1,371 @@
-import React, { useState, useCallback, useEffect, useRef } from 'react';
-import { StyleSheet, Text, View, TouchableOpacity, Image, ActivityIndicator, TextInput, KeyboardAvoidingView, Platform, ScrollView, Animated } from 'react-native';
+import React, { useState, useEffect, useRef } from 'react';
+import { 
+  StyleSheet, 
+  Text, 
+  View, 
+  Image, 
+  TouchableOpacity, 
+  ActivityIndicator, 
+  SafeAreaView, 
+  Dimensions,
+  Animated
+} from 'react-native';
 import { CameraView, useCameraPermissions } from 'expo-camera';
-import { useFocusEffect, useIsFocused } from '@react-navigation/native';
-import { useAuth } from '../context/AuthContext';
-import api from '../config/api'; 
-import { playBeep, loadBeepSound, unloadSounds } from '../utils/share';
+import { Ionicons } from '@expo/vector-icons';
+import { Audio } from 'expo-av';
+import api, { productService } from '../config/api';
 
-// Logos oficiales locales robustos
-const LOGOS_SUPERMERCADO = {
-  'carrefour': require('../../assets/logos/carrefour.png'),
-  'coto': require('../../assets/logos/coto.png'),
-  'jumbo': require('../../assets/logos/jumbo.png'),
-  'dia': require('../../assets/logos/dia.png'),
-  'changomas': require('../../assets/logos/changomas.png'),
-  'vea': require('../../assets/logos/vea.png'),
-  'disco': require('../../assets/logos/disco.png'),
-  'maxiconsumo': require('../../assets/logos/maxiconsumo.png')
-};
-
-const getLogoSuperLocal = (nombreSuper) => {
-  if (!nombreSuper) return LOGOS_SUPERMERCADO['vea'];
-  const clave = String(nombreSuper).toLowerCase().trim();
-  for (const key in LOGOS_SUPERMERCADO) {
-    if (clave.includes(key)) {
-      return LOGOS_SUPERMERCADO[key];
-    }
-  }
-  return LOGOS_SUPERMERCADO['carrefour'];
-};
-
-const IMAGEN_DEFAULT_PRODUCTO = 'https://images.carrefour.com.ar/media/catalog/product/s/e/685100_1.jpg';
+const { width, height } = Dimensions.get('window');
 
 export default function ScannerScreen({ navigation }) {
-  const { user, logout } = useAuth();
-  const [hasPermission, requestPermission] = useCameraPermissions();
+  const [permission, requestPermission] = useCameraPermissions();
+  const [scanned, setScanned] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [resultadoEscaneo, setResultadoEscaneo] = useState(null);
-  const [searchText, setSearchText] = useState('');
-  
-  const isFocused = useIsFocused();
+  const [productData, setProductData] = useState(null);
+  const [scannedCode, setScannedCode] = useState('');
+  const [flash, setFlash] = useState(false);
+
   const blinkAnim = useRef(new Animated.Value(1)).current;
 
   useEffect(() => {
-    loadBeepSound().catch(() => {});
-    
-    const animation = Animated.loop(
-      Animated.sequence([
-        Animated.timing(blinkAnim, { toValue: 0.2, duration: 600, useNativeDriver: true }),
-        Animated.timing(blinkAnim, { toValue: 1, duration: 600, useNativeDriver: true })
-      ])
-    );
-    animation.start();
-
-    return () => { 
-      unloadSounds().catch(() => {}); 
-      animation.stop();
-    };
-  }, [blinkAnim]);
-
-  useFocusEffect(
-    useCallback(() => {
-      setLoading(false);
-      setResultadoEscaneo(null);
-      setSearchText('');
-    }, [])
-  );
-
-  const handleLogoutFlow = () => {
-    navigation.navigate('Goodbye');
-    setTimeout(logout, 1000);
-  };
-
-  const handleBackPress = () => {
-    if (navigation.canGoBack()) {
-      navigation.goBack();
-    } else {
-      navigation.navigate('HomeScreen', { user });
+    if (!permission || !permission.granted) {
+      requestPermission();
     }
-  };
+  }, [permission]);
 
-  const handleBarcodeScanned = async ({ data }) => {
-    if (loading) return;
-    
-    setLoading(true);
-    setResultadoEscaneo(null);
-    
-    await playBeep().catch(() => {});
-
-    const codigoEanLimpio = String(data).trim();
-    let productoEncontradoFinal = null;
-
-    // CONSULTA ÚNICA Y OFICIAL AL ENDPOINT EXISTENTE DEL BACKEND (/api/users/productos/buscar)
-    try {
-      const response = await api.get('/api/users/productos/buscar', { 
-        params: { 
-          q: codigoEanLimpio,
-          codigo: codigoEanLimpio,
-          ean: codigoEanLimpio,
-          localidad: 'Paraná',
-          provincia: 'Entre Ríos'
-        },
-        timeout: 8000 
-      });
-
-      if (response.data?.status === 'success' && response.data.data?.length > 0) {
-        let listaSucursales = response.data.data;
-
-        // Ordenar estrictamente de menor a mayor precio para garantizar el supermercado más barato en Paraná (Coto, Maxiconsumo, etc.)
-        listaSucursales.sort((a, b) => {
-          const precioA = parseFloat(String(a.precio || '0').replace(/\./g, '').replace(',', '.'));
-          const precioB = parseFloat(String(b.precio || '0').replace(/\./g, '').replace(',', '.'));
-          return precioA - precioB;
-        });
-
-        const mejorOpcion = listaSucursales[0];
-
-        productoEncontradoFinal = {
-          id: mejorOpcion.id || codigoEanLimpio,
-          nombre: mejorOpcion.nombre || mejorOpcion.descripcion || `Producto EAN ${codigoEanLimpio}`,
-          marca: mejorOpcion.marca || 'Marca Registrada',
-          medida: mejorOpcion.medida || mejorOpcion.presentacion || '',
-          ean: codigoEanLimpio,
-          precio: mejorOpcion.precio ? String(mejorOpcion.precio).replace('.', ',') : '0,00',
-          supermercado: mejorOpcion.supermercado || mejorOpcion.comercio || 'Supermercado Local',
-          imagen: mejorOpcion.imagen || mejorOpcion.foto || IMAGEN_DEFAULT_PRODUCTO,
-          sucursalesDisponibles: listaSucursales
-        };
-      }
-    } catch (e) {
-      console.log('Error al conectar con la API de productos:', e.message);
+  useEffect(() => {
+    if (!scanned) {
+      const animation = Animated.loop(
+        Animated.sequence([
+          Animated.timing(blinkAnim, {
+            toValue: 0.2,
+            duration: 500,
+            useNativeDriver: true,
+          }),
+          Animated.timing(blinkAnim, {
+            toValue: 1,
+            duration: 500,
+            useNativeDriver: true,
+          }),
+        ])
+      );
+      animation.start();
+      return () => animation.stop();
     }
+  }, [scanned, blinkAnim]);
 
-    if (!productoEncontradoFinal) {
-      setResultadoEscaneo({ encontrado: false });
-      setLoading(false);
-      return;
-    }
+  if (!permission) {
+    return <View style={styles.centerContainer}><ActivityIndicator size="large" color="#FFD700" /></View>;
+  }
 
-    setResultadoEscaneo({
-      encontrado: true,
-      nombre: productoEncontradoFinal.nombre,
-      marca: productoEncontradoFinal.marca,
-      medida: productoEncontradoFinal.medida,
-      ean: codigoEanLimpio,
-      precio: productoEncontradoFinal.precio,
-      supermercado: productoEncontradoFinal.supermercado,
-      logoSuperSource: getLogoSuperLocal(productoEncontradoFinal.supermercado),
-      imagen: productoEncontradoFinal.imagen,
-      productoCompleto: productoEncontradoFinal
-    });
-    setLoading(false);
-  };
-
-  const handleManualSearch = () => {
-    if (!searchText.trim()) return;
-    navigation.navigate('ProductList', { query: searchText.trim() });
-  };
-
-  if (!hasPermission?.granted) {
+  if (!permission.granted) {
     return (
-      <View style={styles.center}>
-        <Text style={styles.textError}>Se requiere acceso a la cámara.</Text>
-        <TouchableOpacity style={styles.btnPermiso} onPress={requestPermission}>
-          <Text style={{color: '#fff'}}>Dar Permiso</Text>
+      <View style={styles.centerContainer}>
+        <Text style={styles.textError}>No hay acceso a la cámara</Text>
+        <TouchableOpacity style={styles.buttonPermission} onPress={requestPermission}>
+          <Text style={styles.buttonText}>Conceder Permiso</Text>
         </TouchableOpacity>
       </View>
     );
   }
 
-  return (
-    <KeyboardAvoidingView 
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'} 
-      style={styles.container}
-    >
-      <ScrollView contentContainerStyle={styles.scrollContainer} keyboardShouldPersistTaps="handled">
-        <View style={styles.header}>
-          <View style={styles.headerLeft}>
-            <Image source={require('../../assets/logo.png')} style={styles.logoGrande} />
-            <Image source={require('../../assets/nombreapp.png')} style={styles.nombreAppGrande} />
+  const handleBarCodeScanned = async ({ type, data }) => {
+    if (scanned) return;
+
+    let cleanEan = data ? data.trim() : '';
+    if (!cleanEan) return;
+
+    if (!/^\d+$/.test(cleanEan)) {
+      return; 
+    }
+
+    if (cleanEan.startsWith('479')) {
+      cleanEan = '7' + cleanEan.slice(1);
+    }
+
+    setScanned(true);
+    setLoading(true);
+    setScannedCode(cleanEan);
+
+    try {
+      const { sound } = await Audio.Sound.createAsync(require('../../assets/beepscanner.mp3'));
+      await sound.playAsync();
+    } catch (error) {
+      console.log("No se pudo reproducir el sonido beepscanner:", error);
+    }
+
+    try {
+      console.log(`🔍 Consultando EAN: ${cleanEan}`);
+      
+      const response = await productService.getByEan(cleanEan);
+      const json = response.data;
+      
+      console.log("🔥 RESPUESTA RECIBIDA EXITOSAMENTE", json);
+
+      if (response.status === 200 && json && (json.producto || json.status === 'éxito' || json.nombre || json.name)) {
+        const prod = json.producto || json;
+        
+        const listaPrecios = json.comparativa || json.comparisons || json.precios || json.comercios || prod.precios || prod.comercios || prod.preciosComercios || [];
+        
+        let mejorPrecioStr = json.precioMasBarato || json.mejorPrecio || prod.precioMasBarato || prod.precio;
+        let mejorSuper = json.supermercadoMasBarato || json.mejorSupermercado || prod.supermercadoMasBarato || prod.supermercado;
+
+        if ((!mejorPrecioStr || !mejorSuper) && listaPrecios.length > 0) {
+          const sortedPrecios = [...listaPrecios].sort((a, b) => {
+            const pA = parseFloat(a.precio || a.price || a.valor || 0);
+            const pB = parseFloat(b.precio || b.price || b.valor || 0);
+            return pA - pB;
+          });
+          if (sortedPrecios.length > 0) {
+            const cheapest = sortedPrecios[0];
+            if (!mejorPrecioStr) {
+              const rawP = cheapest.precio || cheapest.price || cheapest.valor;
+              mejorPrecioStr = typeof rawP === 'number' ? `$ ${rawP.toFixed(2)}` : (rawP ? (String(rawP).startsWith('$') ? rawP : `$ ${rawP}`) : '$ 0.00');
+            }
+            if (!mejorSuper) {
+              mejorSuper = cheapest.supermercado || cheapest.nombre || cheapest.comercio || cheapest.cadena || 'No especificado';
+            }
+          }
+        }
+
+        if (typeof mejorPrecioStr === 'number') {
+          mejorPrecioStr = `$ ${mejorPrecioStr.toFixed(2)}`;
+        } else if (mejorPrecioStr && !String(mejorPrecioStr).startsWith('$')) {
+          mejorPrecioStr = `$ ${mejorPrecioStr}`;
+        } else if (!mejorPrecioStr) {
+          mejorPrecioStr = '$ 0.00';
+        }
+
+        setProductData({
+          nombre: prod.nombre || prod.name || prod.title || 'Producto sin nombre',
+          descripcion: prod.descripcion || prod.description || 'Artículo verificado por código de barras',
+          marca: prod.marca || prod.brand || 'Genérica',
+          medida: prod.medida || prod.unidad_medida || prod.presentation || '',
+          precio: mejorPrecioStr,
+          supermercadoMasBarato: mejorSuper || 'No especificado',
+          imagen: prod.imagen || prod.image || prod.foto || json.imagen || null,
+          ean: cleanEan,
+          listaPrecios: listaPrecios 
+        });
+      } else {
+        setProductData(null);
+        // Incorporar automáticamente el EAN a la base de datos cuando no existe
+        try {
+          await api.post('/api/users/productos/registrar', { ean: cleanEan });
+          console.log(`📌 EAN ${cleanEan} incorporado automáticamente para procesamiento nocturno.`);
+        } catch (regError) {
+          console.log("❌ Error al registrar EAN automáticamente:", regError.message);
+        }
+      }
+    } catch (error) {
+      console.log("❌ Error al buscar producto en la API:", error.message);
+      setProductData(null);
+      // Intentar registrar también en caso de error de conexión/búsqueda si el producto no existe
+      try {
+        await api.post('/api/users/productos/registrar', { ean: cleanEan });
+      } catch (regError) {
+        // Ignorar si falla el registro secundario
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const resetScanner = () => {
+    setScanned(false);
+    setProductData(null);
+    setScannedCode('');
+  };
+
+  if (scanned) {
+    return (
+      <SafeAreaView style={styles.containerPostScan}>
+        <View style={styles.topHeaderInline}>
+          <Image source={require('../../assets/icon.png')} style={styles.appLogoInline} resizeMode="contain" />
+          <Image source={require('../../assets/nombreapp.png')} style={styles.appNameImageInline} resizeMode="contain" />
+        </View>
+
+        <View style={styles.goldenLine} />
+
+        <View style={styles.titleStripBlue}>
+          <Text style={styles.titleTextYellow}>PRODUCTO ESCANEADO</Text>
+        </View>
+
+        <View style={styles.goldenLine} />
+
+        {loading ? (
+          <View style={styles.centerContainer}>
+            <ActivityIndicator size="large" color="#FFD700" />
+            <Text style={styles.loadingText}>Buscando producto vigente...</Text>
           </View>
-        </View>
-
-        <View style={styles.titleGoldLine} />
-        <View style={styles.blackBanner}>
-          <Text style={styles.bannerText}>ESCÁNER DE CÓDIGOS SMARTCHECK</Text>
-        </View>
-        <View style={styles.titleGoldLine} />
-
-        <View style={styles.instructionRow}>
-          <Text style={styles.instructionText}>Enfoque el código EAN del producto</Text>
-          <Image 
-            source={require('../../assets/eancod.png')} 
-            style={styles.eanSampleImg} 
-          />
-        </View>
-
-        <View style={styles.cameraWrapper}>
-          {isFocused && (
-            <CameraView
-              style={StyleSheet.absoluteFillObject}
-              onBarcodeScanned={handleBarcodeScanned}
-              barcodeScannerSettings={{ barcodeTypes: ['ean13', 'ean8', 'qr', 'code128'] }}
-            />
-          )}
-          <View style={styles.overlayFrame}>
-            <Animated.View style={[styles.scannerTarget, { opacity: blinkAnim }]} />
-          </View>
-        </View>
-
-        <View style={styles.manualSearchContainer}>
-          <TextInput
-            style={styles.inputBusquedaGrande}
-            placeholder="O escribe el producto aquí..."
-            placeholderTextColor="#8892B0"
-            value={searchText}
-            onChangeText={setSearchText}
-            onSubmitEditing={handleManualSearch}
-          />
-          <TouchableOpacity style={styles.btnBuscarManualPequeno} onPress={handleManualSearch}>
-            <Text style={styles.btnBuscarManualText}>🔍 Buscar</Text>
-          </TouchableOpacity>
-        </View>
-
-        <View style={styles.feedbackContainer}>
-          {loading ? (
-            <ActivityIndicator size="large" color="#00ffcc" />
-          ) : resultadoEscaneo ? (
-            resultadoEscaneo.encontrado ? (
-              <TouchableOpacity 
-                style={styles.resultadoBox} 
-                onPress={() => {
-                  navigation.navigate('ShoppingList', { 
-                    itemsSeleccionados: [resultadoEscaneo.productoCompleto],
-                    localidadUser: 'Paraná',
-                    provinciaUser: 'Entre Ríos'
-                  });
-                }}
-              >
-                <Text style={styles.textoExito}>¡Mejor Precio Localizado en Paraná!</Text>
-                
-                <View style={styles.mejorPrecioContainer}>
-                  <Text style={styles.mejorPrecioLabel}>🔥 MEJOR PRECIO ENCONTRADO:</Text>
-                  <View style={styles.precioSuperRow}>
-                    <Text style={styles.mejorPrecioValor}>$ {resultadoEscaneo.precio}</Text>
-                    <View style={styles.superInfoBox}>
-                      <Image source={resultadoEscaneo.logoSuperSource} style={styles.logoSuperImg} />
-                      <Text style={styles.superNombreTexto}>{resultadoEscaneo.supermercado}</Text>
-                    </View>
-                  </View>
-                </View>
-
-                <View style={styles.productoInfoRow}>
+        ) : (
+          <View style={styles.recuadroPantalla}>
+            {productData ? (
+              <>
+                <TouchableOpacity 
+                  style={styles.imageContainer} 
+                  onPress={() => navigation.navigate('ComparativaScreen', { 
+                    productData: productData,
+                    comparativa: productData.listaPrecios,
+                    ean: productData.ean || scannedCode
+                  })}
+                  activeOpacity={0.8}
+                >
                   <Image 
-                    source={{ uri: resultadoEscaneo.imagen }} 
-                    style={styles.productoMiniImg} 
-                    resizeMode="cover"
+                    source={productData.imagen ? { uri: productData.imagen } : require('../../assets/localidad.png')} 
+                    style={styles.productImage} 
+                    resizeMode="contain" 
                   />
-                  <View style={styles.productoTextos}>
-                    <Text style={styles.productoDesc} numberOfLines={1}>{resultadoEscaneo.nombre}</Text>
-                    <Text style={styles.productoMarca}>Marca: {resultadoEscaneo.marca}</Text>
-                    <Text style={styles.productoDetalle}>Medida: {resultadoEscaneo.medida}</Text>
-                    <Text style={styles.verMasTexto}>Toca para enviar al Chango Ahorrador ➔</Text>
+                  <Text style={styles.hintTapText}>👆 Toca la imagen para ver los precios</Text>
+                </TouchableOpacity>
+
+                <View style={styles.detailsContainer}>
+                  <Text style={styles.productName}>{productData.nombre}</Text>
+                  <Text style={styles.productDesc}>{productData.descripcion}</Text>
+                  
+                  <View style={styles.rowInfo}>
+                    <Text style={styles.infoLabel}>Marca:</Text>
+                    <Text style={styles.infoValue}>{productData.marca}</Text>
+                  </View>
+
+                  <View style={styles.rowInfo}>
+                    <Text style={styles.infoLabel}>Medida:</Text>
+                    <Text style={styles.infoValue}>{productData.medida || 'N/D'}</Text>
+                  </View>
+
+                  <View style={styles.rowInfo}>
+                    <Text style={styles.infoLabel}>Más barato en:</Text>
+                    <Text style={styles.infoValueSuper}>{productData.supermercadoMasBarato}</Text>
+                  </View>
+
+                  <View style={styles.priceBox}>
+                    <Text style={styles.priceLabel}>MEJOR PRECIO VIGENTE:</Text>
+                    <Text style={styles.priceValue}>{productData.precio}</Text>
+                    <Text style={styles.eanText}>EAN: {productData.ean || scannedCode}</Text>
                   </View>
                 </View>
-              </TouchableOpacity>
-            ) : (
-              <View style={styles.resultadoBox}>
-                <Text style={styles.textoErrorNoEncontrado}>❌ Producto no encontrado en las sucursales de Paraná.</Text>
-              </View>
-            )
-          ) : (
-            <Text style={styles.instructions}>Apuntá al código de barras (EAN)</Text>
-          )}
-        </View>
-      </ScrollView>
 
-      <View style={styles.footerContainer}>
-        <View style={styles.goldLine} />
-        <View style={styles.footer}>
-          <TouchableOpacity onPress={handleBackPress} style={styles.footerButton}>
-            <Image source={require('../../assets/volver.png')} style={styles.iconosFooter} />
-            <Text style={styles.footerButtonText}>Volver</Text>
-          </TouchableOpacity>
-          <TouchableOpacity onPress={handleLogoutFlow} style={styles.footerButton}>
-            <Image source={require('../../assets/salir.png')} style={styles.iconosFooter} />
-            <Text style={styles.footerButtonText}>Salir</Text>
-          </TouchableOpacity>
-        </View>
+                <TouchableOpacity style={styles.backButton} onPress={resetScanner}>
+                  <Ionicons name="scan-outline" size={20} color="#000" style={{ marginRight: 8 }} />
+                  <Text style={styles.backButtonText}>Volver al Scanner</Text>
+                </TouchableOpacity>
+              </>
+            ) : (
+              <View style={styles.centerContainer}>
+                <Text style={styles.textError}>El producto no se encuentra registrado en la base de datos de los supermercados.</Text>
+                
+                <TouchableOpacity style={styles.backButton} onPress={resetScanner}>
+                  <Ionicons name="scan-outline" size={20} color="#000" style={{ marginRight: 8 }} />
+                  <Text style={styles.backButtonText}>Intentar de nuevo</Text>
+                </TouchableOpacity>
+
+                <Text style={styles.noticeTextBelow}>
+                  Este producto se ha incorporado para que sea agregado a la base de datos a partir de la próxima actualización de la misma.
+                </Text>
+              </View>
+            )}
+          </View>
+        )}
+      </SafeAreaView>
+    );
+  }
+
+  return (
+    <SafeAreaView style={styles.container}>
+      <View style={styles.topHeaderBlack}>
+        <Image source={require('../../assets/icon.png')} style={styles.appLogoLarge} resizeMode="contain" />
+        <Image source={require('../../assets/nombreapp.png')} style={styles.appNameImage} resizeMode="contain" />
       </View>
-    </KeyboardAvoidingView>
+
+      <View style={styles.titleSpacing} />
+
+      <View style={styles.goldenLine} />
+
+      <View style={styles.titleStripBlue}>
+        <Text style={styles.titleTextYellow}>ESCÁNER DE CÓDIGOS EAN</Text>
+      </View>
+
+      <View style={styles.goldenLine} />
+
+      <View style={styles.middleBlueSection}>
+        <View style={styles.scanBoxContainer}>
+          <CameraView
+            style={StyleSheet.absoluteFillObject}
+            facing="back"
+            enableTorch={flash}
+            barcodeScannerSettings={{
+              barcodeTypes: ["ean13", "ean8", "upc_a", "upc_e"],
+            }}
+            onBarcodeScanned={scanned ? undefined : handleBarCodeScanned}
+          />
+          <Animated.View style={[styles.scanBoxBorder, { opacity: blinkAnim }]} />
+          <Text style={styles.scanGuideText}>Apunta al código EAN</Text>
+        </View>
+
+        <TouchableOpacity style={styles.flashButtonCentered} onPress={() => setFlash(!flash)}>
+          <Ionicons name={flash ? "flash" : "flash-off"} size={18} color="#000" style={{ marginRight: 6 }} />
+          <Text style={styles.flashButtonText}>{flash ? "Linterna ON" : "Linterna"}</Text>
+        </TouchableOpacity>
+      </View>
+
+      <View style={styles.goldenLine} />
+
+      <View style={styles.bottomBar}>
+        <TouchableOpacity style={styles.bottomButtonPlain} onPress={() => navigation.goBack()}>
+          <Image source={require('../../assets/volver.png')} style={[styles.bottomButtonImageLarge, { tintColor: '#38BDF8' }]} resizeMode="contain" />
+        </TouchableOpacity>
+
+        <TouchableOpacity style={styles.bottomButtonPlain} onPress={() => navigation.navigate('Goodbye')}>
+          <Image source={require('../../assets/salir.png')} style={[styles.bottomButtonImageLarge, { tintColor: '#38BDF8' }]} resizeMode="contain" />
+        </TouchableOpacity>
+      </View>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#001f3f' },
-  scrollContainer: { flexGrow: 1, justifyContent: 'space-between', paddingBottom: 10 },
-  center: { flex: 1, backgroundColor: '#001f3f', justifyContent: 'center', alignItems: 'center' },
-  
-  header: { 
-    flexDirection: 'row', 
-    alignItems: 'center', 
-    justifyContent: 'space-between', 
-    paddingHorizontal: 15, 
-    paddingVertical: 10,
-    backgroundColor: '#000000',
-    marginBottom: 6
-  },
-  headerLeft: { flexDirection: 'row', alignItems: 'center', flex: 1 },
-  logoGrande: { width: 75, height: 75, resizeMode: 'contain', marginRight: 10 },
-  nombreAppGrande: { width: 190, height: 42, resizeMode: 'contain' },
-  
-  blackBanner: { width: '100%', backgroundColor: '#000000', paddingVertical: 8, alignItems: 'center', justifyContent: 'center' },
-  bannerText: { color: '#FFD700', fontSize: 17, fontWeight: 'bold', letterSpacing: 1, textAlign: 'center' },
-  titleGoldLine: { height: 1, backgroundColor: '#FFD700', width: '100%' },
-  
-  instructionRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, marginVertical: 6 },
-  instructionText: { color: '#FFD700', fontSize: 11, fontWeight: 'bold' },
-  eanSampleImg: { width: 75, height: 18, resizeMode: 'contain', backgroundColor: '#fff', borderRadius: 3 },
-
-  cameraWrapper: { width: '85%', height: 185, borderRadius: 10, overflow: 'hidden', borderWidth: 2, borderColor: '#00ffcc', alignSelf: 'center' },
-  overlayFrame: { ...StyleSheet.absoluteFillObject, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(0,0,0,0.05)' },
-  scannerTarget: { width: '92%', height: '88%', borderWidth: 2, borderColor: '#ffcc00', borderRadius: 6, borderStyle: 'dashed' },
-  
-  manualSearchContainer: { width: '85%', alignSelf: 'center', marginTop: 8, flexDirection: 'row', gap: 8, alignItems: 'center' },
-  inputBusquedaGrande: { flex: 1, backgroundColor: '#0A192F', borderWidth: 1, borderColor: '#00ffff', borderRadius: 6, paddingHorizontal: 12, paddingVertical: 8, color: '#fff', fontSize: 13 },
-  btnBuscarManualPequeno: { backgroundColor: '#003366', borderWidth: 1, borderColor: '#FFD700', paddingVertical: 8, paddingHorizontal: 14, borderRadius: 6, alignItems: 'center', justifyContent: 'center' },
-  btnBuscarManualText: { color: '#FFD700', fontSize: 12, fontWeight: 'bold' },
-
-  feedbackContainer: { minHeight: 110, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 15, marginTop: 4 },
-  instructions: { color: '#aaa', fontSize: 12, textAlign: 'center' },
-  resultadoBox: { width: '100%', alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(0,0,0,0.4)', padding: 6, borderRadius: 8, borderWidth: 1, borderColor: '#00ffcc' },
-  textoExito: { color: '#00ffcc', fontSize: 11, fontWeight: 'bold', marginBottom: 2, textAlign: 'center' },
-  
-  mejorPrecioContainer: { backgroundColor: '#003366', width: '100%', paddingVertical: 3, paddingHorizontal: 8, borderRadius: 6, borderWidth: 1, borderColor: '#FFD700', marginBottom: 4, alignItems: 'center' },
-  mejorPrecioLabel: { color: '#FFD700', fontSize: 9, fontWeight: 'bold' },
-  precioSuperRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10 },
-  mejorPrecioValor: { color: '#fff', fontSize: 13, fontWeight: 'bold' },
-  superInfoBox: { flexDirection: 'row', alignItems: 'center', gap: 5, backgroundColor: '#fff', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4 },
-  logoSuperImg: { width: 22, height: 14, resizeMode: 'contain' },
-  superNombreTexto: { color: '#000', fontSize: 10, fontWeight: 'bold' },
-
-  textoErrorNoEncontrado: { color: '#ff4d4d', fontSize: 12, fontWeight: 'bold', textAlign: 'center' },
-  productoInfoRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-start', width: '100%', gap: 10 },
-  productoMiniImg: { width: 50, height: 50, borderRadius: 6, resizeMode: 'cover', backgroundColor: '#fff' },
-  productoTextos: { flex: 1, justifyContent: 'center' },
-  productoDesc: { color: '#fff', fontSize: 11, fontWeight: 'bold' },
-  productoMarca: { color: '#ccc', fontSize: 10 },
-  productoDetalle: { color: '#00ffcc', fontSize: 10, fontWeight: 'bold' },
-  verMasTexto: { color: '#FFD700', fontSize: 9, fontStyle: 'italic', marginTop: 1 },
-  
-  footerContainer: { width: '100%', paddingTop: 5, paddingBottom: 8, backgroundColor: '#001f3f' },
-  goldLine: { height: 1, backgroundColor: '#FFD700', width: '100%', marginBottom: 5 },
-  footer: { flexDirection: 'row', justifyContent: 'space-between', paddingHorizontal: 40, width: '100%' },
-  footerButton: { alignItems: 'center', justifyContent: 'center' },
-  iconosFooter: { width: 28, height: 28, resizeMode: 'contain', tintColor: '#00BFFF' },
-  footerButtonText: { color: '#00BFFF', fontSize: 10, marginTop: 1, fontWeight: 'bold' },
-  btnPermiso: { backgroundColor: '#00ffcc', padding: 12, borderRadius: 8, marginTop: 10 },
-  textError: { color: '#fff', marginBottom: 10 }
+  container: { flex: 1, backgroundColor: '#000000' },
+  centerContainer: { flex: 1, backgroundColor: '#000000', justifyContent: 'center', alignItems: 'center', padding: 20 },
+  topHeaderBlack: { backgroundColor: '#000000', paddingVertical: 16, alignItems: 'center', justifyContent: 'center' },
+  appLogoLarge: { width: 95, height: 95, marginBottom: 10, borderRadius: 14 },
+  appNameImage: { width: 230, height: 42 },
+  topHeaderInline: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', backgroundColor: '#000000', paddingVertical: 6, paddingHorizontal: 10 },
+  appLogoInline: { width: 65, height: 65, marginRight: 10, borderRadius: 10 },
+  appNameImageInline: { width: 180, height: 35 },
+  titleSpacing: { height: 16, backgroundColor: '#000000' },
+  goldenLine: { height: 1.5, backgroundColor: '#FFD700', width: '100%' },
+  titleStripBlue: { backgroundColor: '#003366', width: '100%', paddingVertical: 12, alignItems: 'center', justifyContent: 'center' },
+  titleTextYellow: { color: '#FFD700', fontSize: 16, fontWeight: '900', letterSpacing: 1.5 },
+  middleBlueSection: { flex: 1, backgroundColor: '#003366', justifyContent: 'center', alignItems: 'center', position: 'relative', paddingVertical: 20 },
+  scanBoxContainer: { width: 325, height: 205, borderRadius: 12, overflow: 'hidden', position: 'relative', marginBottom: 20 },
+  scanBoxBorder: { ...StyleSheet.absoluteFillObject, borderWidth: 2.5, borderColor: '#FFD700', borderRadius: 12 },
+  scanGuideText: { color: '#FFD700', fontSize: 12, fontWeight: '600', backgroundColor: 'rgba(0,0,0,0.8)', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 6, position: 'absolute', bottom: 8, alignSelf: 'center', overflow: 'hidden', borderWidth: 0.5, borderColor: '#FFD700' },
+  flashButtonCentered: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#FFD700', paddingHorizontal: 16, paddingVertical: 8, borderRadius: 8, elevation: 3 },
+  flashButtonText: { color: '#000000', fontSize: 14, fontWeight: 'bold' },
+  bottomBar: { flexDirection: 'row', justifyContent: 'space-between', backgroundColor: '#003366', paddingVertical: 14, paddingHorizontal: 30, alignItems: 'center' },
+  bottomButtonPlain: { padding: 6 },
+  bottomButtonImageLarge: { width: 44, height: 44 },
+  containerPostScan: { flex: 1, backgroundColor: '#000000', padding: 10 },
+  recuadroPantalla: { flex: 1, borderWidth: 1.5, borderColor: '#FFD750', borderRadius: 16, backgroundColor: '#0A0A0A', padding: 16, justifyContent: 'space-between', marginTop: 6 },
+  imageContainer: { alignItems: 'center', marginTop: 5, height: 150, justifyContent: 'center' },
+  productImage: { width: 120, height: 120, borderRadius: 10, backgroundColor: '#FFF' },
+  hintTapText: { color: '#38BDF8', fontSize: 11, marginTop: 4, fontWeight: '600' },
+  detailsContainer: { flex: 1, marginTop: 4, justifyContent: 'flex-start' },
+  productName: { color: '#FFFFFF', fontSize: 19, fontWeight: 'bold', textAlign: 'center', marginBottom: 4 },
+  productDesc: { color: '#AAAAAA', fontSize: 12, textAlign: 'center', marginBottom: 8 },
+  rowInfo: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 4, borderBottomWidth: 0.5, borderBottomColor: '#222' },
+  infoLabel: { color: '#888888', fontSize: 13 },
+  infoValue: { color: '#FFFFFF', fontSize: 13, fontWeight: '600' },
+  infoValueSuper: { color: '#FFD700', fontSize: 13, fontWeight: 'bold' },
+  priceBox: { backgroundColor: '#FFFFFF', borderWidth: 1.5, borderColor: '#FFD700', borderRadius: 10, padding: 8, alignItems: 'center', marginTop: 10 },
+  priceLabel: { color: '#555555', fontSize: 11, fontWeight: 'bold', letterSpacing: 1 },
+  priceValue: { color: '#008000', fontSize: 26, fontWeight: '900', marginTop: 2 },
+  eanText: { color: '#0284C7', fontSize: 12, fontWeight: 'bold', marginTop: 4, letterSpacing: 1 },
+  backButton: { backgroundColor: '#FFD700', flexDirection: 'row', height: 46, borderRadius: 10, justifyContent: 'center', alignItems: 'center', marginTop: 10, shadowColor: '#FFD700', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.3, shadowRadius: 4, elevation: 4 },
+  backButtonText: { color: '#000000', fontSize: 15, fontWeight: 'bold' },
+  loadingText: { color: '#FFD700', marginTop: 10, fontSize: 14 },
+  textError: { color: '#FF5252', fontSize: 16, textAlign: 'center', marginBottom: 15 },
+  noticeTextBelow: { color: '#38BDF8', fontSize: 13, textAlign: 'center', marginTop: 15, paddingHorizontal: 15, lineHeight: 18 },
+  buttonPermission: { backgroundColor: '#FFD700', paddingHorizontal: 20, paddingVertical: 12, borderRadius: 8 },
+  buttonText: { color: '#000', fontWeight: 'bold' }
 });

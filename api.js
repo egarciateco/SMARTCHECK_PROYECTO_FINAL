@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 // Cambiamos la URL a la dirección pública de tu servidor en Render
-const API_BASE_URL = 'https://smartcheck-proyecto-final.onrender.com/api/users';
+const API_BASE_URL = 'https://smartcheck-proyecto.onrender.com/api/users';
 
 const api = axios.create({
   baseURL: API_BASE_URL,

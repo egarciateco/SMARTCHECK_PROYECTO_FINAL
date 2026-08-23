@@ -57,7 +57,7 @@ export default function CartScreen({ navigation, route }) {
 
     try {
       setGuardando(true);
-      const response = await fetch('https://tu-api.com/api/users/historial-compras', {
+      const response = await fetch('http://192.168.1.7:8000/api/users/historial-compras', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

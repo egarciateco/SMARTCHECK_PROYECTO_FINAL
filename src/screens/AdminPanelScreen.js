@@ -143,17 +143,31 @@ export default function AdminPanelScreen({ navigation }) {
     setUbicacionesUsuarios(ubicacionesMap);
   };
 
-  // Cargar lista de usuarios desde la API
+// Cargar lista de usuarios desde la API (flexible para múltiples formatos de respuesta)
   useEffect(() => {
     const obtenerUsuarios = async () => {
       try {
         const response = await api.get('/api/users/usuarios');
-        if (response.data && (response.data.status === 'success' || response.data.status === 'éxito')) {
-          const usuariosObtenidos = response.data.usuarios || [];
+        const data = response.data || {};
+        let usuariosObtenidos = [];
+
+        if (Array.isArray(data)) {
+          usuariosObtenidos = data;
+        } else if (data && Array.isArray(data.usuarios)) {
+          usuariosObtenidos = data.usuarios;
+        } else if (data && Array.isArray(data.data)) {
+          usuariosObtenidos = data.data;
+        } else if (data && data.success === true && Array.isArray(data.usuarios)) {
+          usuariosObtenidos = data.usuarios;
+        }
+
+        if (usuariosObtenidos.length > 0) {
           setUsuarios(usuariosObtenidos);
-          await resolverUbicaciones(usuariosObtenidos);
+          if (typeof resolverUbicaciones === 'function') {
+            await resolverUbicaciones(usuariosObtenidos);
+          }
         } else {
-          Alert.alert("Aviso", response.data?.mensaje || "No se obtuvieron usuarios.");
+          Alert.alert("Aviso", data?.mensaje || "No se obtuvieron usuarios.");
         }
       } catch (error) {
         console.error("Error cargando usuarios:", error.message);

@@ -1,215 +1,148 @@
-import React, { useEffect } from 'react';
-import { StyleSheet, View, Image, TouchableOpacity, Text, ScrollView } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
+import React from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, Image, SafeAreaView, Alert, Platform } from 'react-native';
 import { useAuth } from '../context/AuthContext';
+import ProfileAvatar from '../components/ProfileAvatar';
 
-export default function HomeScreen() {
-  const navigation = useNavigation();
+export default function HomeScreen({ navigation }) {
   const { user, logout } = useAuth();
 
-  // DIAGNÓSTICO: Imprime en la consola la estructura real del usuario al cargar
-  useEffect(() => {
-    console.log(">>> ESTRUCTURA DEL USUARIO EN HOMESCREEN:", JSON.stringify(user, null, 2));
-  }, [user]);
-
-  // Generar iniciales si el usuario no tiene foto
-  const getInitials = () => {
-    const n = user?.nombre ? user.nombre.charAt(0) : '';
-    const a = user?.apellido ? user.apellido.charAt(0) : '';
-    return (n + a).toUpperCase() || 'U';
+  const handleLogoutFlow = () => {
+    navigation.navigate('Goodbye');
+    setTimeout(logout, 1000);
   };
 
-  // Resuelve la foto probando todos los posibles nombres de campo y formatos
-  const resolveUserPhoto = () => {
-    if (!user) return null;
-
-    const rawPhoto = 
-      user.foto || 
-      user.fotoUrl || 
-      user.foto_url || 
-      user.fotoPerfil || 
-      user.imageUrl || 
-      user.imagenUrl || 
-      user.imagen || 
-      user.avatar || 
-      user.image || 
-      user.photo || 
-      user.rostro || 
-      user.faceUrl || 
-      user.path;
-
-    if (!rawPhoto) return null;
-
-    if (typeof rawPhoto === 'string') {
-      if (rawPhoto.startsWith('http') || rawPhoto.startsWith('data:image')) {
-        return rawPhoto;
-      }
-
-      if (rawPhoto.length > 200 && !rawPhoto.includes('/') && !rawPhoto.includes('.')) {
-        return `data:image/jpeg;base64,${rawPhoto}`;
-      }
-
-      let cleanPath = rawPhoto.replace(/\\/g, '/');
-      if (!cleanPath.startsWith('/')) {
-        cleanPath = `/${cleanPath}`;
-      }
-
-      return `https://smartcheck-proyecto-final.onrender.com${cleanPath}`;
-    }
-
-    return rawPhoto.uri || null;
-  };
-
-  const userPhoto = resolveUserPhoto();
-
-  const handleSalir = async () => {
-    try {
-      await logout();
-    } catch (error) {
-      console.error("Error al salir de la sesión:", error);
-    }
+  const handleAdminPress = () => {
+    navigation.navigate('AdminPanel');
   };
 
   return (
-    <View style={styles.container}>
-      {/* CABECERA */}
+    <SafeAreaView style={styles.container}>
+      {/* HEADER SUPERIOR */}
       <View style={styles.header}>
         <View style={styles.headerLeft}>
-          <Image source={require('../../assets/logo.png')} style={styles.logoMini} />
-          <Image source={require('../../assets/nombreapp.png')} style={styles.nombreApp} />
+          <Image source={require('../../assets/logo.png')} style={styles.logoGrande} resizeMode="contain" />
+          <Image source={require('../../assets/nombreapp.png')} style={styles.nombreAppGrande} resizeMode="contain" />
         </View>
+        <TouchableOpacity onPress={() => navigation.navigate('Perfil')} activeOpacity={0.7}>
+          <ProfileAvatar user={user} size={58} />
+        </TouchableOpacity>
+      </View>
 
-        {/* FOTO O INICIALES ARRIBA A LA DERECHA */}
-        <View style={styles.avatarContainer}>
-          {userPhoto ? (
-            <Image source={{ uri: userPhoto }} style={styles.avatarImage} />
-          ) : (
-            <View style={styles.initialsCircle}>
-              <Text style={styles.initialsText}>{getInitials()}</Text>
+      {/* TÍTULO CON LÍNEA DORADA ARRIBA Y ABAJO */}
+      <View style={styles.franjaNegra}>
+        <Text style={styles.tituloFranja}>PANEL PRINCIPAL</Text>
+      </View>
+
+      {/* CONTENEDOR PRINCIPAL */}
+      <View style={styles.menuContainer}>
+        
+        {/* Armar Chango */}
+        <TouchableOpacity style={styles.btnFull} onPress={() => navigation.navigate('SelectorInteligente')} activeOpacity={0.7}>
+          <Image source={require('../../assets/btnarmatuchango.png')} style={styles.btnImg} resizeMode="contain" />
+          <View style={styles.textContainer}>
+            <Text style={styles.btnTitle}>ARMÁ TU CHANGO</Text>
+            <Text style={styles.btnDesc}>Verificá cuánto ahorrarías en tu compra.</Text>
+          </View>
+        </TouchableOpacity>
+
+        {/* Búsqueda y Escáner */}
+        <View style={styles.rowWrapper}>
+          <TouchableOpacity style={styles.smallBtn} onPress={() => navigation.navigate('ProductSearch')} activeOpacity={0.7}>
+            <Image source={require('../../assets/btnbuscamanual.png')} style={styles.btnImgSmall} resizeMode="contain" />
+            <View style={styles.textContainer}>
+              <Text style={styles.btnTitle}>BÚSQUEDA</Text>
+              <Text style={styles.btnDesc}>Por nombre o marca.</Text>
             </View>
-          )}
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.smallBtn} onPress={() => navigation.navigate('Scanner')} activeOpacity={0.7}>
+            <Image source={require('../../assets/btnescaner.png')} style={styles.btnImgSmall} resizeMode="contain" />
+            <View style={styles.textContainer}>
+              <Text style={styles.btnTitle}>ESCÁNER</Text>
+              <Text style={styles.btnDesc}>Código de barras.</Text>
+            </View>
+          </TouchableOpacity>
+        </View>
+
+        {/* Historial y Supermercados */}
+        <View style={styles.rowWrapper}>
+          <TouchableOpacity style={styles.smallBtn} onPress={() => navigation.navigate('HistorialScreen')} activeOpacity={0.7}>
+            <Image source={require('../../assets/btnhistochan.png')} style={styles.btnImgSmall} resizeMode="contain" />
+            <View style={styles.textContainer}>
+              <Text style={styles.btnTitle}>HISTORIAL</Text>
+              <Text style={styles.btnDesc}>Listas guardadas.</Text>
+            </View>
+          </TouchableOpacity>
+          
+          {/* Ubicación (Supermercados) */}
+          <TouchableOpacity style={styles.smallBtn} onPress={() => navigation.navigate('SupermercadosCerca')} activeOpacity={0.7}>
+            <Image source={require('../../assets/btnsuper+cerca.png')} style={styles.btnImgSmall} resizeMode="contain" />
+            <View style={styles.textContainer}>
+              <Text style={styles.btnTitle}>UBICACIÓN</Text>
+              <Text style={styles.btnDesc}>Comercios cercanos.</Text>
+            </View>
+          </TouchableOpacity>
+        </View>
+
+        {/* Perfil y Admin */}
+        <View style={styles.rowWrapper}>
+          <TouchableOpacity style={styles.smallBtn} onPress={() => navigation.navigate('Perfil')} activeOpacity={0.7}>
+            <Image source={require('../../assets/btnperfil.png')} style={styles.btnImgSmall} resizeMode="contain" />
+            <View style={styles.textContainer}>
+              <Text style={styles.btnTitle}>MI PERFIL</Text>
+              <Text style={styles.btnDesc}>Datos personales.</Text>
+            </View>
+          </TouchableOpacity>
+          
+          {/* Botón Admin */}
+          <TouchableOpacity style={[styles.smallBtn, styles.adminBtnVioleta]} onPress={handleAdminPress} activeOpacity={0.7}>
+            <Image source={require('../../assets/btnadminist.png')} style={styles.btnImgCentered} resizeMode="contain" />
+          </TouchableOpacity>
         </View>
       </View>
 
-      {/* FRANJA NEGRA CON SALUDO */}
-      <View style={styles.blackBanner}>
-        <Text style={styles.bannerText}>
-          {user?.nombre ? `¡BIENVENID@, ${user.nombre.toUpperCase()}!` : '¡BIENVENID@!'}
-        </Text>
+      <View style={styles.lineaDorada} />
+
+      <View style={styles.footer}>
+        <TouchableOpacity style={styles.exitButton} onPress={handleLogoutFlow} activeOpacity={0.7}>
+          <Image source={require('../../assets/salir.png')} style={styles.exitIcon} resizeMode="contain" />
+          <Text style={styles.exitText}>SALIR</Text>
+        </TouchableOpacity>
       </View>
-      <View style={styles.titleGoldLine} />
-
-      {/* MENÚ PRINCIPAL */}
-      <ScrollView contentContainerStyle={styles.scrollContainer}>
-        <View style={styles.goldenFrame}>
-          <Text style={styles.welcomeSubtitle}>Seleccione una opción</Text>
-
-          {/* BOTÓN SUPERMERCADOS */}
-          <TouchableOpacity 
-            style={styles.menuButton} 
-            onPress={() => navigation.navigate('SupermercadosCerca')}
-          >
-            <Text style={styles.menuButtonText}>📍 Supermercados + Cerca</Text>
-          </TouchableOpacity>
-
-          {/* BOTÓN ESCÁNER */}
-          <TouchableOpacity 
-            style={styles.menuButton} 
-            onPress={() => navigation.navigate('Scanner')}
-          >
-            <Text style={styles.menuButtonText}>📷 Escáner de Código</Text>
-          </TouchableOpacity>
-
-          {/* BOTÓN DESTACADO PARA EL OPTIMIZADOR DE CHANGOS */}
-          <TouchableOpacity 
-            style={styles.menuButtonChango} 
-            onPress={() => navigation.navigate('SelectorInteligente')}
-          >
-            <Text style={styles.menuButtonChangoText}>🛒 Armar Chango y Ahorrar</Text>
-          </TouchableOpacity>
-
-          {/* BOTÓN MIS CHANGOS GUARDADOS */}
-          <TouchableOpacity 
-            style={styles.menuButtonMisChangos} 
-            onPress={() => navigation.navigate('MisChangos')}
-          >
-            <Text style={styles.menuButtonMisChangosText}>📑 Mis Changos Guardados</Text>
-          </TouchableOpacity>
-
-          {/* BOTÓN PERFIL */}
-          <TouchableOpacity 
-            style={styles.menuButton} 
-            onPress={() => navigation.navigate('Perfil')}
-          >
-            <Text style={styles.menuButtonText}>👤 Mi Perfil</Text>
-          </TouchableOpacity>
-
-          {/* BOTÓN ADMIN */}
-          <TouchableOpacity 
-            style={styles.menuButtonAdmin} 
-            onPress={() => navigation.navigate('AdminPanel')}
-          >
-            <Text style={styles.menuButtonText}>⚙️ Panel de Administración</Text>
-          </TouchableOpacity>
-        </View>
-      </ScrollView>
-
-      {/* FOOTER FIJO ABAJO */}
-      <View style={styles.footerFixed}>
-        <View style={styles.goldLine} />
-        <View style={styles.footerButtonsRow}>
-          <TouchableOpacity onPress={handleSalir} style={styles.footerButton}>
-            <Image source={require('../../assets/salir.png')} style={styles.footerIcon} />
-            <Text style={styles.footerButtonText}>Salir</Text>
-          </TouchableOpacity>
-        </View>
-      </View>
-    </View>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#001f3f', paddingTop: 20 },
-  header: { 
-    flexDirection: 'row', 
-    alignItems: 'center', 
-    justifyContent: 'space-between', 
-    paddingHorizontal: 15, 
-    paddingBottom: 10 
-  },
-  headerLeft: { flexDirection: 'row', alignItems: 'center', flex: 1 },
-  logoMini: { width: 45, height: 45, resizeMode: 'contain', marginRight: 10 },
-  nombreApp: { width: 180, height: 45, resizeMode: 'contain' },
-  avatarContainer: { marginLeft: 10 },
-  avatarImage: { width: 50, height: 50, borderRadius: 25, borderWidth: 2, borderColor: '#FFD700', resizeMode: 'cover' },
-  initialsCircle: { width: 50, height: 50, borderRadius: 25, backgroundColor: '#003366', borderWidth: 2, borderColor: '#FFD700', justifyContent: 'center', alignItems: 'center' },
-  initialsText: { color: '#FFD700', fontSize: 18, fontWeight: 'bold' },
-  blackBanner: { width: '100%', backgroundColor: '#000000', paddingVertical: 12, alignItems: 'center', justifyContent: 'center', marginTop: 5 },
-  bannerText: { color: '#FFD700', fontSize: 18, fontWeight: 'bold', letterSpacing: 1, textAlign: 'center' },
-  titleGoldLine: { height: 1, backgroundColor: '#FFD700', width: '100%', marginBottom: 15 },
-  scrollContainer: { paddingBottom: 100, paddingHorizontal: 20 },
-  goldenFrame: { borderWidth: 1, borderColor: '#FFD700', borderRadius: 15, padding: 20, backgroundColor: '#001f3f', alignItems: 'center' },
-  welcomeSubtitle: { color: '#fff', fontSize: 16, marginBottom: 20, fontWeight: '600' },
-  menuButton: { width: '100%', backgroundColor: '#003366', borderWidth: 1, borderColor: '#00ffff', paddingVertical: 15, borderRadius: 10, alignItems: 'center', marginBottom: 15 },
-  menuButtonChango: { width: '100%', backgroundColor: '#1b5e20', borderWidth: 1.5, borderColor: '#FFD700', paddingVertical: 16, borderRadius: 10, alignItems: 'center', marginBottom: 15 },
-  menuButtonChangoText: { color: '#FFD700', fontSize: 17, fontWeight: 'bold' },
-  menuButtonMisChangos: { 
-    width: '100%', 
-    backgroundColor: '#01579b', 
-    borderWidth: 1.5, 
-    borderColor: '#00E5FF', 
-    paddingVertical: 15, 
-    borderRadius: 10, 
-    alignItems: 'center', 
-    marginBottom: 15 
-  },
-  menuButtonMisChangosText: { color: '#00E5FF', fontSize: 16, fontWeight: 'bold' },
-  menuButtonAdmin: { width: '100%', backgroundColor: '#331a00', borderWidth: 1, borderColor: '#FFD700', paddingVertical: 15, borderRadius: 10, alignItems: 'center', marginBottom: 15 },
-  menuButtonText: { color: '#fff', fontSize: 16, fontWeight: 'bold' },
-  footerFixed: { position: 'absolute', bottom: 10, left: 20, right: 20, paddingBottom: 10 },
-  goldLine: { height: 1, backgroundColor: '#FFD700', marginBottom: 10 },
-  footerButtonsRow: { flexDirection: 'row', justifyContent: 'center', paddingHorizontal: 20 },
-  footerButton: { alignItems: 'center', justifyContent: 'center' },
-  footerIcon: { width: 40, height: 40, resizeMode: 'contain', tintColor: '#00BFFF' },
-  footerButtonText: { color: '#00BFFF', fontSize: 11, marginTop: 4, fontWeight: 'bold' }
+  container: { flex: 1, backgroundColor: '#001f3f' },
+  header: { flexDirection: 'row', justifyContent: 'space-between', paddingHorizontal: 15, paddingVertical: 10, alignItems: 'center', backgroundColor: '#000' },
+  headerLeft: { flexDirection: 'row', alignItems: 'center' },
+  logoGrande: { width: 70, height: 70, marginRight: 12 },
+  nombreAppGrande: { width: 175, height: 46 },
+  
+  franjaNegra: { backgroundColor: '#000', paddingVertical: 8, alignItems: 'center', borderTopWidth: 1, borderBottomWidth: 1, borderColor: '#ffcc00' },
+  tituloFranja: { color: '#ffcc00', fontWeight: 'bold', fontSize: 16, letterSpacing: 1.2 },
+  
+  menuContainer: { flex: 1, paddingHorizontal: 12, justifyContent: 'space-evenly', paddingVertical: 4 },
+  
+  btnFull: { flexDirection: 'row', backgroundColor: '#000', borderWidth: 1, borderColor: '#00E5FF', borderRadius: 8, padding: 8, alignItems: 'center', height: 84 },
+  smallBtn: { flexDirection: 'row', backgroundColor: '#000', borderWidth: 1, borderColor: '#00E5FF', borderRadius: 8, padding: 8, alignItems: 'center', flex: 1, height: 74 },
+  
+  adminBtnVioleta: { backgroundColor: 'transparent', borderColor: '#8A2BE2', justifyContent: 'center', alignItems: 'center' },
+  
+  btnImg: { width: 62, height: '100%', marginRight: 10 },
+  btnImgSmall: { width: 48, height: '100%', marginRight: 8 },
+  btnImgCentered: { width: 50, height: '100%' },
+  
+  textContainer: { flex: 1, justifyContent: 'center' },
+  btnTitle: { color: '#FFF', fontSize: 11, fontWeight: 'bold' },
+  btnDesc: { color: '#DDD', fontSize: 9, marginTop: 2 },
+  
+  rowWrapper: { flexDirection: 'row', gap: 10 },
+
+  lineaDorada: { height: 1.5, backgroundColor: '#ffcc00', width: '100%' },
+
+  footer: { paddingVertical: 12, backgroundColor: '#000', alignItems: 'center' },
+  exitButton: { flexDirection: 'row', backgroundColor: '#000', borderWidth: 1, borderColor: '#FF5555', paddingVertical: 6, paddingHorizontal: 30, borderRadius: 8, alignItems: 'center' },
+  exitIcon: { width: 28, height: 28, marginRight: 10, tintColor: '#00E5FF' },
+  exitText: { color: '#FF5555', fontSize: 14, fontWeight: 'bold' }
 });
