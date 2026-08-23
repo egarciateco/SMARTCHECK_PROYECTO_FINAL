@@ -157,10 +157,24 @@ export default function ProfileScreen({ navigation }) {
   const calcularAntiguedad = (fechaRegistro) => {
     if (!fechaRegistro) return "1 día";
     try {
-      const regDate = new Date(fechaRegistro);
+      let regDate;
+      if (typeof fechaRegistro === 'string' && fechaRegistro.includes('/')) {
+        const partes = fechaRegistro.split('/');
+        if (partes.length === 3) {
+          regDate = new Date(parseInt(partes[2]), parseInt(partes[1]) - 1, parseInt(partes[0]));
+        } else {
+          regDate = new Date(fechaRegistro);
+        }
+      } else {
+        regDate = new Date(fechaRegistro);
+      }
+
+      if (isNaN(regDate.getTime())) return "1 día";
+
       const hoy = new Date();
       const diffTime = Math.abs(hoy - regDate);
-      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+      const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+
       if (diffDays > 365) {
         const anos = Math.floor(diffDays / 365);
         return `${anos} ${anos === 1 ? 'año' : 'años'}`;
@@ -169,7 +183,7 @@ export default function ProfileScreen({ navigation }) {
         const meses = Math.floor(diffDays / 30);
         return `${meses} ${meses === 1 ? 'mes' : 'meses'}`;
       }
-      return `${diffDays} ${diffDays === 1 ? 'día' : 'días'}`;
+      return `${diffDays === 0 ? '1' : diffDays} ${diffDays === 1 || diffDays === 0 ? 'día' : 'días'}`;
     } catch (e) {
       return "1 día";
     }
@@ -209,8 +223,11 @@ export default function ProfileScreen({ navigation }) {
   const sexoUsuario = (userData?.sexo || user?.sexo || '').toLowerCase();
   const fechaNacimiento = userData?.fechaNacimiento || (userData?.dia ? `${userData.dia}/${userData.mes}/${userData.anio}` : (user?.fechaNacimiento || 'N/A'));
   const edadTexto = calcularEdad(fechaNacimiento);
-  const fechaRegFormateada = userData?.createdAt ? new Date(userData.createdAt).toLocaleDateString() : '01/01/2026';
-  const antiguedadTexto = calcularAntiguedad(userData?.createdAt || user?.createdAt);
+  
+  // ⚡ Corrección aquí: Lee fechaRegistro del servidor y hace fallback seguro
+  const fechaRegFormateada = userData?.fechaRegistro || user?.fechaRegistro || (userData?.createdAt ? new Date(userData.createdAt).toLocaleDateString() : 'N/A');
+  const antiguedadTexto = calcularAntiguedad(userData?.fechaRegistro || user?.fechaRegistro || userData?.createdAt || user?.createdAt);
+  
   const fotoUri = userData?.foto || userData?.image || user?.foto || user?.image || null;
 
   const visitasApp = Math.max(visitasLocales, userData?.visitas || userData?.cantidadVisitas || user?.visitas || 1);
@@ -352,7 +369,6 @@ const styles = StyleSheet.create({
   userNameText: { color: '#00fa9a', fontSize: 17, fontWeight: 'bold' },
   
   avatarContainer: { marginLeft: 5 },
-  // 🔍 Foto más grande optimizada (pasó de 62 a 92)
   avatarImage: { width: 92, height: 92, borderRadius: 46, borderWidth: 2, borderColor: '#FFD700', resizeMode: 'cover' },
   initialsCircle: { width: 92, height: 92, borderRadius: 46, backgroundColor: '#003366', borderWidth: 2, borderColor: '#FFD700', justifyContent: 'center', alignItems: 'center' },
   initialsText: { color: '#FFD700', fontSize: 24, fontWeight: 'bold' },

@@ -18,7 +18,6 @@ export default function RegisterScreen() {
     clearRegisterData 
   } = useAuth();
 
-  // Inicializar con los datos guardados en el contexto global
   const [nombre, setNombre] = useState(registerFormData.nombre);
   const [apellido, setApellido] = useState(registerFormData.apellido);
   const [email, setEmail] = useState(registerFormData.email);
@@ -44,7 +43,6 @@ export default function RegisterScreen() {
 
   useLayoutEffect(() => navigation.setOptions({ headerShown: false }), [navigation]);
 
-  // Actualizar el contexto cada vez que el usuario escriba en el formulario
   useEffect(() => {
     setRegisterFormData({
       nombre,
@@ -60,7 +58,6 @@ export default function RegisterScreen() {
     });
   }, [nombre, apellido, email, dia, mes, anio, sexo, password, confirmPassword, authMode]);
 
-  // Capturar la foto que viene de FacialLoginScreen
   useEffect(() => {
     if (registerPhotoUri) {
       setHasPhoto(true);
@@ -94,7 +91,6 @@ export default function RegisterScreen() {
     const currentYear = new Date().getFullYear();
     if (a < 1900 || a > currentYear) return false;
 
-    // Verificar si el día existe realmente en el mes/año dado (ej: 31/02 no existe, bisiestos, etc.)
     const dateObj = new Date(a, m - 1, d);
     if (
       dateObj.getFullYear() !== a ||
@@ -112,7 +108,6 @@ export default function RegisterScreen() {
       return Alert.alert("Error", "Por favor completa todos los campos obligatorios.");
     }
 
-    // Validación estricta de la fecha antes de proceder con cualquier método
     if (!validarFechaFrontend(dia, mes, anio)) {
       return Alert.alert(
         "Atención",
@@ -265,6 +260,7 @@ export default function RegisterScreen() {
               ) : null}
             </View>
 
+            {/* SECCIÓN DE FECHA DE NACIMIENTO CON VALIDACIÓN INMEDIATA */}
             <View style={styles.inputContainer}>
               <Image source={require('../../assets/fechanac.png')} style={styles.largeEmoji} />
               <View style={styles.dateContainer}>
@@ -276,6 +272,12 @@ export default function RegisterScreen() {
                   maxLength={2}
                   value={dia} 
                   onChangeText={(text) => {
+                    const num = parseInt(text, 10);
+                    if (text.length === 2 && (isNaN(num) || num < 1 || num > 31)) {
+                      Alert.alert("Atención", "El día ingresado es erróneo. Debe estar entre 1 y 31.");
+                      setDia('');
+                      return;
+                    }
                     setDia(text);
                     if (text.length === 2) {
                       mesRef.current?.focus();
@@ -292,6 +294,12 @@ export default function RegisterScreen() {
                   maxLength={2}
                   value={mes} 
                   onChangeText={(text) => {
+                    const num = parseInt(text, 10);
+                    if (text.length === 2 && (isNaN(num) || num < 1 || num > 12)) {
+                      Alert.alert("Atención", "El mes ingresado es erróneo. Debe estar entre 1 y 12.");
+                      setMes('');
+                      return;
+                    }
                     setMes(text);
                     if (text.length === 2) {
                       anioRef.current?.focus();
@@ -310,24 +318,41 @@ export default function RegisterScreen() {
                   onChangeText={(text) => {
                     setAnio(text);
                     if (text.length === 4) {
-                      Keyboard.dismiss();
-                      setSexoModalVisible(true);
+                      const currentYear = new Date().getFullYear();
+                      const aNum = parseInt(text, 10);
+                      if (isNaN(aNum) || aNum < 1900 || aNum > currentYear) {
+                        Alert.alert("Atención", "El año ingresado es erróneo.");
+                        setAnio('');
+                        return;
+                      }
+                      // Validar fecha completa al terminar el año
+                      if (!validarFechaFrontend(dia, mes, text)) {
+                        Alert.alert("Atención", "La fecha de nacimiento ingresada es errónea. Por favor, vuelva a ingresarla correctamente.");
+                      } else {
+                        Keyboard.dismiss();
+                        setSexoModalVisible(true);
+                      }
                     }
                   }} 
                 />
               </View>
               {(dia || mes || anio) ? (
-                <TouchableOpacity onPress={() => { setDia(''); setMes(''); setAnio(''); }} style={styles.clearBtn}>
+                <TouchableOpacity onPress={() => { setDia(''); setMes(''); setAnio(''); setSexo(''); }} style={styles.clearBtn}>
                   <Text style={styles.clearText}>🗑️</Text>
                 </TouchableOpacity>
               ) : null}
             </View>
 
+            {/* SECCIÓN DE SEXO PROTEGIDA CONTRA FECHAS ERRÓNEAS O INCOMPLETAS */}
             <View style={styles.inputContainer}>
               <Image source={require('../../assets/sexo.png')} style={styles.largeEmoji} />
               <TouchableOpacity 
                 style={{ flex: 1, justifyContent: 'center' }} 
                 onPress={() => {
+                  if (!dia || !mes || anio.length < 4 || !validarFechaFrontend(dia, mes, anio)) {
+                    Alert.alert("Atención", "Debe ingresar una fecha de nacimiento completa y válida antes de seleccionar el sexo.");
+                    return;
+                  }
                   Keyboard.dismiss();
                   setSexoModalVisible(true);
                 }}
@@ -452,7 +477,14 @@ export default function RegisterScreen() {
         <View style={styles.footerWrapper}>
           <View style={styles.footerLine} />
           <View style={styles.footer}>
-            <TouchableOpacity onPress={() => { clearRegisterData(); navigation.goBack(); }}>
+            <TouchableOpacity onPress={() => { 
+              clearRegisterData(); 
+              if (navigation.canGoBack()) {
+                navigation.goBack();
+              } else {
+                navigation.navigate('Login');
+              }
+            }}>
               <Image source={require('../../assets/volver.png')} style={styles.navIconCeleste} />
             </TouchableOpacity>
 
