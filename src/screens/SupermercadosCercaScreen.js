@@ -42,10 +42,10 @@ const obtenerLogoSupermercado = (sup) => {
 
 // Respaldo robusto con distancias métricas iniciales
 const SUPERMERCADOS_RESPALDO = [
-    { id: '1', supermercado: 'Coto - Sucursal Paraná', latitude: -31.7400, longitude: -60.5200, direccion: 'Av. Ramírez 2300', distanciaKm: 0.65, distancia: '650 mts' },
-    { id: '2', supermercado: 'Carrefour Market', latitude: -31.7250, longitude: -60.5400, direccion: 'Gualeguaychú 450', distanciaKm: 1.2, distancia: '1.2 km' },
-    { id: '3', supermercado: 'Supermercados Día', latitude: -31.7350, longitude: -60.5150, direccion: 'Belgrano 890', distanciaKm: 1.8, distancia: '1.8 km' },
-    { id: '4', supermercado: 'Supermercados Vea', latitude: -31.7310, longitude: -60.5250, direccion: '25 de Mayo 1420', distanciaKm: 2.3, distancia: '2.3 km' }
+    { id: '1', supermercado: 'Coto - Sucursal Paraná', latitude: -31.7400, longitude: -60.5200, direccion: 'Av. Ramírez 2300' },
+    { id: '2', supermercado: 'Carrefour Market', latitude: -31.7250, longitude: -60.5400, direccion: 'Gualeguaychú 450' },
+    { id: '3', supermercado: 'Supermercados Día', latitude: -31.7350, longitude: -60.5150, direccion: 'Belgrano 890' },
+    { id: '4', supermercado: 'Supermercados Vea', latitude: -31.7310, longitude: -60.5250, direccion: '25 de Mayo 1420' }
 ];
 
 export default function SupermercadosCercaScreen() {
@@ -107,20 +107,33 @@ export default function SupermercadosCercaScreen() {
 
             if (listaBruta.length > 0) {
                 const formateados = listaBruta.map(sup => {
-                    const lat = parseFloat(sup.latitude || sup.lat || sup.LATITUD || latitude);
-                    const lng = parseFloat(sup.longitude || sup.lng || sup.LONGITUD || longitude);
+                    // Extracción ultra robusta contemplando propiedades directas o GeoJSON de MongoDB
+                    const lat = parseFloat(
+                        sup.latitude || 
+                        sup.lat || 
+                        sup.LATITUD || 
+                        (sup.location?.coordinates ? sup.location.coordinates[1] : null) || 
+                        (sup.coordinates ? sup.coordinates[1] : null) || 
+                        latitude
+                    );
                     
-                    let distKm = sup.distanciaKm !== undefined ? parseFloat(sup.distanciaKm) : null;
+                    const lng = parseFloat(
+                        sup.longitude || 
+                        sup.lng || 
+                        sup.LONGITUD || 
+                        (sup.location?.coordinates ? sup.location.coordinates[0] : null) || 
+                        (sup.coordinates ? sup.coordinates[0] : null) || 
+                        longitude
+                    );
 
-                    if (distKm === null || isNaN(distKm)) {
-                        const R = 6371;
-                        const dLat = (lat - latitude) * (Math.PI / 180);
-                        const dLon = (lng - longitude) * (Math.PI / 180);
-                        const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-                                  Math.cos(latitude * (Math.PI / 180)) * Math.cos(lat * (Math.PI / 180)) *
-                                  Math.sin(dLon / 2) * Math.sin(dLon / 2);
-                        distKm = R * (2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)));
-                    }
+                    // Cálculo matemático exacto por Haversine basado en la posición actual del usuario
+                    const R = 6371;
+                    const dLat = (lat - latitude) * (Math.PI / 180);
+                    const dLon = (lng - longitude) * (Math.PI / 180);
+                    const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+                              Math.cos(latitude * (Math.PI / 180)) * Math.cos(lat * (Math.PI / 180)) *
+                              Math.sin(dLon / 2) * Math.sin(dLon / 2);
+                    const distKm = R * (2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)));
 
                     return {
                         ...sup,
@@ -131,17 +144,37 @@ export default function SupermercadosCercaScreen() {
                     };
                 });
 
+                // Ordenamiento estricto de menor a mayor distancia
                 formateados.sort((a, b) => a.distanciaKm - b.distanciaKm);
                 setSupermercados(formateados);
             } else {
-                setSupermercados(SUPERMERCADOS_RESPALDO);
+                procesarRespaldo(latitude, longitude);
             }
         } catch (error) {
             console.error('Error conectando al backend de cercanos, usando respaldo:', error);
-            setSupermercados(SUPERMERCADOS_RESPALDO);
+            procesarRespaldo(latitude, longitude);
         } finally {
             setLoading(false);
         }
+    };
+
+    const procesarRespaldo = (latUser, lngUser) => {
+        const respaldoConDistancia = SUPERMERCADOS_RESPALDO.map(sup => {
+            const R = 6371;
+            const dLat = (sup.latitude - latUser) * (Math.PI / 180);
+            const dLon = (sup.longitude - lngUser) * (Math.PI / 180);
+            const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+                      Math.cos(latUser * (Math.PI / 180)) * Math.cos(sup.latitude * (Math.PI / 180)) *
+                      Math.sin(dLon / 2) * Math.sin(dLon / 2);
+            const distKm = R * (2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)));
+            return {
+                ...sup,
+                distanciaKm: distKm,
+                distancia: distKm < 1 ? `${Math.round(distKm * 1000)} mts` : `${distKm.toFixed(1)} km`
+            };
+        });
+        respaldoConDistancia.sort((a, b) => a.distanciaKm - b.distanciaKm);
+        setSupermercados(respaldoConDistancia);
     };
 
     const abrirEnMapaExterno = (sup) => {

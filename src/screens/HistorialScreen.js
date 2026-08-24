@@ -28,7 +28,7 @@ export default function HistorialScreen({ navigation }) {
         return;
       }
 
-      const response = await fetch(`http://192.168.1.7:3000/api/users/historial-compras/${uid}`);
+      const response = await fetch(`http://192.168.1.7:8000/api/users/historial-compras/${uid}`);
       
       if (!response.ok) {
         throw new Error(`Error en el servidor: ${response.status}`);

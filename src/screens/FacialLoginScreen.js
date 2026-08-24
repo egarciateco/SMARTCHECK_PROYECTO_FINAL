@@ -7,7 +7,6 @@ import { CameraView, useCameraPermissions } from 'expo-camera';
 import { useNavigation, useRoute, useIsFocused } from '@react-navigation/native';
 import { Audio } from 'expo-av';
 import * as ImageManipulator from 'expo-image-manipulator';
-import { authService } from '../config/api';
 import { useAuth } from '../context/AuthContext';
 
 export default function FacialLoginScreen() {
@@ -19,6 +18,7 @@ export default function FacialLoginScreen() {
   const [permission, requestPermission] = useCameraPermissions();
   const [loading, setLoading] = useState(false);
   const [isCapturing, setIsCapturing] = useState(false);
+  const [isCameraReady, setIsCameraReady] = useState(false);
 
   // Control de foco para liberar y reiniciar la cámara correctamente al navegar
   const isFocused = useIsFocused();
@@ -50,6 +50,13 @@ export default function FacialLoginScreen() {
       clearTimeout(timer);
     };
   }, []);
+
+  // Reiniciar estado de cámara cuando pierde o gana foco
+  useEffect(() => {
+    if (!isFocused) {
+      setIsCameraReady(false);
+    }
+  }, [isFocused]);
 
   // AUDIOS
   const reproducirAudioVerificando = async () => {
@@ -235,11 +242,39 @@ export default function FacialLoginScreen() {
 
       // FLUJO 2: INICIO DE SESIÓN BIOMÉTRICO
       console.log(">>> Enviando datos de inicio de sesión biométrico...");
-      const response = await authService.loginBiometric(formData);
+      
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 60000);
 
-      if (response && response.data && response.data.status === 'success') {
-        // CAMBIO AQUÍ: Usamos response.data.user (o response.data directamente)
-        const usuarioLogueado = response.data.user || response.data; 
+      let response;
+      try {
+        response = await fetch('https://smartcheck-proyecto.onrender.com/api/users/biometria', {
+          method: 'POST',
+          body: formData,
+          signal: controller.signal,
+        });
+      } catch (fetchError) {
+        clearTimeout(timeoutId);
+        if (fetchError.name === 'AbortError') {
+          throw new Error("El servidor tardó demasiado en responder. Por favor, intenta de nuevo.");
+        }
+        throw fetchError;
+      }
+      clearTimeout(timeoutId);
+
+      const data = await response.json();
+      console.log(">>> RESPUESTA CRUDA DEL BACKEND EN LOGIN BIOMÉTRICO:", JSON.stringify(data, null, 2));
+
+      if (response.ok && data.success === true) {
+        const rawUser = data.user || data.usuario || data; 
+        
+        // Mapeo flexible adaptado a las propiedades devueltas por el servidor
+        const usuarioLogueado = {
+          ...rawUser,
+          nombre: rawUser.nombre || rawUser.nombres || rawUser.name || 'Usuario',
+          apellido: rawUser.apellido || rawUser.apellidos || rawUser.lastName || '',
+          foto: rawUser.foto || rawUser.imagen || rawUser.avatar || rawUser.urlFoto || rawUser.image || null,
+        };
         
         await reproducirAudioReconocida().catch(() => {});
 
@@ -248,7 +283,7 @@ export default function FacialLoginScreen() {
 
         Alert.alert(
           "¡Éxito!", 
-          `Bienvenid@ de nuevo, ${usuarioLogueado.nombre || 'Usuario'}`,
+          `Bienvenid@ de nuevo, ${usuarioLogueado.nombre}`,
           [
             {
               text: "Continuar",
@@ -258,14 +293,14 @@ export default function FacialLoginScreen() {
           { cancelable: false }
         );
       } else {
-        throw new Error(response?.data?.mensaje || "No se reconoció el rostro.");
+        throw new Error(data.mensaje || "No se reconoció el rostro.");
       }
 
     } catch (error) {
       console.log(">>> Error capturado en reconocimiento facial:", error.message || error);
       reproducirAudioError().catch(() => {});
 
-      let mensajeError = error.response?.data?.mensaje || error.message || "Error desconocido";
+      let mensajeError = error.message || "Error desconocido";
       if (mensajeError.includes("Network Error") || error.code === 'ECONNABORTED' || mensajeError.includes("Aborted")) {
         mensajeError = "El servidor en la nube está despertando. Por favor, espera unos segundos y vuelve a presionar el botón de verificar.";
       }
@@ -323,18 +358,18 @@ export default function FacialLoginScreen() {
 
       {/* CÁMARA */}
       <View style={styles.cameraContainer}>
-        {/* Usamos isFocused para garantizar que la cámara se desmonte y monte correctamente */}
         {isFocused && (
           <CameraView 
             ref={cameraRef} 
             style={styles.camera} 
             facing="front"
+            onCameraReady={() => setIsCameraReady(true)}
           >
             <View style={styles.overlayOval} />
           </CameraView>
         )}
 
-        {loading && (
+        {(!isCameraReady || loading) && (
           <Image source={require('../../assets/standby.gif')} style={styles.standbyFullBoxAbsolute} />
         )}
       </View>
@@ -428,6 +463,8 @@ const styles = StyleSheet.create({
   },
   camera: { 
     flex: 1, 
+    width: '100%', 
+    height: '100%', 
     justifyContent: 'center', 
     alignItems: 'center' 
   },

@@ -3,7 +3,7 @@ import axiosRetry from 'axios-retry';
 
 // --- CONFIGURACIÓN CENTRAL ---
 const api = axios.create({
-  baseURL: 'http://192.168.1.7:3000', 
+  baseURL: 'https://smartcheck-proyecto.onrender.com', 
   timeout: 60000, 
 });
 
