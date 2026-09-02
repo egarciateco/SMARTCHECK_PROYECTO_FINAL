@@ -1,0 +1,11 @@
+*.exe
+*.apk
+*.crdownload
+node_modules/
+.expo/
+.next/
+dist/
+smartcheck-backend/serviceAccountKey.json
+venv/
+*.db
+__pycache__/

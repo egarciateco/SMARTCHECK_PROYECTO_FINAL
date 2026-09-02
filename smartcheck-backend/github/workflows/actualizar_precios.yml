@@ -1,0 +1,32 @@
+name: Actualizar Precios Supermercados
+
+on:
+  schedule:
+    # Se ejecuta todos los días a las 03:00 AM hora de Argentina (06:00 UTC)
+    - cron: '0 6 * * *'
+  workflow_dispatch: # Permite ejecutarlo manualmente desde GitHub cuando quieras
+
+jobs:
+  actualizar-precios:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 📥 Clonar repositorio
+        uses: actions/checkout@v4
+
+      - name: 🐍 Configurar Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: 📦 Instalar dependencias
+        run: |
+          python -m pip install --upgrade pip
+          pip install firebase-admin requests pandas openpyxl aiohttp beautifulsoup4 fastapi uvicorn
+
+      - name: 🚀 Ejecutar motor de scraping y actualización
+        env:
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+        run: |
+          python smartcheck-backend/motor_smartcheck.py
